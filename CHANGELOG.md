@@ -1,3 +1,5 @@
+Copyright (C) 2026 thwere
+
 CHANGELOG
 
 This file records notable changes to Veigar K643 Configurator.
