@@ -1,3 +1,5 @@
+Copyright (C) 2026 thwere
+
 PROJECT STATUS
 
 Project: Veigar K643 Configurator
