@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/branding/veigar-k643-readme-banner-concept.svg" alt="Veigar K643 Configurator" width="100%" />
+</p>
+
 # Veigar K643 Configurator
 
 **Unofficial configuration software for the Redragon Veigar K643**
