@@ -1,0 +1,15 @@
+# Normalize text files in the repository.
+* text=auto eol=lf
+
+# Treat common binary assets as binary.
+*.7z binary
+*.dll binary
+*.exe binary
+*.gif binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.png binary
+*.pdb binary
+*.pdf binary
+*.zip binary
