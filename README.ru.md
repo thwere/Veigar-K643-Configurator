@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/branding/veigar-k643-readme-banner-concept.svg" alt="Veigar K643 Configurator" width="100%" />
+</p>
+
 VEIGAR K643 CONFIGURATOR
 Неофициальная программа настройки клавиатуры Redragon Veigar K643
 
