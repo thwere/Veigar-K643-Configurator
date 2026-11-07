@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1479" height="345" viewBox="0 0 1479 345" role="img" aria-labelledby="title desc">
+  <title id="title">Veigar K643 Configurator</title>
+  <desc id="desc">A restrained dark banner with a keyboard and gear symbol, white title lettering, and red accents.</desc>
+  <defs>
+    <linearGradient id="bannerBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101113"/>
+      <stop offset="0.52" stop-color="#050505"/>
+      <stop offset="1" stop-color="#17181a"/>
+    </linearGradient>
+    <linearGradient id="key" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#67696c"/>
+      <stop offset="1" stop-color="#292a2d"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff3737"/>
+      <stop offset="1" stop-color="#9f1118"/>
+    </linearGradient>
+  </defs>
+  <rect width="1479" height="345" fill="url(#bannerBg)"/>
+  <rect x="1.5" y="1.5" width="1476" height="342" rx="2" fill="none" stroke="#44464a" stroke-width="2"/>
+  <path d="M0 238 L0 265 L118 345 L145 345 Z" fill="#26282b" opacity=".8"/>
+  <path d="M0 238 L0 250 L124 345 L138 345 Z" fill="#bd171e"/>
+  <path d="M1345 0 L1374 0 L1089 345 L1060 345 Z" fill="#202226" opacity=".7"/>
+  <path d="M1460 0 L1479 0 L1479 30 L1220 345 L1192 345 Z" fill="#25272b" opacity=".65"/>
+  <path d="M1479 90 L1479 100 L1276 345 L1266 345 Z" fill="#bd171e"/>
+  <g transform="translate(18 0) scale(.66)">
+    <path d="M 160 118 A 158 158 0 1 1 160 394" fill="none" stroke="#f3f3f3" stroke-width="25" stroke-linecap="square"/>
+    <g fill="#f3f3f3">
+      <rect x="237" y="53" width="38" height="35" rx="5" transform="rotate(7 256 70)"/>
+      <rect x="366" y="91" width="39" height="35" rx="5" transform="rotate(43 385 108)"/>
+      <rect x="413" y="224" width="39" height="35" rx="5" transform="rotate(88 432 241)"/>
+      <rect x="367" y="357" width="39" height="35" rx="5" transform="rotate(133 386 374)"/>
+      <rect x="238" y="420" width="38" height="35" rx="5" transform="rotate(178 257 437)"/>
+      <rect x="122" y="372" width="35" height="31" rx="5" transform="rotate(220 139 387)"/>
+    </g>
+    <g stroke="#aeb0b3" stroke-width="3" fill="url(#key)">
+      <rect x="72" y="184" width="48" height="35" rx="6"/>
+      <rect x="132" y="184" width="48" height="35" rx="6"/>
+      <rect x="192" y="184" width="48" height="35" rx="6"/>
+      <rect x="252" y="184" width="48" height="35" rx="6"/>
+      <rect x="312" y="184" width="58" height="35" rx="6" fill="url(#red)" stroke="#c83a3e"/>
+      <rect x="62" y="238" width="58" height="37" rx="6"/>
+      <rect x="130" y="238" width="58" height="37" rx="6"/>
+      <rect x="198" y="238" width="58" height="37" rx="6"/>
+      <rect x="266" y="238" width="58" height="37" rx="6"/>
+      <rect x="334" y="238" width="46" height="37" rx="6"/>
+      <rect x="76" y="294" width="78" height="38" rx="6"/>
+      <rect x="166" y="294" width="108" height="38" rx="6"/>
+      <rect x="286" y="294" width="76" height="38" rx="6"/>
+    </g>
+  </g>
+  <path d="M442 55 V290" stroke="#77797d" stroke-width="2" opacity=".7"/>
+  <text x="510" y="137" fill="#f4f4f4" font-family="Segoe UI, Arial, sans-serif" font-size="66" font-weight="700" letter-spacing="7">VEIGAR K643</text>
+  <text x="510" y="218" fill="#c9cacc" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="300" letter-spacing="8">CONFIGURATOR</text>
+  <text x="512" y="282" fill="#d4d5d7" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" letter-spacing="5">CUSTOMIZE</text>
+  <circle cx="716" cy="276" r="4" fill="#d51e25"/>
+  <text x="754" y="282" fill="#d4d5d7" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" letter-spacing="5">CONFIGURE</text>
+  <circle cx="965" cy="276" r="4" fill="#d51e25"/>
+  <text x="1004" y="282" fill="#d4d5d7" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="400" letter-spacing="5">PERSONALIZE</text>
+</svg>
