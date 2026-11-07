@@ -1,0 +1,42 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rtifacts/
+[Tt]est[Rr]esults/
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+
+# IDE and tooling
+.idea/
+.vscode/
+_ReSharper*/
+*.DotSettings.user
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.cache
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Generated documentation / coverage
+coverage/
