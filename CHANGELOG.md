@@ -2,6 +2,39 @@
 
 All notable project changes are documented here.
 
+## [0.3.0-alpha] - 2026-11-08
+
+### Added
+- Full 126-slot RGB editor with per-slot colour assignment.
+- Multi-tab dark WPF workspace and Windows dark title bar.
+- Layer compositor supporting Static, Gradient, Animation, AudioReactive and KeyReactive layers.
+- Replace, Add and Max blending modes with per-layer opacity.
+- Animation frame capture and cyclic playback.
+- Raw Input integration filtered to USB VID 258A / PID 0049.
+- Manual physical key-to-LED-slot calibration.
+- Key-reactive Flash, Fade and HoldGlow, including simultaneous mapped keys.
+- Windows Core Audio output peak meter for audio-reactive lighting.
+- Expanded JSON profiles containing layers, LED slot colours, animation frames and key mappings.
+- Migration support for v0.2.0-alpha single-colour profiles.
+
+### Changed
+- Full 126-slot RGB scenes are packed into one 382-byte Feature Report.
+- Audio-reactive updates are throttled to meaningful output-level changes.
+- The interface now has dedicated tabs for LED editing, layers/animation, key reactions, audio, profiles and roadmap.
+
+### Not included yet
+- Verified physical key geometry, ripple and neighbour-ripple.
+- Frequency-band audio visualisation.
+- Macro editor and software key remapping.
+- Installer and updater.
+
+### Notes
+- v0.1.0-alpha hardware test confirmed all keys illuminated.
+- v0.3.0-alpha adds new control paths that require physical-device validation.
+- The 126-cell grid represents protocol LED slots, not an established keyboard diagram.
+- No audio is recorded or stored, typed text is not logged, and no telemetry is sent.
+- Lighting remains temporary; no firmware is modified.
+
 ## [0.2.0-alpha] - 2026-11-08
 
 ### Added
@@ -18,10 +51,7 @@ All notable project changes are documented here.
 - Removed the automatic device refresh after every colour update.
 
 ### Notes
-- This is an experimental pre-release for the Redragon Veigar K643.
-- Physical validation of the new editor and profile workflow is still required.
-- Profiles store editor values locally; applying a profile to the keyboard remains an explicit action.
-- Lighting settings are temporary and no firmware is modified.
+- Experimental pre-release; additional hardware validation required.
 
 ## [0.1.0-alpha] - 2026-11-08
 
@@ -29,6 +59,3 @@ All notable project changes are documented here.
 - Initial WPF application and automatic device discovery.
 - Basic solid-colour RGB preview commands.
 - First GitHub Actions build and pre-release publishing workflow.
-
-### Notes
-- The initial release was intended for first hardware validation.
