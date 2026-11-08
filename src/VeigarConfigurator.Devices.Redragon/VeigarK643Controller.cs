@@ -53,14 +53,17 @@ namespace VeigarConfigurator.Devices.Redragon
                     string.Empty);
             }
 
-            if (_session != null && string.Equals(
-                _connectedPath, target.DevicePath, StringComparison.OrdinalIgnoreCase))
+            lock (_sessionLock)
             {
-                return new DeviceConnectionInfo(
-                    true,
-                    "Veigar K643 connected",
-                    "USB VID 258A / PID 0049 · HID interface MI_01 / Col08",
-                    _connectedPath);
+                if (_session != null && string.Equals(
+                    _connectedPath, target.DevicePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    return new DeviceConnectionInfo(
+                        true,
+                        "Veigar K643 connected",
+                        "USB VID 258A / PID 0049 · HID interface MI_01 / Col08",
+                        _connectedPath);
+                }
             }
 
             Disconnect();
@@ -76,29 +79,32 @@ namespace VeigarConfigurator.Devices.Redragon
                     target.DevicePath);
             }
 
-            _session = newSession;
-            _connectedPath = target.DevicePath;
+            lock (_sessionLock)
+            {
+                if (_disposed)
+                {
+                    newSession.Dispose();
+                    throw new ObjectDisposedException("VeigarK643Controller");
+                }
+
+                _session = newSession;
+                _connectedPath = target.DevicePath;
+            }
 
             return new DeviceConnectionInfo(
                 true,
                 "Veigar K643 connected",
                 "USB VID 258A / PID 0049 · HID interface MI_01 / Col08",
-                _connectedPath);
+                target.DevicePath);
         }
 
-        public Task SendSolidColorPreviewAsync(
-            byte red,
-            byte green,
-            byte blue,
-            CancellationToken cancellationToken)
+        public Task SendRgbFrameAsync(byte[] slotRgbData, CancellationToken cancellationToken)
         {
             ThrowIfDisposed();
             cancellationToken.ThrowIfCancellationRequested();
+            byte[] report = VeigarRgbFrameBuilder.CreateFrame(slotRgbData);
 
-            byte[] frame = VeigarRgbFrameBuilder.CreateSolidColorFrame(red, green, blue);
-
-            // HidD_SetFeature is synchronous. Run the single report write away from
-            // the WPF dispatcher so a slow USB driver cannot freeze the interface.
+            // HidD_SetFeature is synchronous, so perform one write on a worker thread.
             return Task.Run(delegate
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -113,7 +119,7 @@ namespace VeigarConfigurator.Devices.Redragon
                     }
 
                     int errorCode;
-                    if (!_session.SetFeatureReport(frame, out errorCode))
+                    if (!_session.SetFeatureReport(report, out errorCode))
                     {
                         throw new System.ComponentModel.Win32Exception(
                             errorCode,
@@ -121,6 +127,18 @@ namespace VeigarConfigurator.Devices.Redragon
                     }
                 }
             }, cancellationToken);
+        }
+
+        public Task SendSolidColorPreviewAsync(
+            byte red,
+            byte green,
+            byte blue,
+            CancellationToken cancellationToken)
+        {
+            byte[] report = VeigarRgbFrameBuilder.CreateSolidColorFrame(red, green, blue);
+            byte[] slotData = new byte[VeigarRgbFrameBuilder.SlotRgbDataLength];
+            Buffer.BlockCopy(report, 4, slotData, 0, slotData.Length);
+            return SendRgbFrameAsync(slotData, cancellationToken);
         }
 
         public void Dispose()

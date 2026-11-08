@@ -8,6 +8,8 @@ namespace VeigarConfigurator.Core.Devices
     {
         DeviceConnectionInfo RefreshConnection();
 
+        Task SendRgbFrameAsync(byte[] slotRgbData, CancellationToken cancellationToken);
+
         Task SendSolidColorPreviewAsync(
             byte red,
             byte green,
