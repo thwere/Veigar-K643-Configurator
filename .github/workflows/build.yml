@@ -23,3 +23,11 @@ jobs:
       - name: Build Release
         shell: cmd
         run: msbuild VeigarConfigurator.sln /m /p:Configuration=Release /verbosity:minimal
+
+      - name: Upload portable prototype
+        uses: actions/upload-artifact@v4
+        with:
+          name: VeigarConfigurator-prototype
+          path: src/VeigarConfigurator.App/bin/Release/
+          if-no-files-found: error
+          retention-days: 7
