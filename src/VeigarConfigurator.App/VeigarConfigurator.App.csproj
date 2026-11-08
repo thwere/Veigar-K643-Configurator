@@ -73,9 +73,17 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ViewModels\MainViewModel.cs" />
+    <Compile Include="ViewModels\LedSlotViewModel.cs" />
     <Compile Include="Commands\RelayCommand.cs" />
     <Compile Include="Profiles\LightingProfile.cs" />
     <Compile Include="Profiles\LightingProfileStore.cs" />
+    <Compile Include="Models\RgbColor.cs" />
+    <Compile Include="Models\LedSlotColor.cs" />
+    <Compile Include="Models\AnimationFrame.cs" />
+    <Compile Include="Models\KeyLedMapping.cs" />
+    <Compile Include="Models\LightingLayer.cs" />
+    <Compile Include="Lighting\LayerCompositor.cs" />
+    <Compile Include="UI\DarkTitleBar.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

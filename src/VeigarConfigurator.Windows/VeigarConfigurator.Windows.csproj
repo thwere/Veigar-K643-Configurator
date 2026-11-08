@@ -28,8 +28,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="PresentationCore" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VeigarConfigurator.Core\VeigarConfigurator.Core.csproj">
@@ -40,6 +42,9 @@
   <ItemGroup>
     <Compile Include="Hid\HidDeviceEnumerator.cs" />
     <Compile Include="Hid\HidFeatureTransport.cs" />
+    <Compile Include="RawInput\RawKeyEventArgs.cs" />
+    <Compile Include="RawInput\RawInputKeyboardListener.cs" />
+    <Compile Include="Audio\AudioPeakMeter.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
