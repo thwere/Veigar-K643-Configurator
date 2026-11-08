@@ -216,7 +216,7 @@
                      Orientation="{TemplateBinding Orientation}"
                      Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
                      Value="{TemplateBinding Value}" ViewportSize="{TemplateBinding ViewportSize}"
-                     IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
+                     IsDirectionReversed="True">
                 <Track.DecreaseRepeatButton>
                   <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Focusable="False"
                                 IsHitTestVisible="False" Opacity="0"/>
