@@ -53,6 +53,7 @@ namespace VeigarConfigurator.App.ViewModels
         private double _blueValue;
         private double _brightnessValue;
         private double _audioPeakLevel;
+        private double _lastAudioSentLevel = -1.0;
         private int _selectedSlotIndex;
         private Brush _previewBrush;
         private LightingLayer _selectedLayer;
@@ -519,12 +520,12 @@ namespace VeigarConfigurator.App.ViewModels
 
         private void RenderTimer_Tick(object sender, EventArgs e)
         {
-            bool needsRender = AnimationRunning || AudioReactiveEnabled ||
-                               (KeyReactiveEnabled && _keyIntensity.Count > 0);
-            if (!needsRender || !IsConnected)
+            if (!IsConnected)
             {
                 return;
             }
+
+            bool needsRender = AnimationRunning;
 
             if (AudioReactiveEnabled && _audioMeter != null)
             {
@@ -533,6 +534,13 @@ namespace VeigarConfigurator.App.ViewModels
                 {
                     AudioPeakLevel = peak * 100.0;
                     AudioStatus = "Default Windows output · peak " + AudioPeakLevel.ToString("F0") + "%";
+
+                    if (_lastAudioSentLevel < 0.0 ||
+                        Math.Abs(AudioPeakLevel - _lastAudioSentLevel) >= 1.0)
+                    {
+                        needsRender = true;
+                        _lastAudioSentLevel = AudioPeakLevel;
+                    }
                 }
                 else
                 {
@@ -541,8 +549,21 @@ namespace VeigarConfigurator.App.ViewModels
                 }
             }
 
-            UpdateKeyDecay();
-            SendCurrentFrame(false);
+            LightingLayer keyLayer = GetKeyReactiveLayer();
+            bool keyFadeActive = KeyReactiveEnabled &&
+                                 _keyIntensity.Count > 0 &&
+                                 (keyLayer == null || keyLayer.KeyEffect != "HoldGlow");
+
+            if (keyFadeActive)
+            {
+                UpdateKeyDecay();
+                needsRender = true;
+            }
+
+            if (needsRender)
+            {
+                SendCurrentFrame(false);
+            }
         }
 
         private void UpdateKeyDecay()
