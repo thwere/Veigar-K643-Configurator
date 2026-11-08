@@ -65,10 +65,5 @@ namespace VeigarConfigurator.App
         {
             _viewModel.OnPhysicalKeyReceived(e);
         }
-
-        private void OnRawInputRegistered()
-        {
-            _rawInputListener.KeyReceived += RawInputListener_KeyReceived;
-        }
     }
 }
