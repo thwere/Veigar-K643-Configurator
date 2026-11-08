@@ -165,7 +165,7 @@
           <Border Grid.Column="2" Style="{StaticResource Panel}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
               <StackPanel>
-                <TextBlock Text="COLOUR & BRIGHTNESS" Style="{StaticResource SectionLabel}"/>
+                <TextBlock Text="COLOUR &amp; BRIGHTNESS" Style="{StaticResource SectionLabel}"/>
                 <Grid Margin="0,0,0,16">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="90"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                   <Border Grid.Column="0" Height="74" CornerRadius="8" Background="{Binding PreviewBrush}" BorderBrush="#535B67" BorderThickness="1"/>
@@ -225,7 +225,7 @@
         </Grid>
       </TabItem>
 
-      <TabItem Header="LAYERS & ANIMATION">
+      <TabItem Header="LAYERS &amp; ANIMATION">
         <Grid Margin="12">
           <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
           <Border Grid.Column="0" Style="{StaticResource Panel}">
