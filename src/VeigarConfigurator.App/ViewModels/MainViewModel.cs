@@ -403,7 +403,28 @@ namespace VeigarConfigurator.App.ViewModels
         public LightingLayer SelectedLayer
         {
             get { return _selectedLayer; }
-            set { SetField(ref _selectedLayer, value, "SelectedLayer"); }
+            set
+            {
+                if (object.ReferenceEquals(_selectedLayer, value)) return;
+                SetField(ref _selectedLayer, value, "SelectedLayer");
+                OnPropertyChanged("AnimationFrames");
+                OnPropertyChanged("AnimationFrameCount");
+            }
+        }
+
+        public IList<AnimationFrame> AnimationFrames
+        {
+            get
+            {
+                return SelectedLayer == null || SelectedLayer.Frames == null
+                    ? (IList<AnimationFrame>)new List<AnimationFrame>()
+                    : SelectedLayer.Frames;
+            }
+        }
+
+        public int AnimationFrameCount
+        {
+            get { return AnimationFrames.Count; }
         }
 
         public string SelectedLayerType
@@ -835,11 +856,17 @@ namespace VeigarConfigurator.App.ViewModels
 
         private byte[] RenderCurrentFrame()
         {
+            return RenderCurrentFrame(null);
+        }
+
+        private byte[] RenderCurrentFrame(LightingLayer excludedLayer)
+        {
             var renderLayers = new List<LightingLayer>();
             for (int index = 0; index < Layers.Count; index++)
             {
                 LightingLayer layer = Layers[index];
-                if (layer == null || !layer.IsEnabled)
+                if (layer == null || !layer.IsEnabled ||
+                    object.ReferenceEquals(layer, excludedLayer))
                 {
                     continue;
                 }
@@ -1278,7 +1305,10 @@ namespace VeigarConfigurator.App.ViewModels
                 return;
             }
 
-            byte[] rendered = RenderCurrentFrame();
+            // Capture the lighting layers underneath this animation layer. Capturing
+            // RenderCurrentFrame() would include the old animation output and mask edits
+            // made to the base colour while creating the next frame.
+            byte[] rendered = RenderCurrentFrame(SelectedLayer);
             var frame = new AnimationFrame();
             frame.BaseColor = GetCurrentColor();
 
@@ -1293,7 +1323,10 @@ namespace VeigarConfigurator.App.ViewModels
             }
 
             SelectedLayer.Frames.Add(frame);
-            OperationMessage = "Captured animation frame " + SelectedLayer.Frames.Count + ".";
+            OnPropertyChanged("AnimationFrames");
+            OnPropertyChanged("AnimationFrameCount");
+            OperationMessage = "Captured animation frame " + SelectedLayer.Frames.Count +
+                               " from the layers below the animation layer.";
         }
 
         private void RemoveAnimationFrame()
@@ -1302,6 +1335,8 @@ namespace VeigarConfigurator.App.ViewModels
                 SelectedLayer.Frames != null && SelectedLayer.Frames.Count > 0)
             {
                 SelectedLayer.Frames.RemoveAt(SelectedLayer.Frames.Count - 1);
+                OnPropertyChanged("AnimationFrames");
+                OnPropertyChanged("AnimationFrameCount");
                 OperationMessage = "Last animation frame removed.";
             }
         }

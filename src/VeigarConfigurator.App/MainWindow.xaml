@@ -735,15 +735,29 @@
               <StackPanel Grid.Column="0">
                 <TextBlock Text="ANIMATION WORKSPACE" Style="{StaticResource SectionLabel}"/>
                 <TextBlock Text="Build a timeline from captured lighting frames." FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
-                <TextBlock Text="Choose the Animation layer type, capture the current lighting scene as a frame, and set the duration of each frame in the layer data. Play the animation to preview the sequence on the connected keyboard." Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,18"/>
+                <TextBlock Text="Create an animation layer, capture the scene below it as frames, adjust each frame duration and play the sequence on the connected keyboard." Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,18"/>
                 <ComboBox ItemsSource="{Binding AvailableLayerTypes}" SelectedItem="{Binding SelectedLayerType}" Width="180" HorizontalAlignment="Left" Margin="0,0,0,10"/>
                 <WrapPanel>
                   <Button Content="Add animation layer" Command="{Binding AddAnimationLayerCommand}" Style="{StaticResource PrimaryButton}"/>
-                  <Button Content="Add frame" Command="{Binding AddAnimationFrameCommand}"/>
+                  <Button Content="Capture frame" Command="{Binding AddAnimationFrameCommand}"/>
                   <Button Content="Remove last frame" Command="{Binding RemoveAnimationFrameCommand}"/>
                   <Button Content="{Binding AnimationButtonText}" Command="{Binding ToggleAnimationCommand}"/>
                 </WrapPanel>
-                <TextBlock Text="{Binding OperationMessage}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                <TextBlock Text="{Binding AnimationFrameCount, StringFormat=Captured frames: {0}}" Foreground="{DynamicResource TextBrush}" FontSize="11" FontWeight="SemiBold" Margin="0,12,0,6"/>
+                <ListBox ItemsSource="{Binding AnimationFrames}" Height="190" Margin="0,0,0,10">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="Frame" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding DurationMs, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                 Width="72" Margin="8,0,5,0" VerticalContentAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="ms" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"/>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock Text="{Binding OperationMessage}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
               </StackPanel>
               <StackPanel Grid.Column="1" Margin="22,0,0,0">
                 <TextBlock Text="ANIMATION FILE" Style="{StaticResource SectionLabel}"/>
