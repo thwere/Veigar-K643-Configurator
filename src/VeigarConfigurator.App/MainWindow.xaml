@@ -2,371 +2,552 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Veigar K643 Configurator"
-        Width="1360" Height="900" MinWidth="1120" MinHeight="760"
+        Width="1580" Height="960" MinWidth="1320" MinHeight="820"
         WindowStartupLocation="CenterScreen"
-        Background="#101216" Foreground="#E9EBEF" FontFamily="Segoe UI" FontSize="13">
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}"
+        FontFamily="Segoe UI" FontSize="12"
+        UseLayoutRounding="True" SnapsToDevicePixels="True">
   <Window.Resources>
-    <SolidColorBrush x:Key="PanelBrush" Color="#191C21"/>
-    <SolidColorBrush x:Key="MutedBrush" Color="#969EAA"/>
-    <SolidColorBrush x:Key="AccentBrush" Color="#D52B36"/>
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#0C121A"/>
+    <SolidColorBrush x:Key="PanelBrush" Color="#D91A2633"/>
+    <SolidColorBrush x:Key="PanelSecondaryBrush" Color="#B51F2C3A"/>
+    <SolidColorBrush x:Key="LineBrush" Color="#46515F"/>
+    <SolidColorBrush x:Key="TextBrush" Color="#E9EEF5"/>
+    <SolidColorBrush x:Key="MutedBrush" Color="#8F9CAB"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#E45A63"/>
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#593039"/>
+    <SolidColorBrush x:Key="KeyBaseBrush" Color="#303A47"/>
+    <SolidColorBrush x:Key="KeyTextBrush" Color="#E6ECF3"/>
+    <DropShadowEffect x:Key="PanelShadow" BlurRadius="22" ShadowDepth="5" Opacity="0.24" Color="#000000"/>
+
     <Style TargetType="{x:Type Button}">
-      <Setter Property="Foreground" Value="#F4F5F7"/>
-      <Setter Property="Background" Value="#292E36"/>
-      <Setter Property="BorderBrush" Value="#424A56"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource PanelSecondaryBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="Padding" Value="13,8"/>
-      <Setter Property="Margin" Value="0,0,8,8"/>
+      <Setter Property="Margin" Value="0,0,7,7"/>
+      <Setter Property="FontSize" Value="11"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type Button}">
+            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="8" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                RecognizesAccessKey="True"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Bd" Property="Opacity" Value="0.78"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Bd" Property="Opacity" Value="0.42"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
     </Style>
+
+    <Style x:Key="PrimaryButton" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+    </Style>
+
     <Style TargetType="{x:Type TextBox}">
-      <Setter Property="Foreground" Value="#F2F4F7"/>
-      <Setter Property="Background" Value="#242932"/>
-      <Setter Property="BorderBrush" Value="#3D4652"/>
-      <Setter Property="Padding" Value="9,7"/>
-      <Setter Property="CaretBrush" Value="White"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource PanelSecondaryBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="10,8"/>
+      <Setter Property="CaretBrush" Value="{DynamicResource AccentBrush}"/>
+      <Setter Property="FontFamily" Value="Consolas"/>
     </Style>
+
     <Style TargetType="{x:Type ComboBox}">
-      <Setter Property="Foreground" Value="#F2F4F7"/>
-      <Setter Property="Background" Value="#242932"/>
-      <Setter Property="BorderBrush" Value="#3D4652"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource PanelSecondaryBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
       <Setter Property="Padding" Value="7,5"/>
-      <Setter Property="MinHeight" Value="32"/>
+      <Setter Property="MinHeight" Value="30"/>
     </Style>
     <Style TargetType="{x:Type ComboBoxItem}">
-      <Setter Property="Foreground" Value="#F2F4F7"/>
-      <Setter Property="Background" Value="#242932"/>
+      <Setter Property="Foreground" Value="#E9EEF5"/>
+      <Setter Property="Background" Value="#1F2A37"/>
       <Setter Property="Padding" Value="8,5"/>
-      <Style.Triggers>
-        <Trigger Property="IsHighlighted" Value="True"><Setter Property="Background" Value="#3A414C"/></Trigger>
-        <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#4A252B"/></Trigger>
-      </Style.Triggers>
     </Style>
     <Style TargetType="{x:Type CheckBox}">
-      <Setter Property="Foreground" Value="#DCE0E6"/>
-      <Setter Property="Margin" Value="0,4,12,6"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+      <Setter Property="Margin" Value="0,5,10,5"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
-    <Style TargetType="{x:Type ListBox}">
-      <Setter Property="Foreground" Value="#E9EBEF"/>
-      <Setter Property="Background" Value="#171A1F"/>
-      <Setter Property="BorderBrush" Value="#343A44"/>
-      <Setter Property="Padding" Value="5"/>
-    </Style>
-    <Style TargetType="{x:Type ListBoxItem}">
-      <Setter Property="Foreground" Value="#E9EBEF"/>
-      <Setter Property="Background" Value="#20242B"/>
-      <Setter Property="Padding" Value="9,8"/>
-      <Setter Property="Margin" Value="0,0,0,4"/>
-      <Style.Triggers>
-        <Trigger Property="IsSelected" Value="True">
-          <Setter Property="Background" Value="#4A252B"/>
-          <Setter Property="BorderBrush" Value="#D52B36"/>
-        </Trigger>
-      </Style.Triggers>
-    </Style>
-    <Style TargetType="{x:Type TabControl}">
-      <Setter Property="Background" Value="#101216"/>
-      <Setter Property="BorderBrush" Value="#343A44"/>
-    </Style>
-    <Style TargetType="{x:Type TabItem}">
-      <Setter Property="Foreground" Value="#ADB4BF"/>
-      <Setter Property="Background" Value="#1B1F25"/>
-      <Setter Property="Padding" Value="17,10"/>
-      <Setter Property="Margin" Value="0,0,5,0"/>
-      <Style.Triggers>
-        <Trigger Property="IsSelected" Value="True">
-          <Setter Property="Foreground" Value="White"/>
-          <Setter Property="Background" Value="#292E36"/>
-          <Setter Property="BorderBrush" Value="#D52B36"/>
-        </Trigger>
-      </Style.Triggers>
-    </Style>
-    <Style x:Key="Panel" TargetType="{x:Type Border}">
-      <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
-      <Setter Property="BorderBrush" Value="#343A44"/>
-      <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="CornerRadius" Value="10"/>
-      <Setter Property="Padding" Value="18"/>
-    </Style>
-    <Style x:Key="SectionLabel" TargetType="{x:Type TextBlock}">
-      <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
-      <Setter Property="FontSize" Value="10"/>
-      <Setter Property="FontWeight" Value="Bold"/>
-      <Setter Property="Margin" Value="0,0,0,9"/>
-    </Style>
-    <Style x:Key="ChannelSlider" TargetType="{x:Type Slider}">
+    <Style TargetType="{x:Type Slider}">
       <Setter Property="Minimum" Value="0"/>
       <Setter Property="Maximum" Value="255"/>
       <Setter Property="TickFrequency" Value="1"/>
-      <Setter Property="Margin" Value="10,0"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="6,2"/>
+    </Style>
+    <Style TargetType="{x:Type TabControl}">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style TargetType="{x:Type TabItem}">
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource PanelSecondaryBrush}"/>
+      <Setter Property="Padding" Value="16,10"/>
+      <Setter Property="Margin" Value="0,0,6,10"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type TabItem}">
+            <Border x:Name="TabBd" Background="{TemplateBinding Background}"
+                    BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                    CornerRadius="9" Padding="{TemplateBinding Padding}">
+              <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="TabBd" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                <Setter TargetName="TabBd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="TabBd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="PanelBorder" TargetType="{x:Type Border}">
+      <Setter Property="Background" Value="{DynamicResource PanelBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="14"/>
+      <Setter Property="Padding" Value="16"/>
+      <Setter Property="Effect" Value="{StaticResource PanelShadow}"/>
+    </Style>
+    <Style x:Key="SectionLabel" TargetType="{x:Type TextBlock}">
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+      <Setter Property="FontSize" Value="9"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+    <Style x:Key="KeyButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Padding" Value="2"/>
+      <Setter Property="Margin" Value="0"/>
+      <Setter Property="Foreground" Value="{DynamicResource KeyTextBrush}"/>
+      <Setter Property="Background" Value="{Binding Brush}"/>
+      <Setter Property="BorderBrush" Value="{Binding BorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="ToolTip" Value="{Binding MappingName}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type Button}">
+            <Border x:Name="KeyBorder" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="6" Padding="1">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                RecognizesAccessKey="True"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="KeyBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                <Setter TargetName="KeyBorder" Property="BorderThickness" Value="2"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="KeyBorder" Property="Opacity" Value="0.72"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
     </Style>
   </Window.Resources>
 
-  <Grid Margin="26">
+  <Grid Margin="18">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="58"/>
+      <RowDefinition Height="42"/>
       <RowDefinition Height="*"/>
-      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="94"/>
     </Grid.RowDefinitions>
-    <Grid Grid.Row="0" Margin="0,0,0,18">
-      <StackPanel>
-        <TextBlock Text="VEIGAR CONFIGURATOR" FontSize="24" FontWeight="Bold" Foreground="#F6F7F9"/>
-        <TextBlock Text="Redragon Veigar K643 · RGB Studio · Experimental v0.3" Foreground="#969EAA" FontSize="12" Margin="1,4,0,0"/>
+
+    <!-- Product title and window theme -->
+    <Grid Grid.Row="0" Margin="0,0,0,10">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Border Width="34" Height="34" Background="#4B252D" BorderBrush="#E45A63" BorderThickness="1" CornerRadius="10" Margin="0,0,11,0">
+          <TextBlock Text="V" Foreground="#F2C8CB" FontSize="17" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="VEIGAR CONFIGURATOR" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextBrush}"/>
+          <TextBlock Text="RGB STUDIO  ·  K643" FontSize="9" Foreground="{DynamicResource MutedBrush}" Margin="1,3,0,0"/>
+        </StackPanel>
+        <Border Background="{DynamicResource PanelSecondaryBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="11,6" Margin="26,0,0,0">
+          <TextBlock Text="{Binding ProfileName}" Foreground="{DynamicResource MutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+        </Border>
       </StackPanel>
-      <TextBlock Text="VKC" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#D52B36" FontSize="15" FontWeight="Bold"/>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+        <Border Background="#1D4948" BorderBrush="#397F7A" BorderThickness="1" CornerRadius="14" Padding="11,6" Margin="0,0,8,0">
+          <StackPanel Orientation="Horizontal">
+            <Ellipse Width="7" Height="7" Fill="#70D2C6" Margin="0,0,7,0" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding ConnectionTitle}" Foreground="#B8E7E1" FontSize="10" FontWeight="SemiBold"/>
+          </StackPanel>
+        </Border>
+        <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,8,0" Padding="11,6"/>
+        <Button Content="{Binding ThemeButtonText}" Command="{Binding ToggleThemeCommand}" Margin="0" Padding="11,6"/>
+      </StackPanel>
     </Grid>
 
-    <Border Grid.Row="1" Style="{StaticResource Panel}" Padding="12" Margin="0,0,0,16">
+    <!-- Connection message -->
+    <Border Grid.Row="1" Background="{DynamicResource PanelSecondaryBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="9" Padding="12,7" Margin="0,0,0,10">
       <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <StackPanel>
-          <TextBlock Text="{Binding ConnectionTitle}" FontSize="14" FontWeight="SemiBold"/>
-          <TextBlock Text="{Binding ConnectionMessage}" Foreground="#9AA2AE" FontSize="11" Margin="0,3,0,0"/>
-        </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-          <TextBlock Text="VID 258A · PID 0049 · MI_01 / Col08" Foreground="#AAB1BC" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0"/>
-          <Button Content="REFRESH" Command="{Binding RefreshCommand}" Margin="0" Padding="12,6"/>
-        </StackPanel>
+        <TextBlock Text="{Binding ConnectionMessage}" Foreground="{DynamicResource MutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+        <TextBlock Grid.Column="1" Text="VID 258A  ·  PID 0049  ·  MI_01 / Col08" Foreground="{DynamicResource MutedBrush}" FontFamily="Consolas" FontSize="9" VerticalAlignment="Center"/>
       </Grid>
     </Border>
 
-    <TabControl Grid.Row="2">
-      <TabItem Header="LED EDITOR">
-        <Grid Margin="12">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="1.45*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="0.9*"/></Grid.ColumnDefinitions>
-          <Border Grid.Column="0" Style="{StaticResource Panel}">
-            <DockPanel>
-              <StackPanel DockPanel.Dock="Top" Margin="0,0,0,14">
-                <TextBlock Text="126-SLOT RGB MATRIX" Style="{StaticResource SectionLabel}"/>
-                <TextBlock Text="Select an LED slot to edit its colour. This is the protocol slot grid, not yet a verified physical key layout." Foreground="#A0A8B4" TextWrapping="Wrap" FontSize="11"/>
+    <Grid Grid.Row="2">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="68"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Navigation rail -->
+      <Border Grid.Column="0" Style="{StaticResource PanelBorder}" Padding="7" Margin="0,0,10,0">
+        <StackPanel>
+          <Button Content="◈&#10;Paint" Command="{Binding SelectToolCommand}" CommandParameter="Brush" Padding="3,10" Margin="0,0,0,8"/>
+          <Button Content="▦&#10;Slots" Command="{Binding SelectToolCommand}" CommandParameter="Map" Padding="3,10" Margin="0,0,0,8"/>
+          <Button Content="◷&#10;Layers" Command="{Binding SelectToolCommand}" CommandParameter="Brush" Padding="3,10" Margin="0,0,0,8"/>
+          <Button Content="⌘&#10;Device" Command="{Binding RefreshCommand}" Padding="3,10" Margin="0,0,0,8"/>
+          <Button Content="▤&#10;Files" Command="{Binding SaveProfileCommand}" Padding="3,10" Margin="0,0,0,8"/>
+          <Separator Background="{DynamicResource LineBrush}" Margin="2,18,2,14"/>
+          <TextBlock Text="K643" Foreground="{DynamicResource MutedBrush}" FontSize="9" HorizontalAlignment="Center"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Main workspace with tabs -->
+      <TabControl Grid.Column="1">
+        <TabItem Header="PAINT">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="350"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Keyboard workspace -->
+            <Border Grid.Column="0" Style="{StaticResource PanelBorder}" Margin="0,0,10,0" Padding="16">
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="*"/>
+                  <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                  <StackPanel>
+                    <TextBlock Text="RGB STUDIO" FontSize="20" FontWeight="SemiBold"/>
+                    <TextBlock Text="Paint on the map or press a physical key on the K643." Foreground="{DynamicResource MutedBrush}" FontSize="10" Margin="0,4,0,0"/>
+                  </StackPanel>
+                  <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#1D4948" BorderBrush="#397F7A" BorderThickness="1" CornerRadius="12" Padding="10,6">
+                    <TextBlock Text="LIVE KEY INPUT" Foreground="#B8E7E1" FontSize="9" FontWeight="SemiBold"/>
+                  </Border>
+                </Grid>
+
+                <!-- Paint tool strip -->
+                <WrapPanel Grid.Row="1" Margin="0,0,0,10">
+                  <Button Content="Brush  B" Command="{Binding SelectToolCommand}" CommandParameter="Brush" Style="{StaticResource PrimaryButton}"/>
+                  <Button Content="Fill  G" Command="{Binding SelectToolCommand}" CommandParameter="Fill"/>
+                  <Button Content="Picker  I" Command="{Binding SelectToolCommand}" CommandParameter="Picker"/>
+                  <Button Content="Eraser  E" Command="{Binding SelectToolCommand}" CommandParameter="Eraser"/>
+                  <Button Content="Map key" Command="{Binding SelectToolCommand}" CommandParameter="Map"/>
+                  <CheckBox Content="Paint with physical keypress" IsChecked="{Binding PaintOnPhysicalPress}" Margin="10,5,0,5"/>
+                </WrapPanel>
+
+                <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                  <Border Background="{DynamicResource PanelSecondaryBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="13" Padding="14" MinWidth="1020">
+                    <StackPanel>
+                      <TextBlock Text="REDRAGON VEIGAR K643  ·  FULL KEY MAP" Foreground="{DynamicResource MutedBrush}" FontSize="9" FontWeight="Bold" Margin="3,0,0,12"/>
+                      <ItemsControl ItemsSource="{Binding KeyboardKeys}" Width="1000" Height="292">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <Canvas Width="1000" Height="292"/>
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                          <Style TargetType="{x:Type ContentPresenter}">
+                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                          </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Width="{Binding Width}" Height="{Binding Height}"
+                                    Content="{Binding Label}"
+                                    Command="{Binding DataContext.SelectKeyboardKeyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding KeyId}"/>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Border>
+                </ScrollViewer>
+
+                <Grid Grid.Row="3" Margin="0,10,0,0">
+                  <StackPanel Orientation="Horizontal">
+                    <Border Width="42" Height="34" Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1" CornerRadius="8">
+                      <TextBlock Text="{Binding SelectedKeyboardKeyLabel}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
+                    </Border>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding SelectedKeyboardKeyStatus}" Foreground="{DynamicResource TextBrush}" FontSize="10" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding LastDetectedKey}" Foreground="{DynamicResource MutedBrush}" FontSize="9" Margin="0,3,0,0"/>
+                    </StackPanel>
+                  </StackPanel>
+                  <TextBlock Text="{Binding OperationMessage}" Foreground="{DynamicResource MutedBrush}" FontSize="9" TextWrapping="Wrap" MaxWidth="300" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+              </Grid>
+            </Border>
+
+            <!-- Color, layers and selection inspector -->
+            <Border Grid.Column="1" Style="{StaticResource PanelBorder}" Padding="15">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                  <TextBlock Text="INSPECTOR" Style="{StaticResource SectionLabel}"/>
+                  <TextBlock Text="Selection" FontSize="18" FontWeight="SemiBold"/>
+                  <TextBlock Text="{Binding SelectedKeyboardKeyLabel, StringFormat=Key: {0}}" Foreground="{DynamicResource MutedBrush}" FontSize="10" Margin="0,4,0,14"/>
+
+                  <TextBlock Text="KEY COLOUR" Style="{StaticResource SectionLabel}"/>
+                  <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Width="52" Height="52" CornerRadius="10" Background="{Binding PreviewBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"/>
+                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                      <TextBlock Text="OUTPUT PREVIEW" Foreground="{DynamicResource MutedBrush}" FontSize="8" FontWeight="Bold"/>
+                      <TextBlock Text="{Binding EffectiveColorHex}" FontFamily="Consolas" FontSize="18" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    </StackPanel>
+                  </Grid>
+
+                  <TextBlock Text="HEX VALUE" Style="{StaticResource SectionLabel}"/>
+                  <DockPanel Margin="0,0,0,14">
+                    <TextBox Text="{Binding HexInput, UpdateSourceTrigger=PropertyChanged}" Width="116" MaxLength="7" VerticalContentAlignment="Center"/>
+                    <Button Content="Apply" Command="{Binding ApplyHexCommand}" Margin="8,0,0,0"/>
+                  </DockPanel>
+
+                  <TextBlock Text="PALETTE" Style="{StaticResource SectionLabel}"/>
+                  <UniformGrid Columns="4" Margin="0,0,0,15">
+                    <Button Content="Coral" Background="#9F333D" Command="{Binding SendPresetCommand}" CommandParameter="F24D57" Padding="5"/>
+                    <Button Content="Amber" Background="#86632F" Command="{Binding SendPresetCommand}" CommandParameter="F7BA5C" Padding="5"/>
+                    <Button Content="Green" Background="#315C45" Command="{Binding SendPresetCommand}" CommandParameter="5FC888" Padding="5"/>
+                    <Button Content="Teal" Background="#286B6D" Command="{Binding SendPresetCommand}" CommandParameter="50C7C5" Padding="5"/>
+                    <Button Content="Blue" Background="#315B91" Command="{Binding SendPresetCommand}" CommandParameter="528EE8" Padding="5"/>
+                    <Button Content="Violet" Background="#594884" Command="{Binding SendPresetCommand}" CommandParameter="9A75E4" Padding="5"/>
+                    <Button Content="White" Background="#626E7C" Command="{Binding SendPresetCommand}" CommandParameter="FFFFFF" Padding="5"/>
+                    <Button Content="Off" Background="#252D37" Command="{Binding SendPresetCommand}" CommandParameter="000000" Padding="5"/>
+                  </UniformGrid>
+
+                  <TextBlock Text="RGB CHANNELS" Style="{StaticResource SectionLabel}"/>
+                  <Grid Margin="0,0,0,8">
+                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
+                    <TextBlock Grid.Row="0" Text="R" Foreground="#E87980" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="0" Grid.Column="1" Maximum="255" Value="{Binding RedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding RedValue, StringFormat={}{0:F0}}" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="9"/>
+                    <TextBlock Grid.Row="1" Text="G" Foreground="#75CB92" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="1" Grid.Column="1" Maximum="255" Value="{Binding GreenValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding GreenValue, StringFormat={}{0:F0}}" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="9"/>
+                    <TextBlock Grid.Row="2" Text="B" Foreground="#78AAE7" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="2" Grid.Column="1" Maximum="255" Value="{Binding BlueValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding BlueValue, StringFormat={}{0:F0}}" HorizontalAlignment="Right" VerticalAlignment="Center" FontFamily="Consolas" FontSize="9"/>
+                  </Grid>
+                  <DockPanel Margin="0,2,0,6">
+                    <TextBlock Text="BRIGHTNESS" Style="{StaticResource SectionLabel}"/>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding BrightnessValue, StringFormat={}{0:F0}%}" Foreground="{DynamicResource MutedBrush}" FontFamily="Consolas" FontSize="9"/>
+                  </DockPanel>
+                  <Slider Minimum="0" Maximum="100" Value="{Binding BrightnessValue, Mode=TwoWay}" Margin="0,0,0,12"/>
+
+                  <Separator Background="{DynamicResource LineBrush}" Margin="0,5,0,12"/>
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="LIGHTING LAYERS" Style="{StaticResource SectionLabel}"/>
+                      <TextBlock Text="Compose your scene" FontSize="14" FontWeight="SemiBold"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="+ Layer" Command="{Binding AddLayerCommand}" Margin="0" Padding="9,5"/>
+                  </Grid>
+                  <ListBox ItemsSource="{Binding Layers}" SelectedItem="{Binding SelectedLayer, Mode=TwoWay}" Height="132" Margin="0,8,0,10">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <Grid Margin="1">
+                          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                          <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                          <StackPanel Grid.Column="1">
+                            <TextBlock Text="{Binding Name}" FontSize="10" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Mode}" FontSize="8" Foreground="{DynamicResource MutedBrush}"/>
+                          </StackPanel>
+                          <TextBlock Grid.Column="2" Text="{Binding Opacity, StringFormat={}{0}%}" Foreground="{DynamicResource MutedBrush}" FontSize="9" VerticalAlignment="Center"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                  <WrapPanel>
+                    <Button Content="Remove" Command="{Binding RemoveLayerCommand}"/>
+                    <Button Content="Move ↑" Command="{Binding MoveLayerUpCommand}"/>
+                    <Button Content="Move ↓" Command="{Binding MoveLayerDownCommand}"/>
+                  </WrapPanel>
+                  <TextBlock Text="{Binding OperationMessage}" Foreground="{DynamicResource MutedBrush}" FontSize="9" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                </StackPanel>
+              </ScrollViewer>
+            </Border>
+          </Grid>
+        </TabItem>
+
+        <TabItem Header="CALIBRATION">
+          <Border Style="{StaticResource PanelBorder}" Padding="20" Margin="0,0,10,0">
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="PHYSICAL KEY CALIBRATION" Style="{StaticResource SectionLabel}"/>
+                <TextBlock Text="Map the physical layout to the 126 protocol LED slots." FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <TextBlock Text="The keyboard graphic shows physical key positions. The HID protocol exposes 126 LED addresses, but the exact physical address-to-key relationship must be calibrated on your K643. Select a slot, then use Map and click the corresponding key or arm physical capture." Foreground="{DynamicResource MutedBrush}" FontSize="11" TextWrapping="Wrap" MaxWidth="620" Margin="0,0,0,18"/>
+                <TextBlock Text="{Binding SelectedSlotLabel}" FontSize="20" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding SelectedSlotMapping}" Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,14"/>
+                <WrapPanel>
+                  <Button Content="Capture physical key" Command="{Binding ArmMappingCommand}" Style="{StaticResource PrimaryButton}"/>
+                  <Button Content="Clear mapping" Command="{Binding ClearMappingCommand}"/>
+                </WrapPanel>
+                <TextBlock Text="{Binding LastDetectedKey}" Foreground="{DynamicResource MutedBrush}" Margin="0,14,0,0"/>
+                <TextBlock Text="{Binding MappingsCount, StringFormat=Calibrated mappings: {0}}" FontSize="12" Margin="0,14,0,0"/>
               </StackPanel>
-              <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+              <StackPanel Grid.Column="1" Margin="20,0,0,0">
+                <TextBlock Text="LED SLOT MATRIX" Style="{StaticResource SectionLabel}"/>
                 <ItemsControl ItemsSource="{Binding LedSlots}">
                   <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="14"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <Button Content="{Binding Label}" Background="{Binding Brush}" ToolTip="{Binding MappingName}"
+                      <Button Content="{Binding Label}" Background="{Binding Brush}" BorderBrush="{Binding IsSelected, Converter={x:Null}}"
                               Command="{Binding DataContext.SelectSlotCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                              CommandParameter="{Binding SlotIndex}" Padding="2" Margin="2" MinWidth="35" Height="34" FontSize="9"
-                              BorderBrush="#505864" BorderThickness="1"/>
+                              CommandParameter="{Binding SlotIndex}" Padding="2" Margin="2" MinWidth="27" Height="28" FontSize="8"/>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-              </ScrollViewer>
-              <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-                <TextBlock Text="{Binding SelectedSlotLabel}" Foreground="#F2F4F7" FontWeight="SemiBold"/>
-                <TextBlock Text="{Binding SelectedSlotMapping}" Foreground="#9AA2AE" FontSize="11" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                <TextBlock Text="Map a selected physical key to the currently selected LED slot using the Map tool on the Paint tab." Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,14,0,0"/>
               </StackPanel>
-            </DockPanel>
+            </Grid>
           </Border>
+        </TabItem>
 
-          <Border Grid.Column="2" Style="{StaticResource Panel}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <StackPanel>
-                <TextBlock Text="COLOUR &amp; BRIGHTNESS" Style="{StaticResource SectionLabel}"/>
-                <Grid Margin="0,0,0,16">
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="90"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                  <Border Grid.Column="0" Height="74" CornerRadius="8" Background="{Binding PreviewBrush}" BorderBrush="#535B67" BorderThickness="1"/>
-                  <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="OUTPUT PREVIEW" Foreground="#9AA2AE" FontSize="10" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding EffectiveColorHex}" FontFamily="Consolas" FontSize="21" FontWeight="SemiBold" Margin="0,4,0,0"/>
-                  </StackPanel>
-                </Grid>
-                <TextBlock Text="HEX COLOUR" Style="{StaticResource SectionLabel}"/>
-                <DockPanel Margin="0,0,0,16">
-                  <TextBox Text="{Binding HexInput, UpdateSourceTrigger=PropertyChanged}" Width="126" MaxLength="7" FontFamily="Consolas" VerticalContentAlignment="Center"/>
-                  <Button Content="APPLY HEX" Command="{Binding ApplyHexCommand}" Margin="9,0,0,0"/>
-                </DockPanel>
-                <TextBlock Text="RGB CHANNELS" Style="{StaticResource SectionLabel}"/>
-                <Grid Margin="0,0,0,12">
-                  <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="38"/></Grid.ColumnDefinitions>
-                  <TextBlock Grid.Row="0" Grid.Column="0" Text="R" Foreground="#E87980" FontWeight="Bold" VerticalAlignment="Center"/>
-                  <Slider Grid.Row="0" Grid.Column="1" Style="{StaticResource ChannelSlider}" Value="{Binding RedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                  <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding RedValue, StringFormat={}{0:F0}}" FontFamily="Consolas" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Row="1" Grid.Column="0" Text="G" Foreground="#75CB92" FontWeight="Bold" VerticalAlignment="Center"/>
-                  <Slider Grid.Row="1" Grid.Column="1" Style="{StaticResource ChannelSlider}" Value="{Binding GreenValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                  <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding GreenValue, StringFormat={}{0:F0}}" FontFamily="Consolas" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Row="2" Grid.Column="0" Text="B" Foreground="#78AAE7" FontWeight="Bold" VerticalAlignment="Center"/>
-                  <Slider Grid.Row="2" Grid.Column="1" Style="{StaticResource ChannelSlider}" Value="{Binding BlueValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                  <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding BlueValue, StringFormat={}{0:F0}}" FontFamily="Consolas" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                </Grid>
-                <DockPanel Margin="0,0,0,5">
-                  <TextBlock Text="BRIGHTNESS" Style="{StaticResource SectionLabel}"/>
-                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <TextBlock Text="{Binding BrightnessValue, StringFormat={}{0:F0}}" Foreground="#C9CED6" FontFamily="Consolas" FontSize="11"/>
-                    <TextBlock Text="%" Foreground="#C9CED6" FontSize="11"/>
-                  </StackPanel>
-                </DockPanel>
-                <Slider Minimum="0" Maximum="100" Value="{Binding BrightnessValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15"/>
-                <TextBlock Text="QUICK PRESETS" Style="{StaticResource SectionLabel}"/>
+        <TabItem Header="ANIMATION">
+          <Border Style="{StaticResource PanelBorder}" Padding="20" Margin="0,0,10,0">
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="ANIMATION WORKSPACE" Style="{StaticResource SectionLabel}"/>
+                <TextBlock Text="Build a timeline from captured lighting frames." FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                <TextBlock Text="Choose the Animation layer type, capture the current lighting scene as a frame, and set the duration of each frame in the layer data. Play the animation to preview the sequence on the connected keyboard." Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,18"/>
+                <ComboBox ItemsSource="{Binding AvailableLayerTypes}" SelectedItem="{Binding SelectedLayerType}" Width="180" HorizontalAlignment="Left" Margin="0,0,0,10"/>
                 <WrapPanel>
-                  <Button Content="RED" Background="#8F2027" Command="{Binding SendPresetCommand}" CommandParameter="FF2020"/>
-                  <Button Content="ORANGE" Background="#95531E" Command="{Binding SendPresetCommand}" CommandParameter="FF8A20"/>
-                  <Button Content="YELLOW" Background="#80711D" Command="{Binding SendPresetCommand}" CommandParameter="FFE83A"/>
-                  <Button Content="GREEN" Background="#24643F" Command="{Binding SendPresetCommand}" CommandParameter="20D878"/>
-                  <Button Content="CYAN" Background="#216C75" Command="{Binding SendPresetCommand}" CommandParameter="20DDE0"/>
-                  <Button Content="BLUE" Background="#244D83" Command="{Binding SendPresetCommand}" CommandParameter="287BDF"/>
-                  <Button Content="VIOLET" Background="#623D82" Command="{Binding SendPresetCommand}" CommandParameter="A45BDE"/>
-                  <Button Content="WHITE" Background="#64666A" Command="{Binding SendPresetCommand}" CommandParameter="FFFFFF"/>
+                  <Button Content="Add animation layer" Command="{Binding AddLayerCommand}" Style="{StaticResource PrimaryButton}"/>
+                  <Button Content="Add frame" Command="{Binding AddAnimationFrameCommand}"/>
+                  <Button Content="Remove last frame" Command="{Binding RemoveAnimationFrameCommand}"/>
+                  <Button Content="{Binding AnimationButtonText}" Command="{Binding ToggleAnimationCommand}"/>
                 </WrapPanel>
-                <WrapPanel Margin="0,9,0,0">
-                  <Button Content="SET SELECTED SLOT" Command="{Binding ApplySlotColorCommand}"/>
-                  <Button Content="FILL ALL 126 SLOTS" Command="{Binding FillAllSlotsCommand}"/>
-                  <Button Content="SEND SCENE" Background="#8B222B" Command="{Binding SendSceneCommand}"/>
-                  <Button Content="LIGHTS OFF" Command="{Binding SendPresetCommand}" CommandParameter="000000"/>
-                </WrapPanel>
-                <TextBlock Text="{Binding OperationMessage}" Foreground="#C7CDD6" TextWrapping="Wrap" FontSize="11" Margin="0,10,0,0"/>
+                <TextBlock Text="{Binding OperationMessage}" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,12,0,0"/>
               </StackPanel>
-            </ScrollViewer>
-          </Border>
-        </Grid>
-      </TabItem>
-
-      <TabItem Header="LAYERS &amp; ANIMATION">
-        <Grid Margin="12">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
-          <Border Grid.Column="0" Style="{StaticResource Panel}">
-            <DockPanel>
-              <StackPanel DockPanel.Dock="Top">
-                <TextBlock Text="LIGHTING STACK" Style="{StaticResource SectionLabel}"/>
-                <TextBlock Text="Layers are composited from bottom to top. Enable, reorder or remove them." Foreground="#9AA2AE" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"/>
-                <ComboBox ItemsSource="{Binding AvailableLayerTypes}" SelectedItem="{Binding SelectedLayerType}" Margin="0,0,0,10"/>
-                <Button Content="ADD LAYER" Command="{Binding AddLayerCommand}" HorizontalAlignment="Left"/>
-              </StackPanel>
-              <ListBox ItemsSource="{Binding Layers}" SelectedItem="{Binding SelectedLayer, Mode=TwoWay}">
-                <ListBox.ItemTemplate>
-                  <DataTemplate>
-                    <Grid>
-                      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                      <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,9,0"/>
-                      <StackPanel Grid.Column="1">
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding Mode}" Foreground="#9AA2AE" FontSize="10"/>
-                      </StackPanel>
-                    </Grid>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-              <WrapPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-                <Button Content="REMOVE" Command="{Binding RemoveLayerCommand}"/>
-                <Button Content="MOVE UP" Command="{Binding MoveLayerUpCommand}"/>
-                <Button Content="MOVE DOWN" Command="{Binding MoveLayerDownCommand}"/>
-              </WrapPanel>
-            </DockPanel>
-          </Border>
-          <Border Grid.Column="2" Style="{StaticResource Panel}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <StackPanel>
-                <TextBlock Text="SELECTED LAYER" Style="{StaticResource SectionLabel}"/>
-                <TextBox Text="{Binding SelectedLayer.Name, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14"/>
-                <TextBlock Text="BLEND MODE" Style="{StaticResource SectionLabel}"/>
-                <ComboBox ItemsSource="{Binding BlendModes}" SelectedItem="{Binding SelectedLayer.BlendMode, Mode=TwoWay}" Margin="0,0,0,14"/>
-                <TextBlock Text="LAYER OPACITY" Style="{StaticResource SectionLabel}"/>
-                <Slider Minimum="0" Maximum="100" Value="{Binding SelectedLayer.Opacity, Mode=TwoWay}" Margin="0,0,0,16"/>
-                <TextBlock Text="COLOUR SOURCE" Style="{StaticResource SectionLabel}"/>
+              <StackPanel Grid.Column="1" Margin="22,0,0,0">
+                <TextBlock Text="ANIMATION FILE" Style="{StaticResource SectionLabel}"/>
+                <TextBlock Text="Portable project format" FontSize="16" FontWeight="SemiBold"/>
+                <TextBlock Text=".vca contains animation layers and their captured frames. It remains editable and can be reloaded into the configurator." Foreground="{DynamicResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,16"/>
                 <WrapPanel>
-                  <Button Content="SET START FROM EDITOR" Command="{Binding SetLayerStartColorCommand}"/>
-                  <Button Content="SET END FROM EDITOR" Command="{Binding SetLayerEndColorCommand}"/>
+                  <Button Content="Save .vca" Command="{Binding SaveAnimationCommand}" Style="{StaticResource PrimaryButton}"/>
+                  <Button Content="Open .vca" Command="{Binding LoadAnimationCommand}"/>
                 </WrapPanel>
-                <TextBlock Text="ANIMATION TIMELINE" Style="{StaticResource SectionLabel}" Margin="0,18,0,8"/>
-                <TextBlock Text="Add a frame to capture the current 126-slot scene. Animation frames cycle using their stored durations." Foreground="#9AA2AE" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                <WrapPanel>
-                  <Button Content="ADD FRAME" Command="{Binding AddAnimationFrameCommand}"/>
-                  <Button Content="REMOVE LAST FRAME" Command="{Binding RemoveAnimationFrameCommand}"/>
-                  <Button Content="{Binding AnimationButtonText}" Command="{Binding ToggleAnimationCommand}" Background="#7D252E"/>
-                </WrapPanel>
+                <TextBlock Text="Paint projects use .vcp. Both formats are local JSON-based project files; neither writes firmware." Foreground="{DynamicResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,14,0,0"/>
               </StackPanel>
-            </ScrollViewer>
+            </Grid>
           </Border>
-        </Grid>
-      </TabItem>
+        </TabItem>
 
-      <TabItem Header="KEY REACTIONS">
-        <Grid Margin="12">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-          <Border Grid.Column="0" Style="{StaticResource Panel}">
-            <StackPanel>
-              <TextBlock Text="PHYSICAL KEY CALIBRATION" Style="{StaticResource SectionLabel}"/>
-              <TextBlock Text="{Binding SelectedSlotLabel}" FontSize="22" FontWeight="SemiBold"/>
-              <TextBlock Text="Select a slot in LED EDITOR, arm capture, then press the matching physical key on the K643. The mapping is stored in your local profile." Foreground="#9AA2AE" TextWrapping="Wrap" Margin="0,10,0,16"/>
-              <TextBlock Text="{Binding SelectedSlotMapping}" Foreground="#D3D7DE" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
-              <WrapPanel>
-                <Button Content="{Binding MappingButtonText}" Command="{Binding ArmMappingCommand}" Background="#7D252E"/>
-                <Button Content="CLEAR SLOT MAPPING" Command="{Binding ClearMappingCommand}"/>
-              </WrapPanel>
-              <TextBlock Text="{Binding LastDetectedKey}" Foreground="#AAB2BE" Margin="0,14,0,0"/>
-              <TextBlock Text="CALIBRATED SLOT MAPPINGS" Foreground="#818A97" FontSize="10" Margin="0,8,0,0"/>
-              <TextBlock Text="{Binding MappingsCount}" FontSize="18" FontWeight="SemiBold"/>
-            </StackPanel>
-          </Border>
-          <Border Grid.Column="2" Style="{StaticResource Panel}">
-            <StackPanel>
-              <TextBlock Text="KEY-PRESS EFFECTS" Style="{StaticResource SectionLabel}"/>
-              <CheckBox Content="Enable key-reactive lighting" IsChecked="{Binding KeyReactiveEnabled}"/>
-              <TextBlock Text="Raw Input listens only to USB VID 258A / PID 0049. Key text is never stored or logged." Foreground="#9AA2AE" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,16"/>
-              <TextBlock Text="EFFECT MODE" Style="{StaticResource SectionLabel}"/>
-              <ComboBox ItemsSource="{Binding KeyEffectOptions}" SelectedItem="{Binding SelectedKeyEffect, Mode=TwoWay}" Margin="0,0,0,14"/>
-              <TextBlock Text="Flash, fade and hold glow are available. Simultaneous mapped keys are processed independently. Ripple and neighbour ripple await a verified physical geometry map." Foreground="#818A97" FontSize="11" TextWrapping="Wrap"/>
-            </StackPanel>
-          </Border>
-        </Grid>
-      </TabItem>
-
-      <TabItem Header="AUDIO">
-        <Grid Margin="12">
-          <Border Style="{StaticResource Panel}" MaxWidth="850" HorizontalAlignment="Left">
+        <TabItem Header="AUDIO">
+          <Border Style="{StaticResource PanelBorder}" Padding="22" Margin="0,0,10,0" MaxWidth="800" HorizontalAlignment="Left">
             <StackPanel>
               <TextBlock Text="AUDIO-REACTIVE LIGHTING" Style="{StaticResource SectionLabel}"/>
-              <TextBlock Text="Windows default output meter" FontSize="21" FontWeight="SemiBold"/>
-              <TextBlock Text="Audio level is read from the Windows Core Audio endpoint peak meter. The app does not record, save or transmit audio." Foreground="#9AA2AE" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,18"/>
+              <TextBlock Text="Windows default output peak" FontSize="20" FontWeight="SemiBold"/>
+              <TextBlock Text="The app samples the default Windows audio endpoint peak meter only. No audio is recorded or stored." Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,10,0,15"/>
               <CheckBox Content="Enable audio-reactive lighting" IsChecked="{Binding AudioReactiveEnabled}"/>
-              <ProgressBar Minimum="0" Maximum="100" Value="{Binding AudioPeakLevel, Mode=OneWay}" Height="14" Margin="0,12,0,10"/>
-              <TextBlock Text="{Binding AudioStatus}" Foreground="#BBC2CC" FontSize="11"/>
-              <TextBlock Text="This build scales the audio layer by output peak. Frequency-band and spectrum effects remain a later step." Foreground="#818A97" FontSize="11" TextWrapping="Wrap" Margin="0,18,0,0"/>
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding AudioPeakLevel, Mode=OneWay}" Height="12" Margin="0,13,0,10"/>
+              <TextBlock Text="{Binding AudioStatus}" Foreground="{DynamicResource MutedBrush}"/>
             </StackPanel>
           </Border>
-        </Grid>
-      </TabItem>
+        </TabItem>
 
-      <TabItem Header="PROFILES">
-        <Grid Margin="12">
-          <Border Style="{StaticResource Panel}" MaxWidth="780" HorizontalAlignment="Left">
+        <TabItem Header="PROFILES">
+          <Border Style="{StaticResource PanelBorder}" Padding="22" Margin="0,0,10,0" MaxWidth="780" HorizontalAlignment="Left">
             <StackPanel>
-              <TextBlock Text="LOCAL PROFILE LIBRARY" Style="{StaticResource SectionLabel}"/>
-              <TextBlock Text="Save the complete lighting workspace" FontSize="21" FontWeight="SemiBold"/>
-              <TextBlock Text="Profiles include the layer stack, 126 slot colours, animation frames and calibrated key-to-slot assignments. Profiles are local JSON files." Foreground="#9AA2AE" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,18"/>
-              <TextBlock Text="PROFILE NAME" Style="{StaticResource SectionLabel}"/>
+              <TextBlock Text="LOCAL PROJECT FILES" Style="{StaticResource SectionLabel}"/>
+              <TextBlock Text="Save the complete lighting workspace" FontSize="20" FontWeight="SemiBold"/>
+              <TextBlock Text=".vcp stores the colour scene, all lighting layers, calibrated physical-key mappings, slot colours and animation data. Older .json colour profiles remain supported for import." Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,10,0,18"/>
+              <TextBlock Text="PROJECT NAME" Style="{StaticResource SectionLabel}"/>
               <TextBox Text="{Binding ProfileName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14"/>
               <WrapPanel>
-                <Button Content="SAVE PROFILE" Command="{Binding SaveProfileCommand}"/>
-                <Button Content="LOAD PROFILE" Command="{Binding LoadProfileCommand}"/>
+                <Button Content="Save .vcp" Command="{Binding SaveProfileCommand}" Style="{StaticResource PrimaryButton}"/>
+                <Button Content="Open .vcp" Command="{Binding LoadProfileCommand}"/>
               </WrapPanel>
-              <TextBlock Text="Loading a profile updates the editor; press SEND SCENE to transmit it. Previous v0.2.0-alpha single-colour profiles are migrated on load." Foreground="#818A97" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
+              <TextBlock Text="Projects are stored locally. Lighting changes are temporary and no firmware modification is performed." Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,14,0,0"/>
             </StackPanel>
           </Border>
-        </Grid>
-      </TabItem>
-
-      <TabItem Header="ROADMAP">
-        <ScrollViewer Margin="12" VerticalScrollBarVisibility="Auto">
-          <Border Style="{StaticResource Panel}" MaxWidth="900" HorizontalAlignment="Left">
-            <StackPanel>
-              <TextBlock Text="INTEGRATED IN THIS ALPHA" Style="{StaticResource SectionLabel}"/>
-              <TextBlock Text="• Per-slot RGB editing for 126 protocol slots&#10;• Static, gradient, animation, audio-reactive and key-reactive layers&#10;• Layer opacity and Replace / Add / Max compositing&#10;• Animation frame capture and playback&#10;• Raw Input filtered to the K643 VID/PID&#10;• Manual physical-key-to-slot calibration&#10;• Flash, fade, hold glow and simultaneous key responses&#10;• JSON profiles with layers, frames and key mappings" Foreground="#C8CFD9" Margin="0,10,0,22" TextWrapping="Wrap"/>
-              <TextBlock Text="NEXT MODULES" Style="{StaticResource SectionLabel}"/>
-              <TextBlock Text="• Verified physical layout and neighbour relationships&#10;• Ripple / neighbour-ripple effects&#10;• Frequency-band audio visualisation&#10;• Dedicated macro editor and safe playback&#10;• Software key remapping with explicit enable / disable&#10;• Installer, updater and diagnostics" Foreground="#AAB3C0" Margin="0,10,0,0" TextWrapping="Wrap"/>
-            </StackPanel>
-          </Border>
-        </ScrollViewer>
-      </TabItem>
-    </TabControl>
-
-    <Grid Grid.Row="3" Margin="0,15,0,0">
-      <TextBlock Text="DARK UI · LOCAL USB ONLY · NO KEYSTROKE LOGGING · NO AUDIO RECORDING · NO TELEMETRY" Foreground="#707986" FontSize="9" VerticalAlignment="Center"/>
-      <TextBlock Text="{Binding FooterStatus}" Foreground="#AAB2BE" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+        </TabItem>
+      </TabControl>
     </Grid>
+
+    <!-- File actions and status -->
+    <Border Grid.Row="3" Style="{StaticResource PanelBorder}" Padding="14" Margin="0,10,0,0" Effect="{StaticResource PanelShadow}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="PROJECT" Foreground="{DynamicResource MutedBrush}" FontSize="8" FontWeight="Bold"/>
+          <TextBlock Text="{Binding ProfileName}" FontSize="11" FontWeight="SemiBold" Margin="0,4,0,0"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
+          <Button Content="Save .vcp" Command="{Binding SaveProfileCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Open .vcp" Command="{Binding LoadProfileCommand}"/>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="15,0,0,0" VerticalAlignment="Center">
+          <Button Content="Save .vca" Command="{Binding SaveAnimationCommand}"/>
+          <Button Content="Open .vca" Command="{Binding LoadAnimationCommand}"/>
+        </StackPanel>
+        <TextBlock Grid.Column="3" Text="LOCAL PROJECTS  ·  USB HID ONLY  ·  NO KEYSTROKE LOGGING  ·  NO AUDIO RECORDING  ·  NO TELEMETRY"
+                   Foreground="{DynamicResource MutedBrush}" FontSize="8" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+        <StackPanel Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Right">
+          <TextBlock Text="{Binding FooterStatus}" Foreground="{DynamicResource TextBrush}" FontSize="10" HorizontalAlignment="Right"/>
+          <TextBlock Text="{Binding OperationMessage}" Foreground="{DynamicResource MutedBrush}" FontSize="8" MaxWidth="250" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" HorizontalAlignment="Right"/>
+        </StackPanel>
+      </Grid>
+    </Border>
   </Grid>
 </Window>
