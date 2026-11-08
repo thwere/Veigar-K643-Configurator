@@ -508,18 +508,18 @@
       <!-- Navigation rail -->
       <Border Grid.Column="0" Style="{StaticResource PanelBorder}" Padding="7" Margin="0,0,10,0">
         <StackPanel>
-          <Button Content="◈&#10;Paint" Command="{Binding SelectToolCommand}" CommandParameter="Brush" Padding="3,10" Margin="0,0,0,8"/>
-          <Button Content="▦&#10;Slots" Command="{Binding SelectToolCommand}" CommandParameter="Map" Padding="3,10" Margin="0,0,0,8"/>
-          <Button Content="◷&#10;Layers" Command="{Binding SelectToolCommand}" CommandParameter="Brush" Padding="3,10" Margin="0,0,0,8"/>
-          <Button Content="⌘&#10;Device" Command="{Binding RefreshCommand}" Padding="3,10" Margin="0,0,0,8"/>
-          <Button Content="▤&#10;Files" Command="{Binding SaveProfileCommand}" Padding="3,10" Margin="0,0,0,8"/>
+          <Button Content="◈&#10;Paint" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="0" Padding="3,10" Margin="0,0,0,8"/>
+          <Button Content="▦&#10;Slots" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="1" Padding="3,10" Margin="0,0,0,8"/>
+          <Button Content="◷&#10;Animation" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="2" Padding="3,10" Margin="0,0,0,8"/>
+          <Button Content="♪&#10;Audio" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="3" Padding="3,10" Margin="0,0,0,8"/>
+          <Button Content="▤&#10;Profiles" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="4" Padding="3,10" Margin="0,0,0,8"/>
           <Separator Background="{DynamicResource LineBrush}" Margin="2,18,2,14"/>
           <TextBlock Text="K643" Foreground="{DynamicResource MutedBrush}" FontSize="9" HorizontalAlignment="Center"/>
         </StackPanel>
       </Border>
 
       <!-- Main workspace with tabs -->
-      <TabControl Grid.Column="1">
+      <TabControl Grid.Column="1" SelectedIndex="{Binding SelectedWorkspaceTabIndex, Mode=TwoWay}">
         <TabItem Header="PAINT">
           <Grid>
             <Grid.ColumnDefinitions>
@@ -738,7 +738,7 @@
                 <TextBlock Text="Choose the Animation layer type, capture the current lighting scene as a frame, and set the duration of each frame in the layer data. Play the animation to preview the sequence on the connected keyboard." Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,18"/>
                 <ComboBox ItemsSource="{Binding AvailableLayerTypes}" SelectedItem="{Binding SelectedLayerType}" Width="180" HorizontalAlignment="Left" Margin="0,0,0,10"/>
                 <WrapPanel>
-                  <Button Content="Add animation layer" Command="{Binding AddLayerCommand}" Style="{StaticResource PrimaryButton}"/>
+                  <Button Content="Add animation layer" Command="{Binding AddAnimationLayerCommand}" Style="{StaticResource PrimaryButton}"/>
                   <Button Content="Add frame" Command="{Binding AddAnimationFrameCommand}"/>
                   <Button Content="Remove last frame" Command="{Binding RemoveAnimationFrameCommand}"/>
                   <Button Content="{Binding AnimationButtonText}" Command="{Binding ToggleAnimationCommand}"/>

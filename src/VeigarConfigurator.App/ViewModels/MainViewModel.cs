@@ -62,6 +62,7 @@ namespace VeigarConfigurator.App.ViewModels
         private double _audioPeakLevel;
         private double _lastAudioSentLevel = -1.0;
         private int _selectedSlotIndex;
+        private int _selectedWorkspaceTabIndex;
         private Brush _previewBrush;
         private LightingLayer _selectedLayer;
         private string _selectedKeyEffect;
@@ -167,6 +168,14 @@ namespace VeigarConfigurator.App.ViewModels
                 delegate { AddLayer(); },
                 delegate { return true; });
 
+            AddAnimationLayerCommand = new RelayCommand(
+                delegate { AddAnimationLayer(); },
+                delegate { return true; });
+
+            SelectWorkspaceTabCommand = new RelayCommand(
+                delegate(object parameter) { SelectWorkspaceTab(parameter); },
+                delegate { return true; });
+
             RemoveLayerCommand = new RelayCommand(
                 delegate { RemoveSelectedLayer(); },
                 delegate { return SelectedLayer != null && Layers.Count > 1; });
@@ -268,6 +277,8 @@ namespace VeigarConfigurator.App.ViewModels
         public ICommand ApplySlotColorCommand { get; private set; }
         public ICommand FillAllSlotsCommand { get; private set; }
         public ICommand AddLayerCommand { get; private set; }
+        public ICommand AddAnimationLayerCommand { get; private set; }
+        public ICommand SelectWorkspaceTabCommand { get; private set; }
         public ICommand RemoveLayerCommand { get; private set; }
         public ICommand MoveLayerUpCommand { get; private set; }
         public ICommand MoveLayerDownCommand { get; private set; }
@@ -326,6 +337,16 @@ namespace VeigarConfigurator.App.ViewModels
         {
             get { return _profileName; }
             set { SetField(ref _profileName, value, "ProfileName"); }
+        }
+
+        public int SelectedWorkspaceTabIndex
+        {
+            get { return _selectedWorkspaceTabIndex; }
+            set
+            {
+                int next = (int)Clamp(value, 0, 4);
+                SetField(ref _selectedWorkspaceTabIndex, next, "SelectedWorkspaceTabIndex");
+            }
         }
 
         public string HexInput
@@ -1160,6 +1181,20 @@ namespace VeigarConfigurator.App.ViewModels
             }
 
             return layer;
+        }
+
+        private void SelectWorkspaceTab(object parameter)
+        {
+            int index;
+            if (parameter == null || !Int32.TryParse(parameter.ToString(), out index))
+                return;
+            SelectedWorkspaceTabIndex = index;
+        }
+
+        private void AddAnimationLayer()
+        {
+            SelectedLayerType = "Animation";
+            AddLayer();
         }
 
         private void AddLayer()
