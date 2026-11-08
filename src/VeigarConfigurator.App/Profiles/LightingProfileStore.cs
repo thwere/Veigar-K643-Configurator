@@ -53,6 +53,30 @@ namespace VeigarConfigurator.App.Profiles
                     profile.KeyMappings = new List<KeyLedMapping>();
                 }
 
+                // Restore collection defaults for fields omitted by older or hand-edited JSON.
+                for (int index = 0; index < profile.Layers.Count; index++)
+                {
+                    LightingLayer layer = profile.Layers[index];
+                    if (layer == null)
+                    {
+                        continue;
+                    }
+
+                    if (layer.SlotColors == null) layer.SlotColors = new List<LedSlotColor>();
+                    if (layer.Frames == null) layer.Frames = new List<AnimationFrame>();
+                    if (layer.StartColor == null) layer.StartColor = new RgbColor(255, 32, 32);
+                    if (layer.EndColor == null) layer.EndColor = layer.StartColor.Copy();
+
+                    for (int frameIndex = 0; frameIndex < layer.Frames.Count; frameIndex++)
+                    {
+                        AnimationFrame frame = layer.Frames[frameIndex];
+                        if (frame == null) continue;
+                        if (frame.SlotColors == null) frame.SlotColors = new List<LedSlotColor>();
+                        if (frame.BaseColor == null) frame.BaseColor = layer.StartColor.Copy();
+                        if (frame.DurationMs < 20) frame.DurationMs = 180;
+                    }
+                }
+
                 // Migrate a v0.2.0-alpha profile into the new layer format.
                 if (profile.Layers.Count == 0)
                 {
