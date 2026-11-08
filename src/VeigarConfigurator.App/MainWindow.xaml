@@ -1,0 +1,178 @@
+<Window x:Class="VeigarConfigurator.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Veigar Configurator"
+        Width="900"
+        Height="600"
+        MinWidth="760"
+        MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        Background="#111214"
+        Foreground="#F2F2F2"
+        FontFamily="Segoe UI">
+    <Window.Resources>
+        <Style x:Key="PanelBorder" TargetType="{x:Type Border}">
+            <Setter Property="Background" Value="#1A1C1F" />
+            <Setter Property="BorderBrush" Value="#303237" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="22" />
+        </Style>
+        <Style x:Key="ActionButton" TargetType="{x:Type Button}">
+            <Setter Property="Foreground" Value="#F5F5F5" />
+            <Setter Property="Background" Value="#292C31" />
+            <Setter Property="BorderBrush" Value="#42464D" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="Margin" Value="0,0,10,10" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="SectionLabel" TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="#92969D" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style x:Key="BusyIndicator" TargetType="{x:Type ProgressBar}">
+            <Setter Property="Height" Value="4" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Setter Property="IsIndeterminate" Value="True" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="34">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,28">
+            <StackPanel>
+                <TextBlock Text="VEIGAR CONFIGURATOR"
+                           FontSize="23"
+                           FontWeight="Bold" />
+                <TextBlock Text="Redragon Veigar K643 · Experimental build"
+                           Foreground="#969AA1"
+                           FontSize="13"
+                           Margin="1,5,0,0" />
+            </StackPanel>
+            <TextBlock Text="VKC"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Center"
+                       Foreground="#D8272F"
+                       FontSize="14"
+                       FontWeight="Bold" />
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.05*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="1.3*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource PanelBorder}">
+                <StackPanel>
+                    <TextBlock Text="DEVICE" Style="{StaticResource SectionLabel}" />
+                    <TextBlock Text="{Binding ConnectionTitle}"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding ConnectionMessage}"
+                               Foreground="#A7ABB2"
+                               FontSize="13"
+                               Margin="0,10,0,18"
+                               TextWrapping="Wrap" />
+                    <Border Background="#24272B" CornerRadius="7" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="USB ID" Foreground="#8E939A" FontSize="10" />
+                            <TextBlock Text="VID 258A  ·  PID 0049"
+                                       FontFamily="Consolas"
+                                       FontSize="13"
+                                       Margin="0,4,0,0" />
+                            <TextBlock Text="Target HID collection: MI_01 / Col08"
+                                       Foreground="#A7ABB2"
+                                       FontSize="11"
+                                       Margin="0,7,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Button Content="REFRESH DEVICE"
+                            Style="{StaticResource ActionButton}"
+                            Margin="0,20,0,0"
+                            HorizontalAlignment="Left"
+                            Command="{Binding RefreshCommand}" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource PanelBorder}">
+                <StackPanel>
+                    <TextBlock Text="RGB TEST" Style="{StaticResource SectionLabel}" />
+                    <TextBlock Text="Solid-color preview"
+                               FontSize="20"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="Send a temporary full-keyboard color frame to verify the HID connection."
+                               Foreground="#A7ABB2"
+                               FontSize="13"
+                               Margin="0,8,0,20"
+                               TextWrapping="Wrap" />
+                    <WrapPanel>
+                        <Button Content="RED"
+                                Style="{StaticResource ActionButton}"
+                                Background="#8F2027"
+                                Command="{Binding SendColorCommand}"
+                                CommandParameter="FF2020"
+                                IsEnabled="{Binding IsConnected}" />
+                        <Button Content="GREEN"
+                                Style="{StaticResource ActionButton}"
+                                Background="#24643F"
+                                Command="{Binding SendColorCommand}"
+                                CommandParameter="20D878"
+                                IsEnabled="{Binding IsConnected}" />
+                        <Button Content="BLUE"
+                                Style="{StaticResource ActionButton}"
+                                Background="#244D83"
+                                Command="{Binding SendColorCommand}"
+                                CommandParameter="287BDF"
+                                IsEnabled="{Binding IsConnected}" />
+                        <Button Content="OFF"
+                                Style="{StaticResource ActionButton}"
+                                Command="{Binding SendColorCommand}"
+                                CommandParameter="000000"
+                                IsEnabled="{Binding IsConnected}" />
+                    </WrapPanel>
+                    <ProgressBar Style="{StaticResource BusyIndicator}"
+                                 Margin="0,12,0,14" />
+                    <TextBlock Text="{Binding OperationMessage}"
+                               Foreground="#C6C9CE"
+                               FontSize="12"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="The preview sends 60 Feature Reports over approximately 3 seconds. It does not save settings or modify firmware."
+                               Foreground="#777C84"
+                               FontSize="11"
+                               Margin="0,20,0,0"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2" Margin="0,20,0,0">
+            <TextBlock Text="LOCAL DEVICE COMMUNICATION · NO TELEMETRY"
+                       Foreground="#6F747B"
+                       FontSize="10"
+                       VerticalAlignment="Center" />
+            <TextBlock Text="{Binding FooterStatus}"
+                       Foreground="#9EA3AA"
+                       FontSize="11"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Center" />
+        </Grid>
+    </Grid>
+</Window>
