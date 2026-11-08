@@ -1235,9 +1235,10 @@ namespace VeigarConfigurator.App.ViewModels
 
             if (mode == "Animation")
             {
-                var frame = new AnimationFrame();
-                frame.BaseColor = GetCurrentColor();
-                layer.Frames.Add(frame);
+                // The first frame starts from the current scene rather than an
+                // unrelated solid colour. Later captures are made from the layers
+                // underneath the selected animation layer.
+                layer.Frames.Add(CreateAnimationFrame(RenderCurrentFrame()));
             }
 
             Layers.Add(layer);
@@ -1309,9 +1310,21 @@ namespace VeigarConfigurator.App.ViewModels
             // RenderCurrentFrame() would include the old animation output and mask edits
             // made to the base colour while creating the next frame.
             byte[] rendered = RenderCurrentFrame(SelectedLayer);
+            AnimationFrame frame = CreateAnimationFrame(rendered);
+            SelectedLayer.Frames.Add(frame);
+            OnPropertyChanged("AnimationFrames");
+            OnPropertyChanged("AnimationFrameCount");
+            OperationMessage = "Captured animation frame " + SelectedLayer.Frames.Count +
+                               " from the layers below the animation layer.";
+        }
+
+        private AnimationFrame CreateAnimationFrame(byte[] rendered)
+        {
+            if (rendered == null || rendered.Length < 126 * 3)
+                throw new ArgumentException("A complete 126-slot RGB scene is required.", "rendered");
+
             var frame = new AnimationFrame();
             frame.BaseColor = GetCurrentColor();
-
             for (int slot = 0; slot < 126; slot++)
             {
                 int offset = slot * 3;
@@ -1321,12 +1334,7 @@ namespace VeigarConfigurator.App.ViewModels
                     Color = new RgbColor(rendered[offset], rendered[offset + 1], rendered[offset + 2])
                 });
             }
-
-            SelectedLayer.Frames.Add(frame);
-            OnPropertyChanged("AnimationFrames");
-            OnPropertyChanged("AnimationFrameCount");
-            OperationMessage = "Captured animation frame " + SelectedLayer.Frames.Count +
-                               " from the layers below the animation layer.";
+            return frame;
         }
 
         private void RemoveAnimationFrame()
