@@ -118,7 +118,7 @@
                     <TextBlock Text="Solid-color preview"
                                FontSize="20"
                                FontWeight="SemiBold" />
-                    <TextBlock Text="Send a temporary full-keyboard color frame to verify the HID connection."
+                    <TextBlock Text="Send a solid-colour frame to all LED slots. The selected colour can remain visible until another lighting command changes it."
                                Foreground="#A7ABB2"
                                FontSize="13"
                                Margin="0,8,0,20"
@@ -154,7 +154,7 @@
                                Foreground="#C6C9CE"
                                FontSize="12"
                                TextWrapping="Wrap" />
-                    <TextBlock Text="The preview sends 60 Feature Reports over approximately 3 seconds. It does not save settings or modify firmware."
+                    <TextBlock Text="Sends 60 Feature Reports over approximately 3 seconds. No settings are saved to device memory and no firmware is modified. The last displayed colour can remain active until another device or software command changes it."
                                Foreground="#777C84"
                                FontSize="11"
                                Margin="0,20,0,0"

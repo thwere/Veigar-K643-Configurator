@@ -50,4 +50,4 @@ Keep hardware-specific packet structures inside the device project. Keep Win32 i
 
 ## Safety and testing
 
-Close other keyboard configuration software before running HID tests. The RGB preview temporarily changes the visible lighting and sends repeated frames for approximately three seconds. The current prototype does not save settings to the keyboard.
+Close other keyboard configuration software before running HID tests. The RGB preview sends repeated Feature Report frames for approximately three seconds. The last displayed colour may remain active after transmission stops, until another device or software command changes it. The current prototype does not save settings to the keyboard.
