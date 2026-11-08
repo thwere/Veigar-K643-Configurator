@@ -48,6 +48,11 @@ namespace VeigarConfigurator.App.ViewModels
         private string _lastDetectedKey;
         private string _selectedSlotMapping;
         private string _selectedLayerType;
+        private string _selectedTool;
+        private string _selectedKeyboardKey;
+        private bool _paintOnPhysicalPress;
+        private bool _isLightTheme;
+        private readonly HashSet<string> _pressedKeyboardKeys = new HashSet<string>();
         private double _redValue;
         private double _greenValue;
         private double _blueValue;
@@ -68,6 +73,7 @@ namespace VeigarConfigurator.App.ViewModels
             _heldSlots = new HashSet<int>();
 
             LedSlots = new ObservableCollection<LedSlotViewModel>();
+            KeyboardKeys = KeyboardLayoutBuilder.Create();
             Layers = new ObservableCollection<LightingLayer>();
             AvailableLayerTypes = new ObservableCollection<string>
             {
@@ -106,6 +112,9 @@ namespace VeigarConfigurator.App.ViewModels
             _selectedSlotIndex = 0;
             _selectedLayerType = "Static";
             _selectedKeyEffect = "Fade";
+            _selectedTool = "Brush";
+            _selectedKeyboardKey = "W";
+            _paintOnPhysicalPress = true;
             _audioStatus = _audioMeter == null
                 ? "Audio meter is unavailable on this system."
                 : "Ready to read the default Windows audio output peak.";
@@ -198,6 +207,18 @@ namespace VeigarConfigurator.App.ViewModels
                 delegate { ClearSelectedMapping(); },
                 delegate { return HasSelectedMapping; });
 
+            SelectKeyboardKeyCommand = new RelayCommand(
+                delegate(object parameter) { SelectKeyboardKey(parameter as string); },
+                delegate { return true; });
+
+            SelectToolCommand = new RelayCommand(
+                delegate(object parameter) { SelectedTool = parameter as string; },
+                delegate { return true; });
+
+            ToggleThemeCommand = new RelayCommand(
+                delegate { IsLightTheme = !IsLightTheme; },
+                delegate { return true; });
+
             SaveProfileCommand = new RelayCommand(
                 delegate { SaveProfile(); },
                 delegate { return !IsBusy; });
@@ -205,6 +226,14 @@ namespace VeigarConfigurator.App.ViewModels
             LoadProfileCommand = new RelayCommand(
                 delegate { LoadProfile(); },
                 delegate { return !IsBusy; });
+
+            SaveAnimationCommand = new RelayCommand(
+                delegate { SaveAnimation(); },
+                delegate { Layers.Any(item => item.Mode == "Animation"); });
+
+            LoadAnimationCommand = new RelayCommand(
+                delegate { LoadAnimation(); },
+                delegate { !IsBusy; });
 
             _deviceTimer = new DispatcherTimer();
             _deviceTimer.Interval = TimeSpan.FromSeconds(2);
@@ -223,6 +252,7 @@ namespace VeigarConfigurator.App.ViewModels
         public event PropertyChangedEventHandler PropertyChanged;
 
         public ObservableCollection<LedSlotViewModel> LedSlots { get; private set; }
+        public ObservableCollection<KeyboardKeyViewModel> KeyboardKeys { get; private set; }
         public ObservableCollection<LightingLayer> Layers { get; private set; }
         public ObservableCollection<string> AvailableLayerTypes { get; private set; }
         public ObservableCollection<string> BlendModes { get; private set; }
@@ -248,6 +278,11 @@ namespace VeigarConfigurator.App.ViewModels
         public ICommand ClearMappingCommand { get; private set; }
         public ICommand SaveProfileCommand { get; private set; }
         public ICommand LoadProfileCommand { get; private set; }
+        public ICommand SelectKeyboardKeyCommand { get; private set; }
+        public ICommand SelectToolCommand { get; private set; }
+        public ICommand ToggleThemeCommand { get; private set; }
+        public ICommand SaveAnimationCommand { get; private set; }
+        public ICommand LoadAnimationCommand { get; private set; }
 
         public bool IsConnected
         {
@@ -386,6 +421,7 @@ namespace VeigarConfigurator.App.ViewModels
                 {
                     LedSlots[index].IsSelected = LedSlots[index].SlotIndex == value;
                 }
+                OnPropertyChanged("SelectedKeyboardKeyStatus");
             }
         }
 
@@ -398,6 +434,67 @@ namespace VeigarConfigurator.App.ViewModels
         {
             get { return _selectedSlotMapping; }
             private set { SetField(ref _selectedSlotMapping, value, "SelectedSlotMapping"); }
+        }
+
+        public string SelectedTool
+        {
+            get { return _selectedTool; }
+            set
+            {
+                if (SetFieldValue(ref _selectedTool, value, "SelectedTool"))
+                    OperationMessage = "Tool selected: " + value + ".";
+            }
+        }
+
+        public string SelectedKeyboardKey
+        {
+            get { return _selectedKeyboardKey; }
+            private set
+            {
+                if (SetFieldValue(ref _selectedKeyboardKey, value, "SelectedKeyboardKey"))
+                {
+                    OnPropertyChanged("SelectedKeyboardKeyLabel");
+                    OnPropertyChanged("SelectedKeyboardKeyStatus");
+                    RefreshKeyboardPreviews();
+                }
+            }
+        }
+
+        public string SelectedKeyboardKeyLabel
+        {
+            get
+            {
+                KeyboardKeyViewModel key = KeyboardKeys.FirstOrDefault(item => item.KeyId == SelectedKeyboardKey);
+                return key == null ? "—" : (string.IsNullOrEmpty(key.Label) ? "SPACE" : key.Label);
+            }
+        }
+
+        public string SelectedKeyboardKeyStatus
+        {
+            get
+            {
+                KeyboardKeyViewModel key = KeyboardKeys.FirstOrDefault(item => item.KeyId == SelectedKeyboardKey);
+                KeyLedMapping mapping = key == null ? null : FindMappingForKey(key);
+                return mapping == null
+                    ? "Not calibrated · choose Map and assign an LED slot"
+                    : "Mapped to LED slot " + (mapping.SlotIndex + 1).ToString("000");
+            }
+        }
+
+        public bool PaintOnPhysicalPress
+        {
+            get { return _paintOnPhysicalPress; }
+            set
+            {
+                if (SetFieldValue(ref _paintOnPhysicalPress, value, "PaintOnPhysicalPress"))
+                    RefreshKeyboardPreviews();
+            }
+        }
+
+        public bool IsLightTheme
+        {
+            get { return _isLightTheme; }
+            set { SetFieldValue(ref _isLightTheme, value, "IsLightTheme"); }
         }
 
         public bool HasSelectedMapping
@@ -762,6 +859,150 @@ namespace VeigarConfigurator.App.ViewModels
             SelectedSlotIndex = slot;
         }
 
+        private void SelectKeyboardKey(string keyId)
+        {
+            KeyboardKeyViewModel key = KeyboardKeys.FirstOrDefault(item => item.KeyId == keyId);
+            if (key == null) return;
+            SelectedKeyboardKey = keyId;
+
+            if (SelectedTool == "Map")
+            {
+                MapKeyboardKeyToSelectedSlot(key);
+                return;
+            }
+
+            KeyLedMapping mapping = FindMappingForKey(key);
+            if (mapping == null)
+            {
+                OperationMessage = key.Label + " is not calibrated to a protocol LED slot. Select a slot in Calibration, then use Map.";
+                return;
+            }
+
+            SelectedSlotIndex = mapping.SlotIndex;
+            if (SelectedTool == "Brush")
+            {
+                PaintSlotColor(mapping.SlotIndex, GetCurrentColor());
+                SendCurrentFrame(true);
+            }
+            else if (SelectedTool == "Eraser")
+            {
+                PaintSlotColor(mapping.SlotIndex, new RgbColor(0, 0, 0));
+                SendCurrentFrame(true);
+            }
+            else if (SelectedTool == "Fill")
+            {
+                FillAllSlots();
+                SendCurrentFrame(true);
+            }
+            else if (SelectedTool == "Picker")
+            {
+                PickColorFromSlot(mapping.SlotIndex);
+            }
+        }
+
+        private void MapKeyboardKeyToSelectedSlot(KeyboardKeyViewModel key)
+        {
+            if (key == null || key.VirtualKeyCode == 0)
+            {
+                OperationMessage = "This key cannot be calibrated automatically. Use physical key capture instead.";
+                return;
+            }
+
+            KeyLedMapping mapping = FindMappingForSlot(_selectedSlotIndex);
+            if (mapping == null)
+            {
+                mapping = new KeyLedMapping();
+                mapping.SlotIndex = _selectedSlotIndex;
+                KeyMappings.Add(mapping);
+            }
+
+            mapping.VirtualKey = key.VirtualKeyCode;
+            mapping.ScanCode = key.ScanCodeHint;
+            mapping.KeyName = key.Label;
+            OnPropertyChanged("MappingsCount");
+            UpdateSelectedSlotMapping();
+            RefreshKeyboardPreviews();
+            OperationMessage = key.Label + " is now mapped to LED slot " + (_selectedSlotIndex + 1) + ".";
+        }
+
+        private KeyLedMapping FindMappingForKey(KeyboardKeyViewModel key)
+        {
+            if (key == null || key.VirtualKeyCode == 0) return null;
+            return KeyMappings.FirstOrDefault(item =>
+                item.VirtualKey == key.VirtualKeyCode &&
+                (item.ScanCode == 0 || key.ScanCodeHint == 0 || item.ScanCode == key.ScanCodeHint));
+        }
+
+        private void PaintSlotColor(int slot, RgbColor color)
+        {
+            if (slot < 0 || slot >= 126 || color == null) return;
+            LightingLayer layer = GetBaseLayer();
+            LedSlotColor existing = FindSlotColor(layer.SlotColors, slot);
+            if (existing == null)
+            {
+                layer.SlotColors.Add(new LedSlotColor { SlotIndex = slot, Color = color });
+            }
+            else
+            {
+                existing.Color = color;
+            }
+            RefreshSlotPreviews();
+        }
+
+        private void PickColorFromSlot(int slot)
+        {
+            byte[] rendered = RenderCurrentFrame();
+            int offset = slot * 3;
+            RedValue = rendered[offset];
+            GreenValue = rendered[offset + 1];
+            BlueValue = rendered[offset + 2];
+            BrightnessValue = 100;
+            UpdateColorPresentation(true);
+            OperationMessage = "Picked colour from " + SelectedKeyboardKeyLabel + ".";
+        }
+
+        private void RefreshKeyboardPreviews()
+        {
+            if (KeyboardKeys == null) return;
+            Color activeColor = Color.FromRgb(ToByte(RedValue), ToByte(GreenValue), ToByte(BlueValue));
+            Brush physicalBrush = new SolidColorBrush(activeColor);
+            Brush pressedBrush = new SolidColorBrush(Color.FromRgb(69, 190, 185));
+            Brush defaultBrush = new SolidColorBrush(Color.FromRgb(49, 57, 68));
+            Brush selectedBorder = new SolidColorBrush(Color.FromRgb(225, 81, 91));
+            Brush normalBorder = new SolidColorBrush(Color.FromRgb(83, 95, 110));
+
+            foreach (KeyboardKeyViewModel key in KeyboardKeys)
+            {
+                KeyLedMapping mapping = FindMappingForKey(key);
+                key.MappingName = mapping == null ? "Not calibrated" : "LED " + (mapping.SlotIndex + 1);
+                key.IsSelected = key.KeyId == SelectedKeyboardKey;
+                if (_pressedKeyboardKeys.Contains(key.KeyId))
+                    key.Brush = PaintOnPhysicalPress ? physicalBrush : pressedBrush;
+                else if (mapping != null && mapping.SlotIndex >= 0 && mapping.SlotIndex < LedSlots.Count)
+                    key.Brush = LedSlots[mapping.SlotIndex].Brush;
+                else
+                    key.Brush = defaultBrush;
+
+                key.BorderBrush = key.IsSelected ? selectedBorder : normalBorder;
+            }
+        }
+
+        private static bool SetFieldValue<T>(ref T field, T value, string propertyName, Action<string> notify)
+        {
+            if (object.Equals(field, value)) return false;
+            field = value;
+            if (notify != null) notify(propertyName);
+            return true;
+        }
+
+        private bool SetFieldValue<T>(ref T field, T value, string propertyName)
+        {
+            if (object.Equals(field, value)) return false;
+            field = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
+
         private void ApplyColorToSelectedSlot()
         {
             LightingLayer layer = GetBaseLayer();
@@ -945,22 +1186,29 @@ namespace VeigarConfigurator.App.ViewModels
 
         public void OnPhysicalKeyReceived(RawKeyEventArgs args)
         {
-            if (args == null)
-            {
-                return;
-            }
+            if (args == null) return;
 
             string keyName;
-            try
+            try { keyName = System.Windows.Input.KeyInterop.KeyFromVirtualKey(args.VirtualKey).ToString(); }
+            catch { keyName = "VK " + args.VirtualKey; }
+
+            string keyId = KeyboardLayoutBuilder.KeyIdFromInput(args.VirtualKey, args.ScanCode);
+            KeyboardKeyViewModel keyboardKey = KeyboardKeys.FirstOrDefault(item => item.KeyId == keyId);
+            if (keyboardKey != null)
             {
-                keyName = System.Windows.Input.KeyInterop.KeyFromVirtualKey(args.VirtualKey).ToString();
-            }
-            catch
-            {
-                keyName = "VK " + args.VirtualKey;
+                if (args.IsKeyDown)
+                {
+                    _pressedKeyboardKeys.Add(keyId);
+                    SelectedKeyboardKey = keyId;
+                }
+                else
+                {
+                    _pressedKeyboardKeys.Remove(keyId);
+                }
+                RefreshKeyboardPreviews();
             }
 
-            LastDetectedKey = keyName + " · scan " + args.ScanCode;
+            LastDetectedKey = (keyboardKey == null ? keyName : keyboardKey.Label) + " · scan " + args.ScanCode;
 
             if (IsMappingArmed && args.IsKeyDown)
             {
@@ -974,20 +1222,24 @@ namespace VeigarConfigurator.App.ViewModels
 
                 existing.VirtualKey = args.VirtualKey;
                 existing.ScanCode = args.ScanCode;
-                existing.KeyName = keyName;
+                existing.KeyName = keyboardKey == null ? keyName : keyboardKey.Label;
                 IsMappingArmed = false;
                 OnPropertyChanged("MappingsCount");
                 UpdateSelectedSlotMapping();
                 RefreshSlotPreviews();
-                OperationMessage = keyName + " mapped to LED slot " + (_selectedSlotIndex + 1) + ".";
+                RefreshKeyboardPreviews();
+                OperationMessage = existing.KeyName + " mapped to LED slot " + (_selectedSlotIndex + 1) + ".";
                 return;
             }
 
             KeyLedMapping mapping = KeyMappings.FirstOrDefault(
-                item => item.VirtualKey == args.VirtualKey && item.ScanCode == args.ScanCode);
+                item => item.VirtualKey == args.VirtualKey &&
+                        (item.ScanCode == args.ScanCode || item.ScanCode == 0));
 
             if (mapping == null)
             {
+                if (args.IsKeyDown && keyboardKey != null && PaintOnPhysicalPress)
+                    OperationMessage = keyboardKey.Label + " detected. Assign it to an LED slot with the Map tool to paint the physical key.";
                 return;
             }
 
@@ -995,10 +1247,17 @@ namespace VeigarConfigurator.App.ViewModels
             {
                 _heldSlots.Add(mapping.SlotIndex);
                 _keyIntensity[mapping.SlotIndex] = 1.0;
-                if (KeyReactiveEnabled)
+
+                if (PaintOnPhysicalPress && (SelectedTool == "Brush" || SelectedTool == "Eraser"))
                 {
+                    RgbColor color = SelectedTool == "Eraser" ? new RgbColor(0, 0, 0) : GetCurrentColor();
+                    PaintSlotColor(mapping.SlotIndex, color);
                     SendCurrentFrame(false);
+                    OperationMessage = "Painted " + mapping.KeyName + " on the keyboard.";
+                    return;
                 }
+
+                if (KeyReactiveEnabled) SendCurrentFrame(false);
             }
             else
             {
@@ -1063,16 +1322,17 @@ namespace VeigarConfigurator.App.ViewModels
                 KeyLedMapping mapping = FindMappingForSlot(slot);
                 LedSlots[slot].MappingName = mapping == null ? string.Empty : mapping.KeyName;
             }
+            RefreshKeyboardPreviews();
         }
 
         private void SaveProfile()
         {
             var dialog = new SaveFileDialog();
             dialog.Title = "Save K643 lighting profile";
-            dialog.Filter = "Veigar profile (*.json)|*.json";
-            dialog.DefaultExt = ".json";
+            dialog.Filter = "Veigar Configurator Paint (*.vcp)|*.vcp|Legacy JSON profile (*.json)|*.json";
+            dialog.DefaultExt = ".vcp";
             dialog.AddExtension = true;
-            dialog.FileName = MakeSafeFileName(ProfileName) + ".json";
+            dialog.FileName = MakeSafeFileName(ProfileName) + ".vcp";
 
             if (dialog.ShowDialog() != true)
             {
@@ -1107,7 +1367,7 @@ namespace VeigarConfigurator.App.ViewModels
         {
             var dialog = new OpenFileDialog();
             dialog.Title = "Load K643 lighting profile";
-            dialog.Filter = "Veigar profile (*.json)|*.json|All files (*.*)|*.*";
+            dialog.Filter = "Veigar Configurator Paint (*.vcp)|*.vcp|Legacy JSON profile (*.json)|*.json|All files (*.*)|*.*";
             dialog.CheckFileExists = true;
             dialog.Multiselect = false;
 
@@ -1155,6 +1415,58 @@ namespace VeigarConfigurator.App.ViewModels
             }
         }
 
+        private void SaveAnimation()
+        {
+            var dialog = new SaveFileDialog();
+            dialog.Title = "Save Veigar animation";
+            dialog.Filter = "Veigar Configurator Animation (*.vca)|*.vca";
+            dialog.DefaultExt = ".vca";
+            dialog.AddExtension = true;
+            dialog.FileName = MakeSafeFileName(ProfileName) + ".vca";
+            if (dialog.ShowDialog() != true) return;
+
+            try
+            {
+                LightingProfileStore.SaveAnimation(dialog.FileName, ProfileName, Layers.ToList());
+                OperationMessage = "Animation project saved: " + dialog.FileName;
+                FooterStatus = "Animation saved";
+            }
+            catch (Exception exception)
+            {
+                OperationMessage = "Could not save animation: " + exception.Message;
+                FooterStatus = "Animation save error";
+            }
+        }
+
+        private void LoadAnimation()
+        {
+            var dialog = new OpenFileDialog();
+            dialog.Title = "Load Veigar animation";
+            dialog.Filter = "Veigar Configurator Animation (*.vca)|*.vca";
+            dialog.CheckFileExists = true;
+            dialog.Multiselect = false;
+            if (dialog.ShowDialog() != true) return;
+
+            try
+            {
+                IList<LightingLayer> imported = LightingProfileStore.LoadAnimation(dialog.FileName);
+                foreach (LightingLayer layer in imported)
+                {
+                    Layers.Add(layer);
+                }
+                LightingLayer first = imported.FirstOrDefault();
+                if (first != null) SelectedLayer = first;
+                RefreshSlotPreviews();
+                OperationMessage = "Loaded " + imported.Count + " animation layer(s).";
+                FooterStatus = "Animation loaded";
+            }
+            catch (Exception exception)
+            {
+                OperationMessage = "Could not load animation: " + exception.Message;
+                FooterStatus = "Animation load error";
+            }
+        }
+
         private void UpdateColorPresentation(bool updateHexInput)
         {
             byte red = ToByte(RedValue);
@@ -1173,6 +1485,7 @@ namespace VeigarConfigurator.App.ViewModels
 
             PreviewBrush = new SolidColorBrush(Color.FromRgb(outputRed, outputGreen, outputBlue));
             EffectiveColorHex = string.Format("#{0:X2}{1:X2}{2:X2}", outputRed, outputGreen, outputBlue);
+            RefreshKeyboardPreviews();
         }
 
         private void ApplyCurrentColorToPreview()
