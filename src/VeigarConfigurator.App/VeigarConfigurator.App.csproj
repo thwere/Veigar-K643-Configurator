@@ -73,4 +73,5 @@
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="Commands\RelayCommand.cs" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />\n</Project>\n</Project>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
