@@ -17,6 +17,9 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
       - name: Build Release
         shell: cmd
         run: msbuild VeigarConfigurator.sln /m /p:Configuration=Release /verbosity:minimal
