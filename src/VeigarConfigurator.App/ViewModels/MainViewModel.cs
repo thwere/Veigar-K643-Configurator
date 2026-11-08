@@ -1008,12 +1008,14 @@ namespace VeigarConfigurator.App.ViewModels
         {
             if (KeyboardKeys == null) return;
 
-            Brush pressedBrush = new SolidColorBrush(Color.FromArgb(170, 47, 190, 177));
+            Brush pressedBrush = new SolidColorBrush(Color.FromArgb(235, 47, 190, 177));
             Brush selectedBorder = new SolidColorBrush(Color.FromRgb(232, 87, 98));
             Brush normalBorder = new SolidColorBrush(IsLightTheme
-                ? Color.FromRgb(116, 132, 149)
+                ? Color.FromRgb(117, 132, 148)
                 : Color.FromRgb(93, 107, 123));
-            Brush unmappedBrush = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+            Brush defaultKeyBrush = new SolidColorBrush(IsLightTheme
+                ? Color.FromRgb(248, 250, 252)
+                : Color.FromRgb(57, 67, 80));
 
             foreach (KeyboardKeyViewModel key in KeyboardKeys)
             {
@@ -1029,7 +1031,7 @@ namespace VeigarConfigurator.App.ViewModels
                     if (PaintOnPhysicalPress)
                     {
                         key.Brush = new SolidColorBrush(Color.FromArgb(
-                            190, ToByte(RedValue), ToByte(GreenValue), ToByte(BlueValue)));
+                            245, ToByte(RedValue), ToByte(GreenValue), ToByte(BlueValue)));
                     }
                     else
                     {
@@ -1040,12 +1042,14 @@ namespace VeigarConfigurator.App.ViewModels
                 {
                     SolidColorBrush slotBrush = LedSlots[mapping.SlotIndex].Brush as SolidColorBrush;
                     Color colour = slotBrush == null ? Colors.Black : slotBrush.Color;
-                    byte alpha = (colour.R == 0 && colour.G == 0 && colour.B == 0) ? (byte)0 : (byte)155;
-                    key.Brush = new SolidColorBrush(Color.FromArgb(alpha, colour.R, colour.G, colour.B));
+                    bool isOff = colour.R == 0 && colour.G == 0 && colour.B == 0;
+                    key.Brush = isOff
+                        ? defaultKeyBrush
+                        : new SolidColorBrush(Color.FromArgb(220, colour.R, colour.G, colour.B));
                 }
                 else
                 {
-                    key.Brush = unmappedBrush;
+                    key.Brush = defaultKeyBrush;
                 }
 
                 key.BorderBrush = key.IsSelected ? selectedBorder : normalBorder;

@@ -86,7 +86,6 @@
     <Compile Include="Models\AnimationFrame.cs" />
     <Compile Include="Models\KeyLedMapping.cs" />
     <Compile Include="Models\VeigarK643LedMap.cs" />
-    <Resource Include="Assets\K643-Keyboard.png" />
     <Compile Include="Models\LightingLayer.cs" />
     <Compile Include="Lighting\LayerCompositor.cs" />
     <Compile Include="UI\DarkTitleBar.cs" />

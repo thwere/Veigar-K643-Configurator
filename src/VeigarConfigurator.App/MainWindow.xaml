@@ -406,7 +406,7 @@
       <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
     <Style x:Key="KeyButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Padding" Value="2"/>
+      <Setter Property="Padding" Value="0"/>
       <Setter Property="Margin" Value="0"/>
       <Setter Property="Foreground" Value="{DynamicResource KeyTextBrush}"/>
       <Setter Property="Background" Value="{Binding Brush}"/>
@@ -415,16 +415,23 @@
       <Setter Property="FontSize" Value="10"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="ToolTip" Value="{Binding MappingName}"/>
-      <Setter Property="Padding" Value="0"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="{x:Type Button}">
-            <Border x:Name="KeyBorder" Background="{TemplateBinding Background}"
+            <Border x:Name="KeyBorder"
+                    Background="{TemplateBinding Background}"
                     BorderBrush="{TemplateBinding BorderBrush}"
                     BorderThickness="{TemplateBinding BorderThickness}"
-                    CornerRadius="6" Padding="1">
-              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                RecognizesAccessKey="True"/>
+                    CornerRadius="5" Padding="1">
+              <Border x:Name="KeyFace" Background="Transparent"
+                      BorderBrush="{DynamicResource KeyTopEdgeBrush}"
+                      BorderThickness="1,1,0,0" CornerRadius="4">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  RecognizesAccessKey="True"
+                                  TextElement.Foreground="{TemplateBinding Foreground}"
+                                  TextElement.FontWeight="SemiBold"
+                                  TextElement.FontSize="{TemplateBinding FontSize}"/>
+              </Border>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
@@ -432,7 +439,10 @@
                 <Setter TargetName="KeyBorder" Property="BorderThickness" Value="2"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
-                <Setter TargetName="KeyBorder" Property="Opacity" Value="0.72"/>
+                <Setter TargetName="KeyFace" Property="Opacity" Value="0.78"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="KeyBorder" Property="Opacity" Value="0.45"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -550,8 +560,6 @@
                     <StackPanel>
                       <TextBlock Text="REDRAGON VEIGAR K643  ·  FULL KEY MAP" Foreground="{DynamicResource MutedBrush}" FontSize="9" FontWeight="Bold" Margin="3,0,0,12"/>
                       <Grid Width="1000" Height="371" Background="{DynamicResource KeyboardCanvasBrush}">
-                        <Image Source="Assets/K643-Keyboard.png" Width="1000" Height="371"
-                               Stretch="Fill" IsHitTestVisible="False"/>
                         <ItemsControl ItemsSource="{Binding KeyboardKeys}" Width="1000" Height="371">
                           <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><Canvas Width="1000" Height="371"/></ItemsPanelTemplate>
@@ -566,7 +574,7 @@
                             <DataTemplate>
                               <Button Style="{StaticResource KeyButtonStyle}"
                                       Width="{Binding Width}" Height="{Binding Height}"
-                                      Content=""
+                                      Content="{Binding Label}"
                                       Command="{Binding DataContext.SelectKeyboardKeyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                       CommandParameter="{Binding KeyId}"/>
                             </DataTemplate>
