@@ -494,7 +494,16 @@ namespace VeigarConfigurator.App.ViewModels
         public bool IsLightTheme
         {
             get { return _isLightTheme; }
-            set { SetFieldValue(ref _isLightTheme, value, "IsLightTheme"); }
+            set
+            {
+                if (SetFieldValue(ref _isLightTheme, value, "IsLightTheme"))
+                    OnPropertyChanged("ThemeButtonText");
+            }
+        }
+
+        public string ThemeButtonText
+        {
+            get { return IsLightTheme ? "☀ LIGHT" : "◐ DARK"; }
         }
 
         public bool HasSelectedMapping
