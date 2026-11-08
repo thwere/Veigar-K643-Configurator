@@ -19,6 +19,7 @@
     <SolidColorBrush x:Key="AccentSoftBrush" Color="#593039"/>
     <SolidColorBrush x:Key="KeyBaseBrush" Color="#303A47"/>
     <SolidColorBrush x:Key="KeyTextBrush" Color="#E6ECF3"/>
+    <SolidColorBrush x:Key="KeyTopEdgeBrush" Color="#72FFFFFF"/>
     <SolidColorBrush x:Key="KeyboardCanvasBrush" Color="#263241"/>
     <SolidColorBrush x:Key="ScrollTrackBrush" Color="#1A2633"/>
     <SolidColorBrush x:Key="ScrollThumbBrush" Color="#59697B"/>

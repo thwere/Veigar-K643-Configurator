@@ -69,6 +69,8 @@ namespace VeigarConfigurator.App
                 light ? ColorFromRgb(216, 225, 234) : ColorFromRgb(48, 58, 71));
             Resources["KeyTextBrush"] = new System.Windows.Media.SolidColorBrush(
                 light ? ColorFromRgb(50, 64, 79) : ColorFromRgb(230, 236, 243));
+            Resources["KeyTopEdgeBrush"] = new System.Windows.Media.SolidColorBrush(
+                light ? ColorFromArgb(210, 255, 255, 255) : ColorFromArgb(110, 222, 232, 244));
             Resources["KeyboardCanvasBrush"] = new System.Windows.Media.SolidColorBrush(
                 light ? ColorFromRgb(222, 230, 238) : ColorFromRgb(24, 34, 46));
             Resources["ScrollTrackBrush"] = new System.Windows.Media.SolidColorBrush(
