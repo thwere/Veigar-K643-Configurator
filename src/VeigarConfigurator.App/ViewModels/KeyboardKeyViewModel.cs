@@ -127,7 +127,7 @@ namespace VeigarConfigurator.App.ViewModels
                 K("F3","F3",0x72), K("F4","F4",0x73), K("F5","F5",0x74,1,.5),
                 K("F6","F6",0x75), K("F7","F7",0x76), K("F8","F8",0x77),
                 K("F9","F9",0x78,1,.5), K("F10","F10",0x79), K("F11","F11",0x7A),
-                K("F12","F12",0x7B), K("PRTSC","PrtSc",0x2C,1,.4),
+                K("F12","F12",0x7B), KEx("PRTSC","PrtSc",0x2C,1,.4,KeyHeight,true),
                 K("FNMINUS","−",0xBD), K("FNPLUS","+",0xBB)
             });
 
@@ -137,7 +137,7 @@ namespace VeigarConfigurator.App.ViewModels
                 K("D8","8",0x38), K("D9","9",0x39), K("D0","0",0x30), K("MINUS","−",0xBD),
                 K("EQUAL","=",0xBB), K("BACK","Backspace",0x08,2.0),
                 K("INS","Ins",0x2D,1,.35), K("HOME","Home",0x24), K("PGUP","PgUp",0x21),
-                K("NUM","Num",0x90), K("NUMDIV","/",0x6F), K("NUMMUL","*",0x6A), K("NUMSUB","−",0x6D)
+                K("NUM","Num",0x90), KEx("NUMDIV","/",0x6F,1,0,KeyHeight,true), K("NUMMUL","*",0x6A), K("NUMSUB","−",0x6D)
             });
 
             AddRow(keys, 2, new KeySpec[] {
@@ -145,7 +145,7 @@ namespace VeigarConfigurator.App.ViewModels
                 L("U"), L("I"), L("O"), L("P"), K("LB","[",0xDB), K("RB","]",0xDD),
                 K("BSLASH","\\",0xDC,1.5), K("DEL","Del",0x2E,1,.35),
                 K("END","End",0x23), K("PGDN","PgDn",0x22),
-                K("NUM7","7",0x67), K("NUM8","8",0x68), K("NUM9","9",0x69), K("NUMADD","+",0x6B)
+                K("NUM7","7",0x67), K("NUM8","8",0x68), K("NUM9","9",0x69), KEx("NUMADD","+",0x6B,1,0,KeyHeight*2+RowGap,false)
             });
 
             AddRow(keys, 3, new KeySpec[] {
