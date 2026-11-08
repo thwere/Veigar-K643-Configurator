@@ -38,6 +38,7 @@ namespace VeigarConfigurator.App
             DataContext = _viewModel;
 
             _rawInputListener = new RawInputKeyboardListener();
+            _rawInputListener.KeyReceived += RawInputListener_KeyReceived;
             SourceInitialized += MainWindow_SourceInitialized;
             Closed += MainWindow_Closed;
         }
