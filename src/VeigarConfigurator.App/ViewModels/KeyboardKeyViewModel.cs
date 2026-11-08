@@ -238,6 +238,15 @@ namespace VeigarConfigurator.App.ViewModels
             return new KeySpec(id, label, vk, width, gapBefore, height, isExtended);
         }
 
+        private static KeySpec KEx(
+            string id, string label, int vk, double width, double gapBefore,
+            double height, int scanCode, bool isExtended)
+        {
+            var spec = new KeySpec(id, label, vk, width, gapBefore, height, isExtended);
+            spec.ScanCode = scanCode;
+            return spec;
+        }
+
         private static void AddRow(
             ObservableCollection<KeyboardKeyViewModel> target,
             int row,
