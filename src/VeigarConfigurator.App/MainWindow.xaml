@@ -243,7 +243,12 @@
                         <DockPanel Margin="0,0,0,6">
                             <TextBlock Text="BRIGHTNESS" Style="{StaticResource SectionLabel}" />
                             <TextBlock DockPanel.Dock="Right"
-                                       Text="{Binding BrightnessValue, StringFormat={}{0:F0}%}"
+                                       Text="%"
+                                       Foreground="#C6C9CE"
+                                       FontFamily="Consolas"
+                                       FontSize="11" />
+                            <TextBlock DockPanel.Dock="Right"
+                                       Text="{Binding BrightnessValue, StringFormat={}{0:F0}}"
                                        Foreground="#C6C9CE"
                                        FontFamily="Consolas"
                                        FontSize="11" />
