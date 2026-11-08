@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using VeigarConfigurator.App.Commands;
 using VeigarConfigurator.App.Lighting;
@@ -913,6 +914,12 @@ namespace VeigarConfigurator.App.ViewModels
         private LightingLayer GetKeyReactiveLayer()
         {
             return Layers.FirstOrDefault(item => item.Mode == "KeyReactive");
+        }
+
+        public void OnRawInputStatus(string message)
+        {
+            FooterStatus = "Raw Input unavailable";
+            OperationMessage = message ?? "Raw Input could not be registered.";
         }
 
         public void OnPhysicalKeyReceived(RawKeyEventArgs args)
