@@ -32,6 +32,8 @@ namespace VeigarConfigurator.App.ViewModels
         private bool _isConnected;
         private bool _isBusy;
         private bool _isSendingFrame;
+        private byte[] _pendingFrame;
+        private bool _pendingFrameShowResult;
         private bool _disposed;
         private bool _isMappingArmed;
         private bool _audioReactiveEnabled;
@@ -738,12 +740,26 @@ namespace VeigarConfigurator.App.ViewModels
 
         private void SendCurrentFrame(bool showResult)
         {
-            if (!IsConnected || _isSendingFrame || _disposed)
+            if (!IsConnected || _disposed)
             {
                 return;
             }
 
             byte[] frame = RenderCurrentFrame();
+            if (_isSendingFrame)
+            {
+                // Keep only the newest complete scene. This prevents rapid key presses
+                // or slider changes from being silently lost while a HID write is active.
+                _pendingFrame = frame;
+                _pendingFrameShowResult = _pendingFrameShowResult || showResult;
+                return;
+            }
+
+            StartFrameSend(frame, showResult);
+        }
+
+        private void StartFrameSend(byte[] frame, bool showResult)
+        {
             _isSendingFrame = true;
             if (showResult)
             {
@@ -751,8 +767,7 @@ namespace VeigarConfigurator.App.ViewModels
                 FooterStatus = "Sending RGB frame";
             }
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            SendFrameAsync(frame, stopwatch, showResult);
+            SendFrameAsync(frame, Stopwatch.StartNew(), showResult);
         }
 
         private async void SendFrameAsync(byte[] frame, Stopwatch stopwatch, bool showResult)
@@ -783,6 +798,16 @@ namespace VeigarConfigurator.App.ViewModels
                 if (showResult)
                 {
                     IsBusy = false;
+                }
+
+                byte[] nextFrame = _pendingFrame;
+                bool nextShowResult = _pendingFrameShowResult;
+                _pendingFrame = null;
+                _pendingFrameShowResult = false;
+
+                if (nextFrame != null && !_disposed && IsConnected)
+                {
+                    StartFrameSend(nextFrame, nextShowResult);
                 }
             }
         }
@@ -834,7 +859,7 @@ namespace VeigarConfigurator.App.ViewModels
             GreenValue = green;
             BlueValue = blue;
             ApplyCurrentColorToPreview();
-            SendCurrentFrame(true);
+            ApplyCurrentColorToSelectedKeyAndSend();
         }
 
         private void ApplyHexColor()
@@ -852,6 +877,24 @@ namespace VeigarConfigurator.App.ViewModels
             GreenValue = green;
             BlueValue = blue;
             ApplyCurrentColorToPreview();
+            ApplyCurrentColorToSelectedKeyAndSend();
+        }
+
+        private void ApplyCurrentColorToSelectedKeyAndSend()
+        {
+            KeyboardKeyViewModel key = KeyboardKeys.FirstOrDefault(
+                item => item.KeyId == SelectedKeyboardKey);
+            KeyLedMapping mapping = FindMappingForKey(key);
+            if (mapping == null)
+            {
+                OperationMessage = "The selected key has no measured LED address. Choose a mapped key or calibrate it manually.";
+                return;
+            }
+
+            SelectedSlotIndex = mapping.SlotIndex;
+            PaintSlotColor(mapping.SlotIndex, GetCurrentColor());
+            OperationMessage = "Applied " + EffectiveColorHex + " to " + key.Label +
+                               " · LED slot " + (mapping.SlotIndex + 1).ToString("000") + ".";
             SendCurrentFrame(true);
         }
 
@@ -1102,7 +1145,7 @@ namespace VeigarConfigurator.App.ViewModels
             layer.StartColor = GetCurrentColor();
             layer.SlotColors.Clear();
             RefreshSlotPreviews();
-            OperationMessage = "Base colour assigned to all 126 LED slots. Press SEND SCENE to apply.";
+            OperationMessage = "Base colour assigned to all 126 LED slots. The complete scene preview is updated.";
         }
 
         private LightingLayer GetBaseLayer()
