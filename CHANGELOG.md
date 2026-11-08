@@ -2,6 +2,42 @@
 
 All notable project changes are documented here.
 
+## Veigar K643 Configurator v0.4.2-alpha
+
+### Keyboard map and measured LED layout
+- Replaced the incorrect conventional numpad arrangement with the 94-key physical K643 layout from the supplied reference.
+- Each physical key is an independent native WPF hit target with a visible keycap, label, selected state and live press state.
+- Imported the supplied measured CSV mapping: 94 physical key-to-LED-slot assignments are built in.
+- The remaining 32 protocol slots are left unassigned because the supplied measurement table does not identify a physical key for them.
+- Manual calibration now creates persistent custom overrides without modifying temporary objects from the built-in map.
+
+### UI fixes
+- Reworked key surfaces for both light and dark themes so the keycaps remain visible in either mode.
+- Replaced default white ListBox, ComboBox, CheckBox, Slider, ProgressBar and scrollbar styling with theme-aware controls.
+- Side navigation now switches to the matching workspace tabs.
+- Removed a broken external bitmap dependency; the keyboard is rendered as separate editable WPF key controls.
+
+### Behaviour fixes
+- Palette presets and HEX Apply now write the selected colour to the currently selected key's measured LED slot.
+- HID frame writes are serialized and the latest pending scene is retained, preventing fast key presses from being dropped while a report is in flight.
+- Adding an animation layer now selects the Animation mode explicitly.
+- Initial animation frames capture the current lighting scene; subsequent frames capture the layers below the animation layer rather than duplicating the old animation output.
+- Animation frame durations are editable in milliseconds.
+
+### Project formats
+- .vcp saves the paint scene, layers and user key-to-slot overrides.
+- .vca saves Animation layers and captured frames, including per-frame durations.
+
+### Hardware status
+- The Windows x64 build and packaging workflow must pass before publication.
+- The measured LED table comes from the supplied CSV, which reports 60 sent frames and zero failures per slot in its test data.
+- The new UI and mapping logic have not yet been revalidated on the physical K643 after these changes. The published build is an alpha.
+- Raw key events are processed transiently. Typed text is not logged, audio is not recorded and no telemetry is sent.
+
+**Platform:** Windows 10/11 x64 with .NET Framework 4.8 or newer.
+
+This is an experimental pre-release, not a stable release.
+
 ## Veigar K643 Configurator v0.4.1-alpha
 
 Refined physical-key identification for the on-screen keyboard painter.
