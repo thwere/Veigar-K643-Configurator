@@ -18,6 +18,8 @@ Copyright (C) 2026 thwere
 
 This project is in an early experimental development stage. It is not yet a finished application, and no stable release is available.
 
+The repository now contains the first WPF application prototype. It includes HID device discovery for the tested K643 interface and basic solid-colour RGB preview controls. The initial build and hardware validation on the development PC are still pending.
+
 ### Purpose
 
 Veigar K643 Configurator is an independent Windows application project focused on configuring and customizing the Redragon Veigar K643 keyboard.
@@ -31,7 +33,7 @@ The long-term goal is to provide a flexible alternative to the manufacturer's co
 - Individual RGB slots have been mapped experimentally to physical keys.
 - Windows Raw Input has successfully detected physical key presses from the keyboard.
 
-These are development experiments, not features of a released end-user application. Compatibility and behaviour must continue to be tested.
+These are development experiments and early source-code implementations, not features of a stable end-user release. The current WPF prototype still requires local compilation and hardware validation. Compatibility and behaviour must continue to be tested.
 
 ### Planned areas
 

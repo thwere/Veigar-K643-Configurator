@@ -64,7 +64,9 @@ namespace VeigarConfigurator.Windows.Hid
                     throw new ArgumentException("A non-empty HID report is required.", "report");
                 }
 
-                bool result = HidD_SetFeature(_handle, report, report.Length);
+                // HidD_SetFeature returns the native one-byte BOOLEAN type.
+                byte nativeResult = HidD_SetFeature(_handle, report, report.Length);
+                bool result = nativeResult != 0;
                 errorCode = result ? 0 : Marshal.GetLastWin32Error();
                 return result;
             }
@@ -92,8 +94,7 @@ namespace VeigarConfigurator.Windows.Hid
             IntPtr templateFile);
 
         [DllImport("hid.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool HidD_SetFeature(
+        private static extern byte HidD_SetFeature(
             SafeFileHandle hidDeviceObject,
             byte[] reportBuffer,
             int reportBufferLength);

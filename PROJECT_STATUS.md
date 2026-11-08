@@ -3,7 +3,7 @@ Copyright (C) 2026 thwere
 PROJECT STATUS
 
 Project: Veigar K643 Configurator
-Current stage: Early experimental development
+Current stage: First WPF application prototype added; local build and device validation pending
 
 TARGET DEVICE
 Redragon Veigar K643
@@ -16,8 +16,15 @@ VERIFIED EXPERIMENTALLY
 - Experimental mapping of RGB slots to physical keys.
 - Physical key-event detection through Windows Raw Input.
 
-NOT YET IMPLEMENTED AS A RELEASED APPLICATION
-- Graphical user interface.
+PRESENT IN SOURCE — VALIDATION PENDING
+- Initial WPF application window.
+- Automatic discovery of VID 258A / PID 0049 and target HID collection MI_01 / Col08.
+- Solid-colour RGB preview using Feature Report 0x08.
+
+NOT YET IMPLEMENTED
+- Raw Input integration in the application.
+- Key-to-LED map integration in the application.
+- User-facing per-key RGB editor.
 - User-facing RGB editor.
 - Persistent user profiles.
 - Layered lighting scenes and effect compositor.
