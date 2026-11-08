@@ -12,31 +12,39 @@ Copyright (C) 2026 thwere
 
 ### Project status
 
-The project is an experimental Windows application for the Redragon Veigar K643. The first expanded alpha build includes a WPF RGB Studio with custom colour controls and local lighting profiles.
+The project is an experimental Windows application for the Redragon Veigar K643. The v0.3.0-alpha build expands the RGB Studio into a multi-tab lighting workspace.
 
-### Current application features
+### Features in v0.3.0-alpha
 
+- Dark WPF interface, including a Windows dark title bar.
 - Automatic HID detection for the tested Veigar K643 interface (VID 258A / PID 0049, MI_01 / Col08).
-- Solid RGB lighting across all 126 LED slots.
-- RGB channel sliders and six-digit HEX colour input.
-- Global brightness adjustment and live output preview.
-- Quick colour presets and lights-off command.
-- Local JSON profile save/load.
-- Single-report HID updates dispatched away from the UI thread.
+- Full 126-slot RGB frame editor.
+- RGB channel sliders, HEX entry, brightness control, colour preview and quick presets.
+- Per-slot colour assignment and full-scene transmission.
+- Layer stack with Static, Gradient, Animation, AudioReactive and KeyReactive layers.
+- Replace, Add and Max layer blending with per-layer opacity.
+- Animation frame capture and cyclic playback.
+- Raw Input listener filtered to the K643 USB VID/PID.
+- Manual physical-key-to-LED-slot calibration.
+- Key-reactive Flash, Fade and HoldGlow effects; simultaneous mapped keys are supported.
+- Audio-reactive brightness driven by the Windows default output peak meter.
+- JSON profiles containing layers, per-slot colours, animation frames and key mappings.
+- One 382-byte HID Feature Report per frame, sent away from the WPF dispatcher.
 
 ### Hardware and validation status
 
-The first WPF build successfully lit all keyboard keys during user testing. The expanded editor, profile storage and one-report low-latency transport are included in the v0.2.0-alpha pre-release and require additional hardware validation.
+The user confirmed that the v0.1.0-alpha application illuminated all keys. The v0.3.0-alpha adds slot editing, key mapping, layer rendering, Raw Input and audio meter integration; these new paths still require physical-device validation.
 
-The current UI controls global solid-colour lighting. Experimental slot-to-key mapping and Raw Input key detection are not yet integrated into the application.
+The 126-cell editor represents protocol LED slots. It is deliberately not presented as a verified physical keyboard diagram. Use the calibration tab to associate a physical key with a slot. Correct neighbour and spatial ripple effects require a complete verified geometry map.
 
-### Planned areas
+### Not yet included
 
-- Verified per-key RGB editing and a visual keyboard layout.
-- Lighting layers, animations and reactive effects.
-- Frame-based animation editor.
-- Audio-reactive and keypress-reactive lighting.
-- Further configuration features as protocol research progresses.
+- Verified physical keyboard geometry and neighbour relationships.
+- Ripple and neighbour-ripple effects.
+- Frequency-band / spectrum audio visualisation.
+- Macro editor and playback.
+- Software key remapping.
+- Installer and updater.
 
 ### Target platform
 
@@ -60,31 +68,39 @@ No warranty is provided. This software is experimental.
 
 ### Статус проекта
 
-Проект представляет собой экспериментальное Windows-приложение для Redragon Veigar K643. Первая расширенная alpha-сборка включает RGB Studio с настройкой произвольного цвета и локальными профилями подсветки.
+Это экспериментальное Windows-приложение для Redragon Veigar K643. В версии v0.3.0-alpha RGB Studio расширена до многостраничной рабочей среды для управления подсветкой.
 
-### Возможности текущей сборки
+### Возможности v0.3.0-alpha
 
-- Автоматическое обнаружение проверенного HID-интерфейса Veigar K643 (VID 258A / PID 0049, MI_01 / Col08).
-- Управление общей RGB-подсветкой всех 126 LED-слотов.
-- Ползунки каналов R, G и B, ввод цвета в HEX.
-- Регулировка общей яркости и предпросмотр итогового цвета.
-- Быстрые цветовые пресеты и команда выключения подсветки.
-- Сохранение и загрузка локальных JSON-профилей.
-- Отправка одного HID-отчёта в фоновом потоке без искусственной трёхсекундной серии повторов.
+- Тёмный интерфейс WPF и тёмная системная строка заголовка Windows.
+- Автоматическое обнаружение проверенного HID-интерфейса K643 (VID 258A / PID 0049, MI_01 / Col08).
+- Редактор полного RGB-кадра для 126 LED-слотов.
+- Ползунки RGB, ввод HEX, регулировка яркости, предпросмотр и быстрые пресеты.
+- Назначение индивидуального цвета LED-слотам и отправка полной сцены.
+- Слои Static, Gradient, Animation, AudioReactive и KeyReactive.
+- Режимы наложения Replace, Add и Max, прозрачность каждого слоя.
+- Захват кадров анимации и циклическое воспроизведение.
+- Raw Input с фильтрацией по USB VID/PID клавиатуры K643.
+- Ручная калибровка соответствия физических клавиш LED-слотам.
+- Эффекты нажатия Flash, Fade и HoldGlow; поддерживается одновременное нажатие нескольких назначенных клавиш.
+- Реакция на уровень звука через измеритель пикового уровня стандартного аудиовыхода Windows.
+- JSON-профили со слоями, цветами слотов, кадрами анимации и привязками клавиш.
+- Один HID Feature Report размером 382 байта на кадр; отправка выполняется вне потока интерфейса.
 
-### Статус проверки оборудования
+### Состояние проверки оборудования
 
-Первая WPF-сборка успешно зажгла все клавиши при пользовательском тестировании. Расширенный редактор, профили и однократная отправка отчёта входят в v0.2.0-alpha и требуют дополнительной проверки на клавиатуре.
+Пользователь подтвердил, что приложение v0.1.0-alpha зажгло все клавиши. В v0.3.0-alpha добавлены редактор слотов, привязка клавиш, компоновщик слоёв, Raw Input и аудиометр; эти новые функции ещё требуется проверить на физической клавиатуре.
 
-Текущий интерфейс управляет общей одноцветной подсветкой. Экспериментальная карта соответствия LED-слотов клавишам и обнаружение нажатий Raw Input пока не интегрированы в приложение.
+Сетка из 126 ячеек отображает адреса LED-слотов протокола, а не подтверждённую физическую раскладку клавиатуры. Для связи физической клавиши со слотом используй вкладку калибровки. Для корректных ripple-эффектов и соседних клавиш сначала нужна полная проверенная геометрическая карта.
 
-### Дальнейшие направления
+### Пока не реализовано
 
-- Проверенный редактор индивидуальной подсветки клавиш и визуальная модель клавиатуры.
-- Слои подсветки, анимации и реактивные эффекты.
-- Покадровый редактор анимаций.
-- Реакция на звук и нажатия клавиш.
-- Дополнительные функции по мере исследования протокола.
+- Проверенная физическая геометрия клавиатуры и связи соседних клавиш.
+- Ripple и neighbour-ripple.
+- Анализ звука по частотным полосам и спектру.
+- Редактор макросов и их воспроизведение.
+- Программное переназначение клавиш.
+- Установщик и механизм обновления.
 
 ### Целевые платформы
 
