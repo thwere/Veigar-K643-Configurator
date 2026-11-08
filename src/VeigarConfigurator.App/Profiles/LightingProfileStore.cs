@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Json;
+using VeigarConfigurator.App.Models;
 
 namespace VeigarConfigurator.App.Profiles
 {
@@ -41,8 +43,36 @@ namespace VeigarConfigurator.App.Profiles
                     throw new InvalidDataException("The selected file does not contain a lighting profile.");
                 }
 
+                if (profile.Layers == null)
+                {
+                    profile.Layers = new List<LightingLayer>();
+                }
+
+                if (profile.KeyMappings == null)
+                {
+                    profile.KeyMappings = new List<KeyLedMapping>();
+                }
+
+                // Migrate a v0.2.0-alpha profile into the new layer format.
+                if (profile.Layers.Count == 0)
+                {
+                    var layer = new LightingLayer();
+                    layer.Name = "Migrated base colour";
+                    layer.Mode = "Static";
+                    layer.StartColor = new RgbColor(
+                        Clamp(profile.Red, 0, 255),
+                        Clamp(profile.Green, 0, 255),
+                        Clamp(profile.Blue, 0, 255));
+                    profile.Layers.Add(layer);
+                }
+
                 return profile;
             }
+        }
+
+        private static int Clamp(int value, int minimum, int maximum)
+        {
+            return Math.Max(minimum, Math.Min(maximum, value));
         }
     }
 }

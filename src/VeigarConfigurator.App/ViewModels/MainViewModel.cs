@@ -1,25 +1,41 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
 using Microsoft.Win32;
 using VeigarConfigurator.App.Commands;
+using VeigarConfigurator.App.Lighting;
+using VeigarConfigurator.App.Models;
 using VeigarConfigurator.App.Profiles;
 using VeigarConfigurator.Core.Devices;
+using VeigarConfigurator.Windows.Audio;
+using VeigarConfigurator.Windows.RawInput;
 
 namespace VeigarConfigurator.App.ViewModels
 {
     public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         private readonly IDeviceController _deviceController;
+        private readonly AudioPeakMeter _audioMeter;
         private readonly DispatcherTimer _deviceTimer;
+        private readonly DispatcherTimer _renderTimer;
+        private readonly Stopwatch _clock;
+        private readonly Dictionary<int, double> _keyIntensity;
+        private readonly HashSet<int> _heldSlots;
         private bool _isConnected;
         private bool _isBusy;
+        private bool _isSendingFrame;
         private bool _disposed;
+        private bool _isMappingArmed;
+        private bool _audioReactiveEnabled;
+        private bool _keyReactiveEnabled;
+        private bool _animationRunning;
         private string _connectionTitle;
         private string _connectionMessage;
         private string _operationMessage;
@@ -27,24 +43,79 @@ namespace VeigarConfigurator.App.ViewModels
         private string _profileName;
         private string _hexInput;
         private string _effectiveColorHex;
+        private string _audioStatus;
+        private string _lastDetectedKey;
+        private string _selectedSlotMapping;
+        private string _selectedLayerType;
         private double _redValue;
         private double _greenValue;
         private double _blueValue;
         private double _brightnessValue;
+        private double _audioPeakLevel;
+        private int _selectedSlotIndex;
         private Brush _previewBrush;
+        private LightingLayer _selectedLayer;
+        private string _selectedKeyEffect;
 
-        public MainViewModel(IDeviceController deviceController)
+        public MainViewModel(IDeviceController deviceController, AudioPeakMeter audioMeter)
         {
             _deviceController = deviceController;
+            _audioMeter = audioMeter;
+            _clock = Stopwatch.StartNew();
+            _keyIntensity = new Dictionary<int, double>();
+            _heldSlots = new HashSet<int>();
+
+            LedSlots = new ObservableCollection<LedSlotViewModel>();
+            Layers = new ObservableCollection<LightingLayer>();
+            AvailableLayerTypes = new ObservableCollection<string>
+            {
+                "Static",
+                "Gradient",
+                "Animation",
+                "AudioReactive",
+                "KeyReactive"
+            };
+            BlendModes = new ObservableCollection<string>
+            {
+                "Replace",
+                "Add",
+                "Max"
+            };
+            KeyEffectOptions = new ObservableCollection<string>
+            {
+                "Flash",
+                "Fade",
+                "HoldGlow"
+            };
+
+            for (int slot = 0; slot < 126; slot++)
+            {
+                LedSlots.Add(new LedSlotViewModel(slot));
+            }
 
             _redValue = 255;
             _greenValue = 32;
             _blueValue = 32;
             _brightnessValue = 100;
-            _profileName = "My lighting profile";
+            _profileName = "My K643 lighting profile";
             _hexInput = "FF2020";
-            _previewBrush = new SolidColorBrush(Color.FromRgb(255, 32, 32));
             _effectiveColorHex = "#FF2020";
+            _previewBrush = new SolidColorBrush(Color.FromRgb(255, 32, 32));
+            _selectedSlotIndex = 0;
+            _selectedLayerType = "Static";
+            _selectedKeyEffect = "Fade";
+            _audioStatus = _audioMeter == null
+                ? "Audio meter is unavailable on this system."
+                : "Ready to read the default Windows audio output peak.";
+            _lastDetectedKey = "No key event received yet.";
+            _selectedSlotMapping = "No physical key assigned to this LED slot.";
+
+            var baseLayer = new LightingLayer();
+            baseLayer.Name = "Base colour";
+            baseLayer.Mode = "Static";
+            baseLayer.StartColor = new RgbColor(255, 32, 32);
+            Layers.Add(baseLayer);
+            SelectedLayer = baseLayer;
 
             ConnectionTitle = "Searching for Veigar K643...";
             ConnectionMessage = "Checking USB HID interfaces.";
@@ -55,13 +126,75 @@ namespace VeigarConfigurator.App.ViewModels
                 delegate { RefreshDevice(); },
                 delegate { return !IsBusy; });
 
-            SendColorCommand = new RelayCommand(
-                delegate(object parameter) { SendColor(parameter); },
+            SendSceneCommand = new RelayCommand(
+                delegate { SendCurrentFrame(true); },
+                delegate { return IsConnected && !IsBusy; });
+
+            SendPresetCommand = new RelayCommand(
+                delegate(object parameter) { ApplyPreset(parameter as string); },
                 delegate { return IsConnected && !IsBusy; });
 
             ApplyHexCommand = new RelayCommand(
                 delegate { ApplyHexColor(); },
                 delegate { return IsConnected && !IsBusy; });
+
+            SelectSlotCommand = new RelayCommand(
+                delegate(object parameter) { SelectSlot(parameter); },
+                delegate { return true; });
+
+            ApplySlotColorCommand = new RelayCommand(
+                delegate { ApplyColorToSelectedSlot(); },
+                delegate { return !IsBusy; });
+
+            FillAllSlotsCommand = new RelayCommand(
+                delegate { FillAllSlots(); },
+                delegate { return !IsBusy; });
+
+            AddLayerCommand = new RelayCommand(
+                delegate { AddLayer(); },
+                delegate { return true; });
+
+            RemoveLayerCommand = new RelayCommand(
+                delegate { RemoveSelectedLayer(); },
+                delegate { return SelectedLayer != null && Layers.Count > 1; });
+
+            MoveLayerUpCommand = new RelayCommand(
+                delegate { MoveLayer(-1); },
+                delegate { return SelectedLayer != null && Layers.IndexOf(SelectedLayer) > 0; });
+
+            MoveLayerDownCommand = new RelayCommand(
+                delegate { MoveLayer(1); },
+                delegate { return SelectedLayer != null && Layers.IndexOf(SelectedLayer) >= 0 &&
+                                 Layers.IndexOf(SelectedLayer) < Layers.Count - 1; });
+
+            SetLayerStartColorCommand = new RelayCommand(
+                delegate { SetSelectedLayerColor(false); },
+                delegate { return SelectedLayer != null; });
+
+            SetLayerEndColorCommand = new RelayCommand(
+                delegate { SetSelectedLayerColor(true); },
+                delegate { return SelectedLayer != null; });
+
+            AddAnimationFrameCommand = new RelayCommand(
+                delegate { AddAnimationFrame(); },
+                delegate { return SelectedLayer != null && SelectedLayer.Mode == "Animation"; });
+
+            RemoveAnimationFrameCommand = new RelayCommand(
+                delegate { RemoveAnimationFrame(); },
+                delegate { return SelectedLayer != null && SelectedLayer.Mode == "Animation" &&
+                                 SelectedLayer.Frames != null && SelectedLayer.Frames.Count > 0; });
+
+            ToggleAnimationCommand = new RelayCommand(
+                delegate { AnimationRunning = !AnimationRunning; },
+                delegate { return Layers.Any(item => item.Mode == "Animation" && item.IsEnabled); });
+
+            ArmMappingCommand = new RelayCommand(
+                delegate { IsMappingArmed = true; OperationMessage = "Press one key on the Veigar K643 to assign it to LED slot " + (_selectedSlotIndex + 1) + "."; },
+                delegate { return IsConnected; });
+
+            ClearMappingCommand = new RelayCommand(
+                delegate { ClearSelectedMapping(); },
+                delegate { return HasSelectedMapping; });
 
             SaveProfileCommand = new RelayCommand(
                 delegate { SaveProfile(); },
@@ -76,43 +209,54 @@ namespace VeigarConfigurator.App.ViewModels
             _deviceTimer.Tick += DeviceTimer_Tick;
             _deviceTimer.Start();
 
+            _renderTimer = new DispatcherTimer();
+            _renderTimer.Interval = TimeSpan.FromMilliseconds(40);
+            _renderTimer.Tick += RenderTimer_Tick;
+            _renderTimer.Start();
+
+            RefreshSlotPreviews();
             RefreshDevice();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public ObservableCollection<LedSlotViewModel> LedSlots { get; private set; }
+        public ObservableCollection<LightingLayer> Layers { get; private set; }
+        public ObservableCollection<string> AvailableLayerTypes { get; private set; }
+        public ObservableCollection<string> BlendModes { get; private set; }
+        public ObservableCollection<string> KeyEffectOptions { get; private set; }
+
         public ICommand RefreshCommand { get; private set; }
-        public ICommand SendColorCommand { get; private set; }
+        public ICommand SendSceneCommand { get; private set; }
+        public ICommand SendPresetCommand { get; private set; }
         public ICommand ApplyHexCommand { get; private set; }
+        public ICommand SelectSlotCommand { get; private set; }
+        public ICommand ApplySlotColorCommand { get; private set; }
+        public ICommand FillAllSlotsCommand { get; private set; }
+        public ICommand AddLayerCommand { get; private set; }
+        public ICommand RemoveLayerCommand { get; private set; }
+        public ICommand MoveLayerUpCommand { get; private set; }
+        public ICommand MoveLayerDownCommand { get; private set; }
+        public ICommand SetLayerStartColorCommand { get; private set; }
+        public ICommand SetLayerEndColorCommand { get; private set; }
+        public ICommand AddAnimationFrameCommand { get; private set; }
+        public ICommand RemoveAnimationFrameCommand { get; private set; }
+        public ICommand ToggleAnimationCommand { get; private set; }
+        public ICommand ArmMappingCommand { get; private set; }
+        public ICommand ClearMappingCommand { get; private set; }
         public ICommand SaveProfileCommand { get; private set; }
         public ICommand LoadProfileCommand { get; private set; }
 
         public bool IsConnected
         {
             get { return _isConnected; }
-            private set
-            {
-                if (_isConnected != value)
-                {
-                    _isConnected = value;
-                    OnPropertyChanged("IsConnected");
-                    CommandManager.InvalidateRequerySuggested();
-                }
-            }
+            private set { SetField(ref _isConnected, value, "IsConnected"); }
         }
 
         public bool IsBusy
         {
             get { return _isBusy; }
-            private set
-            {
-                if (_isBusy != value)
-                {
-                    _isBusy = value;
-                    OnPropertyChanged("IsBusy");
-                    CommandManager.InvalidateRequerySuggested();
-                }
-            }
+            private set { SetField(ref _isBusy, value, "IsBusy"); }
         }
 
         public string ConnectionTitle
@@ -166,46 +310,19 @@ namespace VeigarConfigurator.App.ViewModels
         public double RedValue
         {
             get { return _redValue; }
-            set
-            {
-                double next = Clamp(value, 0, 255);
-                if (Math.Abs(_redValue - next) > 0.001)
-                {
-                    _redValue = next;
-                    OnPropertyChanged("RedValue");
-                    UpdateColorPresentation(true);
-                }
-            }
+            set { SetChannel(ref _redValue, value, "RedValue"); }
         }
 
         public double GreenValue
         {
             get { return _greenValue; }
-            set
-            {
-                double next = Clamp(value, 0, 255);
-                if (Math.Abs(_greenValue - next) > 0.001)
-                {
-                    _greenValue = next;
-                    OnPropertyChanged("GreenValue");
-                    UpdateColorPresentation(true);
-                }
-            }
+            set { SetChannel(ref _greenValue, value, "GreenValue"); }
         }
 
         public double BlueValue
         {
             get { return _blueValue; }
-            set
-            {
-                double next = Clamp(value, 0, 255);
-                if (Math.Abs(_blueValue - next) > 0.001)
-                {
-                    _blueValue = next;
-                    OnPropertyChanged("BlueValue");
-                    UpdateColorPresentation(true);
-                }
-            }
+            set { SetChannel(ref _blueValue, value, "BlueValue"); }
         }
 
         public double BrightnessValue
@@ -223,11 +340,244 @@ namespace VeigarConfigurator.App.ViewModels
             }
         }
 
+        public LightingLayer SelectedLayer
+        {
+            get { return _selectedLayer; }
+            set { SetField(ref _selectedLayer, value, "SelectedLayer"); }
+        }
+
+        public string SelectedLayerType
+        {
+            get { return _selectedLayerType; }
+            set { SetField(ref _selectedLayerType, value, "SelectedLayerType"); }
+        }
+
+        public string SelectedKeyEffect
+        {
+            get { return _selectedKeyEffect; }
+            set
+            {
+                SetField(ref _selectedKeyEffect, value, "SelectedKeyEffect");
+                LightingLayer layer = GetKeyReactiveLayer();
+                if (layer != null)
+                {
+                    layer.KeyEffect = value;
+                }
+            }
+        }
+
+        public int SelectedSlotIndex
+        {
+            get { return _selectedSlotIndex; }
+            private set
+            {
+                if (_selectedSlotIndex == value)
+                {
+                    return;
+                }
+
+                _selectedSlotIndex = value;
+                OnPropertyChanged("SelectedSlotIndex");
+                OnPropertyChanged("SelectedSlotLabel");
+                UpdateSelectedSlotMapping();
+                for (int index = 0; index < LedSlots.Count; index++)
+                {
+                    LedSlots[index].IsSelected = LedSlots[index].SlotIndex == value;
+                }
+            }
+        }
+
+        public string SelectedSlotLabel
+        {
+            get { return "LED SLOT " + (_selectedSlotIndex + 1).ToString("000"); }
+        }
+
+        public string SelectedSlotMapping
+        {
+            get { return _selectedSlotMapping; }
+            private set { SetField(ref _selectedSlotMapping, value, "SelectedSlotMapping"); }
+        }
+
+        public bool HasSelectedMapping
+        {
+            get { return FindMappingForSlot(_selectedSlotIndex) != null; }
+        }
+
+        public bool IsMappingArmed
+        {
+            get { return _isMappingArmed; }
+            private set
+            {
+                SetField(ref _isMappingArmed, value, "IsMappingArmed");
+                OnPropertyChanged("MappingButtonText");
+            }
+        }
+
+        public string MappingButtonText
+        {
+            get { return IsMappingArmed ? "WAITING FOR KEY PRESS..." : "ASSIGN PHYSICAL KEY"; }
+        }
+
+        public int MappingsCount
+        {
+            get { return KeyMappings.Count; }
+        }
+
+        public bool AudioReactiveEnabled
+        {
+            get { return _audioReactiveEnabled; }
+            set
+            {
+                if (_audioReactiveEnabled != value)
+                {
+                    _audioReactiveEnabled = value;
+                    OnPropertyChanged("AudioReactiveEnabled");
+                    EnsureLayer("AudioReactive", "Audio reactive");
+                    OperationMessage = value
+                        ? "Audio-reactive lighting is enabled. It follows the Windows default output peak meter."
+                        : "Audio-reactive lighting is paused.";
+                }
+            }
+        }
+
+        public bool KeyReactiveEnabled
+        {
+            get { return _keyReactiveEnabled; }
+            set
+            {
+                if (_keyReactiveEnabled != value)
+                {
+                    _keyReactiveEnabled = value;
+                    OnPropertyChanged("KeyReactiveEnabled");
+                    EnsureLayer("KeyReactive", "Key press response");
+                    OperationMessage = value
+                        ? "Key response is enabled for mapped keys only."
+                        : "Key response is paused.";
+                }
+            }
+        }
+
+        public bool AnimationRunning
+        {
+            get { return _animationRunning; }
+            set
+            {
+                if (_animationRunning != value)
+                {
+                    _animationRunning = value;
+                    OnPropertyChanged("AnimationRunning");
+                    OnPropertyChanged("AnimationButtonText");
+                    FooterStatus = value ? "Animation playing" : "Animation stopped";
+                }
+            }
+        }
+
+        public string AnimationButtonText
+        {
+            get { return AnimationRunning ? "STOP ANIMATION" : "PLAY ANIMATION"; }
+        }
+
+        public double AudioPeakLevel
+        {
+            get { return _audioPeakLevel; }
+            private set { SetField(ref _audioPeakLevel, value, "AudioPeakLevel"); }
+        }
+
+        public string AudioStatus
+        {
+            get { return _audioStatus; }
+            private set { SetField(ref _audioStatus, value, "AudioStatus"); }
+        }
+
+        public string LastDetectedKey
+        {
+            get { return _lastDetectedKey; }
+            private set { SetField(ref _lastDetectedKey, value, "LastDetectedKey"); }
+        }
+
+        private readonly List<KeyLedMapping> KeyMappings = new List<KeyLedMapping>();
+
+        private void SetChannel(ref double field, double value, string propertyName)
+        {
+            double next = Clamp(value, 0, 255);
+            if (Math.Abs(field - next) > 0.001)
+            {
+                field = next;
+                OnPropertyChanged(propertyName);
+                UpdateColorPresentation(true);
+            }
+        }
+
         private void DeviceTimer_Tick(object sender, EventArgs e)
         {
             if (!IsBusy)
             {
                 RefreshDevice();
+            }
+        }
+
+        private void RenderTimer_Tick(object sender, EventArgs e)
+        {
+            bool needsRender = AnimationRunning || AudioReactiveEnabled ||
+                               (KeyReactiveEnabled && _keyIntensity.Count > 0);
+            if (!needsRender || !IsConnected)
+            {
+                return;
+            }
+
+            if (AudioReactiveEnabled && _audioMeter != null)
+            {
+                float peak;
+                if (_audioMeter.TryGetPeakLevel(out peak))
+                {
+                    AudioPeakLevel = peak * 100.0;
+                    AudioStatus = "Default Windows output · peak " + AudioPeakLevel.ToString("F0") + "%";
+                }
+                else
+                {
+                    AudioStatus = "Audio endpoint meter is unavailable.";
+                    AudioPeakLevel = 0;
+                }
+            }
+
+            UpdateKeyDecay();
+            SendCurrentFrame(false);
+        }
+
+        private void UpdateKeyDecay()
+        {
+            LightingLayer keyLayer = GetKeyReactiveLayer();
+            string effect = keyLayer == null ? "Fade" : keyLayer.KeyEffect;
+
+            if (effect == "HoldGlow")
+            {
+                foreach (int slot in _heldSlots)
+                {
+                    _keyIntensity[slot] = 1.0;
+                }
+
+                List<int> clear = _keyIntensity.Keys.Where(slot => !_heldSlots.Contains(slot)).ToList();
+                for (int index = 0; index < clear.Count; index++)
+                {
+                    _keyIntensity.Remove(clear[index]);
+                }
+
+                return;
+            }
+
+            List<int> keys = _keyIntensity.Keys.ToList();
+            for (int index = 0; index < keys.Count; index++)
+            {
+                int slot = keys[index];
+                double next = _keyIntensity[slot] - (effect == "Flash" ? 0.25 : 0.06);
+                if (next <= 0.0)
+                {
+                    _keyIntensity.Remove(slot);
+                }
+                else
+                {
+                    _keyIntensity[slot] = next;
+                }
             }
         }
 
@@ -243,7 +593,7 @@ namespace VeigarConfigurator.App.ViewModels
 
                 if (!info.IsConnected)
                 {
-                    OperationMessage = "RGB controls are unavailable until the target HID interface is connected.";
+                    OperationMessage = "Lighting controls are unavailable until the target HID interface is connected.";
                 }
             }
             catch (Exception exception)
@@ -255,61 +605,105 @@ namespace VeigarConfigurator.App.ViewModels
             }
         }
 
-        private async void SendColor(object parameter)
+        private void SendCurrentFrame(bool showResult)
         {
-            if (!IsConnected || IsBusy)
+            if (!IsConnected || _isSendingFrame || _disposed)
             {
                 return;
             }
 
-            string preset = parameter as string;
-            if (!string.IsNullOrWhiteSpace(preset))
+            byte[] frame = RenderCurrentFrame();
+            _isSendingFrame = true;
+            if (showResult)
             {
-                byte presetRed;
-                byte presetGreen;
-                byte presetBlue;
-                if (!TryParseColor(preset, out presetRed, out presetGreen, out presetBlue))
-                {
-                    OperationMessage = "Invalid preset colour.";
-                    return;
-                }
-
-                RedValue = presetRed;
-                GreenValue = presetGreen;
-                BlueValue = presetBlue;
+                IsBusy = true;
+                FooterStatus = "Sending RGB frame";
             }
 
-            byte red = ScaleChannel(RedValue, BrightnessValue);
-            byte green = ScaleChannel(GreenValue, BrightnessValue);
-            byte blue = ScaleChannel(BlueValue, BrightnessValue);
-
-            IsBusy = true;
-            OperationMessage = "Sending one RGB Feature Report...";
-            FooterStatus = "Updating keyboard";
-
             Stopwatch stopwatch = Stopwatch.StartNew();
+            SendFrameAsync(frame, stopwatch, showResult);
+        }
+
+        private async void SendFrameAsync(byte[] frame, Stopwatch stopwatch, bool showResult)
+        {
             try
             {
-                await _deviceController.SendSolidColorPreviewAsync(
-                    red, green, blue, CancellationToken.None);
-
+                await _deviceController.SendRgbFrameAsync(frame, CancellationToken.None);
                 stopwatch.Stop();
-                OperationMessage = string.Format(
-                    "Applied {0} in {1} ms. One 382-byte HID report was sent.",
-                    EffectiveColorHex,
-                    stopwatch.ElapsedMilliseconds);
-                FooterStatus = "Lighting updated";
+                if (showResult)
+                {
+                    OperationMessage = "Applied " + EffectiveColorHex + " in " +
+                                       stopwatch.ElapsedMilliseconds + " ms · one 382-byte HID report.";
+                    FooterStatus = "Lighting updated";
+                }
             }
             catch (Exception exception)
             {
                 stopwatch.Stop();
-                OperationMessage = "RGB update failed: " + exception.Message;
-                FooterStatus = "RGB update error";
+                if (showResult || !AnimationRunning)
+                {
+                    OperationMessage = "RGB update failed: " + exception.Message;
+                    FooterStatus = "RGB update error";
+                }
             }
             finally
             {
-                IsBusy = false;
+                _isSendingFrame = false;
+                if (showResult)
+                {
+                    IsBusy = false;
+                }
             }
+        }
+
+        private byte[] RenderCurrentFrame()
+        {
+            var renderLayers = new List<LightingLayer>();
+            for (int index = 0; index < Layers.Count; index++)
+            {
+                LightingLayer layer = Layers[index];
+                if (layer == null || !layer.IsEnabled)
+                {
+                    continue;
+                }
+
+                if (layer.Mode == "AudioReactive" && !AudioReactiveEnabled)
+                {
+                    continue;
+                }
+
+                if (layer.Mode == "KeyReactive" && !KeyReactiveEnabled)
+                {
+                    continue;
+                }
+
+                renderLayers.Add(layer);
+            }
+
+            double elapsed = _clock.Elapsed.TotalMilliseconds;
+            return LayerCompositor.Render(
+                renderLayers,
+                AudioPeakLevel / 100.0,
+                _keyIntensity,
+                elapsed);
+        }
+
+        private void ApplyPreset(string hex)
+        {
+            byte red;
+            byte green;
+            byte blue;
+            if (!TryParseColor(hex, out red, out green, out blue))
+            {
+                OperationMessage = "Invalid preset colour.";
+                return;
+            }
+
+            RedValue = red;
+            GreenValue = green;
+            BlueValue = blue;
+            ApplyCurrentColorToPreview();
+            SendCurrentFrame(true);
         }
 
         private void ApplyHexColor()
@@ -326,13 +720,327 @@ namespace VeigarConfigurator.App.ViewModels
             RedValue = red;
             GreenValue = green;
             BlueValue = blue;
-            SendColor(null);
+            ApplyCurrentColorToPreview();
+            SendCurrentFrame(true);
+        }
+
+        private void SelectSlot(object parameter)
+        {
+            int slot;
+            if (parameter == null || !Int32.TryParse(parameter.ToString(), out slot))
+            {
+                return;
+            }
+
+            if (slot < 0 || slot >= LedSlots.Count)
+            {
+                return;
+            }
+
+            SelectedSlotIndex = slot;
+        }
+
+        private void ApplyColorToSelectedSlot()
+        {
+            LightingLayer layer = GetBaseLayer();
+            LedSlotColor existing = FindSlotColor(layer.SlotColors, _selectedSlotIndex);
+            var color = GetCurrentColor();
+
+            if (existing == null)
+            {
+                layer.SlotColors.Add(new LedSlotColor
+                {
+                    SlotIndex = _selectedSlotIndex,
+                    Color = color
+                });
+            }
+            else
+            {
+                existing.Color = color;
+            }
+
+            RefreshSlotPreviews();
+            OperationMessage = "Colour assigned to LED slot " + (_selectedSlotIndex + 1) +
+                               ". Press SEND SCENE to update the keyboard.";
+        }
+
+        private void FillAllSlots()
+        {
+            LightingLayer layer = GetBaseLayer();
+            layer.StartColor = GetCurrentColor();
+            layer.SlotColors.Clear();
+            RefreshSlotPreviews();
+            OperationMessage = "Base colour assigned to all 126 LED slots. Press SEND SCENE to apply.";
+        }
+
+        private LightingLayer GetBaseLayer()
+        {
+            LightingLayer layer = Layers.FirstOrDefault(item => item.Mode == "Static");
+            if (layer == null)
+            {
+                layer = new LightingLayer();
+                layer.Name = "Base colour";
+                layer.Mode = "Static";
+                Layers.Insert(0, layer);
+            }
+
+            return layer;
+        }
+
+        private void AddLayer()
+        {
+            string mode = SelectedLayerType;
+            var layer = new LightingLayer();
+            layer.Mode = mode;
+            layer.Name = mode + " layer " + (Layers.Count + 1);
+            layer.StartColor = GetCurrentColor();
+            layer.EndColor = new RgbColor(32, 80, 255);
+
+            if (mode == "Animation")
+            {
+                var frame = new AnimationFrame();
+                frame.BaseColor = GetCurrentColor();
+                layer.Frames.Add(frame);
+            }
+
+            Layers.Add(layer);
+            SelectedLayer = layer;
+            if (mode == "AudioReactive") AudioReactiveEnabled = true;
+            if (mode == "KeyReactive") KeyReactiveEnabled = true;
+            RefreshSlotPreviews();
+            OperationMessage = mode + " layer added to the lighting stack.";
+        }
+
+        private void RemoveSelectedLayer()
+        {
+            if (SelectedLayer == null || Layers.Count <= 1)
+            {
+                return;
+            }
+
+            int index = Layers.IndexOf(SelectedLayer);
+            Layers.Remove(SelectedLayer);
+            SelectedLayer = Layers[Math.Max(0, Math.Min(index, Layers.Count - 1))];
+            RefreshSlotPreviews();
+        }
+
+        private void MoveLayer(int offset)
+        {
+            if (SelectedLayer == null)
+            {
+                return;
+            }
+
+            int index = Layers.IndexOf(SelectedLayer);
+            int destination = index + offset;
+            if (destination < 0 || destination >= Layers.Count)
+            {
+                return;
+            }
+
+            Layers.Move(index, destination);
+            RefreshSlotPreviews();
+        }
+
+        private void SetSelectedLayerColor(bool endColor)
+        {
+            if (SelectedLayer == null)
+            {
+                return;
+            }
+
+            if (endColor)
+            {
+                SelectedLayer.EndColor = GetCurrentColor();
+            }
+            else
+            {
+                SelectedLayer.StartColor = GetCurrentColor();
+            }
+
+            RefreshSlotPreviews();
+        }
+
+        private void AddAnimationFrame()
+        {
+            if (SelectedLayer == null || SelectedLayer.Mode != "Animation")
+            {
+                return;
+            }
+
+            byte[] rendered = RenderCurrentFrame();
+            var frame = new AnimationFrame();
+            frame.BaseColor = GetCurrentColor();
+
+            for (int slot = 0; slot < 126; slot++)
+            {
+                int offset = slot * 3;
+                frame.SlotColors.Add(new LedSlotColor
+                {
+                    SlotIndex = slot,
+                    Color = new RgbColor(rendered[offset], rendered[offset + 1], rendered[offset + 2])
+                });
+            }
+
+            SelectedLayer.Frames.Add(frame);
+            OperationMessage = "Captured animation frame " + SelectedLayer.Frames.Count + ".";
+        }
+
+        private void RemoveAnimationFrame()
+        {
+            if (SelectedLayer != null && SelectedLayer.Mode == "Animation" &&
+                SelectedLayer.Frames != null && SelectedLayer.Frames.Count > 0)
+            {
+                SelectedLayer.Frames.RemoveAt(SelectedLayer.Frames.Count - 1);
+                OperationMessage = "Last animation frame removed.";
+            }
+        }
+
+        private void EnsureLayer(string mode, string name)
+        {
+            if (!Layers.Any(item => item.Mode == mode))
+            {
+                var layer = new LightingLayer();
+                layer.Mode = mode;
+                layer.Name = name;
+                layer.StartColor = GetCurrentColor();
+                Layers.Add(layer);
+            }
+
+            RefreshSlotPreviews();
+        }
+
+        private LightingLayer GetKeyReactiveLayer()
+        {
+            return Layers.FirstOrDefault(item => item.Mode == "KeyReactive");
+        }
+
+        public void OnPhysicalKeyReceived(RawKeyEventArgs args)
+        {
+            if (args == null)
+            {
+                return;
+            }
+
+            string keyName;
+            try
+            {
+                keyName = System.Windows.Input.KeyInterop.KeyFromVirtualKey(args.VirtualKey).ToString();
+            }
+            catch
+            {
+                keyName = "VK " + args.VirtualKey;
+            }
+
+            LastDetectedKey = keyName + " · scan " + args.ScanCode;
+
+            if (IsMappingArmed && args.IsKeyDown)
+            {
+                KeyLedMapping existing = FindMappingForSlot(_selectedSlotIndex);
+                if (existing == null)
+                {
+                    existing = new KeyLedMapping();
+                    existing.SlotIndex = _selectedSlotIndex;
+                    KeyMappings.Add(existing);
+                }
+
+                existing.VirtualKey = args.VirtualKey;
+                existing.ScanCode = args.ScanCode;
+                existing.KeyName = keyName;
+                IsMappingArmed = false;
+                OnPropertyChanged("MappingsCount");
+                UpdateSelectedSlotMapping();
+                RefreshSlotPreviews();
+                OperationMessage = keyName + " mapped to LED slot " + (_selectedSlotIndex + 1) + ".";
+                return;
+            }
+
+            KeyLedMapping mapping = KeyMappings.FirstOrDefault(
+                item => item.VirtualKey == args.VirtualKey && item.ScanCode == args.ScanCode);
+
+            if (mapping == null)
+            {
+                return;
+            }
+
+            if (args.IsKeyDown)
+            {
+                _heldSlots.Add(mapping.SlotIndex);
+                _keyIntensity[mapping.SlotIndex] = 1.0;
+                if (KeyReactiveEnabled)
+                {
+                    SendCurrentFrame(false);
+                }
+            }
+            else
+            {
+                _heldSlots.Remove(mapping.SlotIndex);
+                LightingLayer layer = GetKeyReactiveLayer();
+                if (layer != null && layer.KeyEffect == "HoldGlow")
+                {
+                    _keyIntensity.Remove(mapping.SlotIndex);
+                    if (KeyReactiveEnabled) SendCurrentFrame(false);
+                }
+            }
+        }
+
+        private void ClearSelectedMapping()
+        {
+            KeyLedMapping existing = FindMappingForSlot(_selectedSlotIndex);
+            if (existing != null)
+            {
+                KeyMappings.Remove(existing);
+                OnPropertyChanged("MappingsCount");
+                UpdateSelectedSlotMapping();
+                RefreshSlotPreviews();
+            }
+        }
+
+        private KeyLedMapping FindMappingForSlot(int slot)
+        {
+            return KeyMappings.FirstOrDefault(item => item.SlotIndex == slot);
+        }
+
+        private static LedSlotColor FindSlotColor(IList<LedSlotColor> colors, int slot)
+        {
+            if (colors == null)
+            {
+                return null;
+            }
+
+            return colors.FirstOrDefault(item => item != null && item.SlotIndex == slot);
+        }
+
+        private void UpdateSelectedSlotMapping()
+        {
+            KeyLedMapping mapping = FindMappingForSlot(_selectedSlotIndex);
+            SelectedSlotMapping = mapping == null
+                ? "No physical key assigned to this LED slot."
+                : "Mapped key: " + mapping.KeyName + " · VK " + mapping.VirtualKey +
+                  " · scan " + mapping.ScanCode;
+            OnPropertyChanged("HasSelectedMapping");
+        }
+
+        private void RefreshSlotPreviews()
+        {
+            byte[] rendered = RenderCurrentFrame();
+            for (int slot = 0; slot < LedSlots.Count; slot++)
+            {
+                int offset = slot * 3;
+                LedSlots[slot].Brush = new SolidColorBrush(Color.FromRgb(
+                    rendered[offset],
+                    rendered[offset + 1],
+                    rendered[offset + 2]));
+
+                KeyLedMapping mapping = FindMappingForSlot(slot);
+                LedSlots[slot].MappingName = mapping == null ? string.Empty : mapping.KeyName;
+            }
         }
 
         private void SaveProfile()
         {
             var dialog = new SaveFileDialog();
-            dialog.Title = "Save Veigar lighting profile";
+            dialog.Title = "Save K643 lighting profile";
             dialog.Filter = "Veigar profile (*.json)|*.json";
             dialog.DefaultExt = ".json";
             dialog.AddExtension = true;
@@ -347,11 +1055,13 @@ namespace VeigarConfigurator.App.ViewModels
             {
                 var profile = new LightingProfile
                 {
-                    Name = string.IsNullOrWhiteSpace(ProfileName) ? "My lighting profile" : ProfileName.Trim(),
+                    Name = string.IsNullOrWhiteSpace(ProfileName) ? "My K643 lighting profile" : ProfileName.Trim(),
                     Red = ToByte(RedValue),
                     Green = ToByte(GreenValue),
                     Blue = ToByte(BlueValue),
-                    Brightness = (int)Math.Round(BrightnessValue)
+                    Brightness = (int)Math.Round(BrightnessValue),
+                    Layers = Layers.ToList(),
+                    KeyMappings = KeyMappings.ToList()
                 };
 
                 LightingProfileStore.Save(dialog.FileName, profile);
@@ -368,7 +1078,7 @@ namespace VeigarConfigurator.App.ViewModels
         private void LoadProfile()
         {
             var dialog = new OpenFileDialog();
-            dialog.Title = "Load Veigar lighting profile";
+            dialog.Title = "Load K643 lighting profile";
             dialog.Filter = "Veigar profile (*.json)|*.json|All files (*.*)|*.*";
             dialog.CheckFileExists = true;
             dialog.Multiselect = false;
@@ -381,12 +1091,33 @@ namespace VeigarConfigurator.App.ViewModels
             try
             {
                 LightingProfile profile = LightingProfileStore.Load(dialog.FileName);
-                ProfileName = profile.Name ?? "Loaded profile";
+                ProfileName = profile.Name ?? "Loaded K643 profile";
                 RedValue = Clamp(profile.Red, 0, 255);
                 GreenValue = Clamp(profile.Green, 0, 255);
                 BlueValue = Clamp(profile.Blue, 0, 255);
                 BrightnessValue = Clamp(profile.Brightness, 0, 100);
-                OperationMessage = "Profile loaded into the editor. Press APPLY to send it to the keyboard.";
+
+                Layers.Clear();
+                for (int index = 0; index < profile.Layers.Count; index++)
+                {
+                    Layers.Add(profile.Layers[index]);
+                }
+
+                KeyMappings.Clear();
+                for (int index = 0; index < profile.KeyMappings.Count; index++)
+                {
+                    KeyMappings.Add(profile.KeyMappings[index]);
+                }
+
+                if (Layers.Count == 0)
+                {
+                    GetBaseLayer();
+                }
+
+                SelectedLayer = Layers[0];
+                OnPropertyChanged("MappingsCount");
+                RefreshSlotPreviews();
+                OperationMessage = "Profile loaded. Press SEND SCENE to apply it to the keyboard.";
                 FooterStatus = "Profile loaded";
             }
             catch (Exception exception)
@@ -398,43 +1129,40 @@ namespace VeigarConfigurator.App.ViewModels
 
         private void UpdateColorPresentation(bool updateHexInput)
         {
-            byte rawRed = ToByte(RedValue);
-            byte rawGreen = ToByte(GreenValue);
-            byte rawBlue = ToByte(BlueValue);
+            byte red = ToByte(RedValue);
+            byte green = ToByte(GreenValue);
+            byte blue = ToByte(BlueValue);
 
             if (updateHexInput)
             {
-                HexInput = string.Format("{0:X2}{1:X2}{2:X2}", rawRed, rawGreen, rawBlue);
+                HexInput = string.Format("{0:X2}{1:X2}{2:X2}", red, green, blue);
             }
 
-            byte red = ScaleChannel(rawRed, BrightnessValue);
-            byte green = ScaleChannel(rawGreen, BrightnessValue);
-            byte blue = ScaleChannel(rawBlue, BrightnessValue);
+            double scale = BrightnessValue / 100.0;
+            byte outputRed = (byte)Math.Round(red * scale);
+            byte outputGreen = (byte)Math.Round(green * scale);
+            byte outputBlue = (byte)Math.Round(blue * scale);
 
-            PreviewBrush = new SolidColorBrush(Color.FromRgb(red, green, blue));
-            EffectiveColorHex = string.Format("#{0:X2}{1:X2}{2:X2}", red, green, blue);
+            PreviewBrush = new SolidColorBrush(Color.FromRgb(outputRed, outputGreen, outputBlue));
+            EffectiveColorHex = string.Format("#{0:X2}{1:X2}{2:X2}", outputRed, outputGreen, outputBlue);
         }
 
-        private static byte ScaleChannel(double channel, double brightness)
+        private void ApplyCurrentColorToPreview()
         {
-            return (byte)Math.Round(Clamp(channel, 0, 255) * Clamp(brightness, 0, 100) / 100.0);
+            UpdateColorPresentation(true);
+            RefreshSlotPreviews();
         }
 
-        private static byte ToByte(double value)
+        private RgbColor GetCurrentColor()
         {
-            return (byte)Math.Round(Clamp(value, 0, 255));
+            double scale = BrightnessValue / 100.0;
+            return new RgbColor(
+                (int)Math.Round(ToByte(RedValue) * scale),
+                (int)Math.Round(ToByte(GreenValue) * scale),
+                (int)Math.Round(ToByte(BlueValue) * scale));
         }
 
-        private static double Clamp(double value, double minimum, double maximum)
-        {
-            return Math.Max(minimum, Math.Min(maximum, value));
-        }
-
-        private static bool TryParseColor(
-            string value,
-            out byte red,
-            out byte green,
-            out byte blue)
+        private static bool TryParseColor(string value, out byte red, out byte green, out byte blue)
         {
             red = 0;
             green = 0;
@@ -464,9 +1192,19 @@ namespace VeigarConfigurator.App.ViewModels
             }
         }
 
+        private static byte ToByte(double value)
+        {
+            return (byte)Math.Round(Clamp(value, 0, 255));
+        }
+
+        private static double Clamp(double value, double minimum, double maximum)
+        {
+            return Math.Max(minimum, Math.Min(maximum, value));
+        }
+
         private static string MakeSafeFileName(string value)
         {
-            string name = string.IsNullOrWhiteSpace(value) ? "Veigar-profile" : value.Trim();
+            string name = string.IsNullOrWhiteSpace(value) ? "Veigar-K643-profile" : value.Trim();
             foreach (char invalid in System.IO.Path.GetInvalidFileNameChars())
             {
                 name = name.Replace(invalid, '-');
@@ -477,11 +1215,13 @@ namespace VeigarConfigurator.App.ViewModels
 
         private void SetField<T>(ref T field, T value, string propertyName)
         {
-            if (!object.Equals(field, value))
+            if (object.Equals(field, value))
             {
-                field = value;
-                OnPropertyChanged(propertyName);
+                return;
             }
+
+            field = value;
+            OnPropertyChanged(propertyName);
         }
 
         private void OnPropertyChanged(string propertyName)
@@ -491,6 +1231,8 @@ namespace VeigarConfigurator.App.ViewModels
             {
                 handler(this, new PropertyChangedEventArgs(propertyName));
             }
+
+            CommandManager.InvalidateRequerySuggested();
         }
 
         public void Dispose()
@@ -502,7 +1244,15 @@ namespace VeigarConfigurator.App.ViewModels
 
             _disposed = true;
             _deviceTimer.Stop();
+            _renderTimer.Stop();
             _deviceTimer.Tick -= DeviceTimer_Tick;
+            _renderTimer.Tick -= RenderTimer_Tick;
+
+            if (_audioMeter != null)
+            {
+                _audioMeter.Dispose();
+            }
+
             _deviceController.Dispose();
         }
     }

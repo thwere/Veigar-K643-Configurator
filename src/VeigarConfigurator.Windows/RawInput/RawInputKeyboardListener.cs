@@ -1,13 +1,12 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Windows;
 using System.Windows.Interop;
 
 namespace VeigarConfigurator.Windows.RawInput
 {
     /// <summary>
-    /// Receives transient key-down/key-up events from the tested K643 USB device.
-    /// It never records key text or forwards keystrokes outside the current process.
+    /// Receives transient key events from the tested K643 USB device only.
+    /// It never records typed text or suppresses the normal keyboard input path.
     /// </summary>
     public sealed class RawInputKeyboardListener : IDisposable
     {
@@ -28,11 +27,11 @@ namespace VeigarConfigurator.Windows.RawInput
 
         public event EventHandler<RawKeyEventArgs> KeyReceived;
 
-        public bool Register(Window window)
+        public bool Register(IntPtr windowHandle)
         {
-            if (window == null)
+            if (windowHandle == IntPtr.Zero)
             {
-                throw new ArgumentNullException("window");
+                throw new ArgumentException("A valid window handle is required.", "windowHandle");
             }
 
             if (_disposed)
@@ -40,12 +39,7 @@ namespace VeigarConfigurator.Windows.RawInput
                 throw new ObjectDisposedException("RawInputKeyboardListener");
             }
 
-            _windowHandle = new WindowInteropHelper(window).Handle;
-            if (_windowHandle == IntPtr.Zero)
-            {
-                return false;
-            }
-
+            _windowHandle = windowHandle;
             _source = HwndSource.FromHwnd(_windowHandle);
             if (_source == null)
             {
@@ -82,7 +76,7 @@ namespace VeigarConfigurator.Windows.RawInput
                 ProcessRawInput(lParam);
             }
 
-            // Do not mark WM_INPUT handled: Windows must still process the original key.
+            // Never mark WM_INPUT handled: the OS still delivers the original key.
             return IntPtr.Zero;
         }
 
