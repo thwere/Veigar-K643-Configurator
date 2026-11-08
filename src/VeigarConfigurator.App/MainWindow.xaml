@@ -2,10 +2,10 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Veigar Configurator"
-        Width="900"
-        Height="600"
-        MinWidth="760"
-        MinHeight="520"
+        Width="1080"
+        Height="760"
+        MinWidth="900"
+        MinHeight="650"
         WindowStartupLocation="CenterScreen"
         Background="#111214"
         Foreground="#F2F2F2"
@@ -23,17 +23,25 @@
             <Setter Property="Background" Value="#292C31" />
             <Setter Property="BorderBrush" Value="#42464D" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="16,10" />
-            <Setter Property="Margin" Value="0,0,10,10" />
+            <Setter Property="Padding" Value="15,9" />
+            <Setter Property="Margin" Value="0,0,9,9" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style x:Key="SectionLabel" TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="#92969D" />
-            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontSize" Value="10" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <Style x:Key="ChannelSlider" TargetType="{x:Type Slider}">
+            <Setter Property="Minimum" Value="0" />
+            <Setter Property="Maximum" Value="255" />
+            <Setter Property="TickFrequency" Value="1" />
+            <Setter Property="IsSnapToTickEnabled" Value="False" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="12,0,0,0" />
         </Style>
         <Style x:Key="BusyIndicator" TargetType="{x:Type ProgressBar}">
             <Setter Property="Height" Value="4" />
@@ -47,19 +55,19 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="34">
+    <Grid Margin="30">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Margin="0,0,0,28">
+        <Grid Grid.Row="0" Margin="0,0,0,24">
             <StackPanel>
                 <TextBlock Text="VEIGAR CONFIGURATOR"
-                           FontSize="23"
+                           FontSize="24"
                            FontWeight="Bold" />
-                <TextBlock Text="Redragon Veigar K643 · Experimental build"
+                <TextBlock Text="Redragon Veigar K643 · RGB Studio · Experimental v0.2"
                            Foreground="#969AA1"
                            FontSize="13"
                            Margin="1,5,0,0" />
@@ -74,103 +82,233 @@
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.05*" />
-                <ColumnDefinition Width="20" />
-                <ColumnDefinition Width="1.3*" />
+                <ColumnDefinition Width="0.92*" />
+                <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="1.55*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Style="{StaticResource PanelBorder}">
-                <StackPanel>
-                    <TextBlock Text="DEVICE" Style="{StaticResource SectionLabel}" />
-                    <TextBlock Text="{Binding ConnectionTitle}"
-                               FontSize="20"
-                               FontWeight="SemiBold"
-                               TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding ConnectionMessage}"
-                               Foreground="#A7ABB2"
-                               FontSize="13"
-                               Margin="0,10,0,18"
-                               TextWrapping="Wrap" />
-                    <Border Background="#24272B" CornerRadius="7" Padding="12">
-                        <StackPanel>
-                            <TextBlock Text="USB ID" Foreground="#8E939A" FontSize="10" />
-                            <TextBlock Text="VID 258A  ·  PID 0049"
-                                       FontFamily="Consolas"
-                                       FontSize="13"
-                                       Margin="0,4,0,0" />
-                            <TextBlock Text="Target HID collection: MI_01 / Col08"
-                                       Foreground="#A7ABB2"
-                                       FontSize="11"
-                                       Margin="0,7,0,0" />
-                        </StackPanel>
-                    </Border>
-                    <Button Content="REFRESH DEVICE"
-                            Style="{StaticResource ActionButton}"
-                            Margin="0,20,0,0"
-                            HorizontalAlignment="Left"
-                            Command="{Binding RefreshCommand}" />
-                </StackPanel>
-            </Border>
+            <StackPanel Grid.Column="0">
+                <Border Style="{StaticResource PanelBorder}">
+                    <StackPanel>
+                        <TextBlock Text="DEVICE" Style="{StaticResource SectionLabel}" />
+                        <TextBlock Text="{Binding ConnectionTitle}"
+                                   FontSize="19"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ConnectionMessage}"
+                                   Foreground="#A7ABB2"
+                                   FontSize="12"
+                                   Margin="0,9,0,16"
+                                   TextWrapping="Wrap" />
+                        <Border Background="#24272B" CornerRadius="7" Padding="12">
+                            <StackPanel>
+                                <TextBlock Text="USB ID" Foreground="#8E939A" FontSize="10" />
+                                <TextBlock Text="VID 258A  ·  PID 0049"
+                                           FontFamily="Consolas"
+                                           FontSize="13"
+                                           Margin="0,4,0,0" />
+                                <TextBlock Text="HID collection: MI_01 / Col08"
+                                           Foreground="#A7ABB2"
+                                           FontSize="11"
+                                           Margin="0,7,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Button Content="REFRESH DEVICE"
+                                Style="{StaticResource ActionButton}"
+                                Margin="0,18,0,0"
+                                HorizontalAlignment="Left"
+                                Command="{Binding RefreshCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorder}" Margin="0,16,0,0">
+                    <StackPanel>
+                        <TextBlock Text="LOCAL PROFILES" Style="{StaticResource SectionLabel}" />
+                        <TextBlock Text="Save your current colour and brightness settings as a JSON file."
+                                   Foreground="#A7ABB2"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12" />
+                        <TextBox Text="{Binding ProfileName, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#24272B"
+                                 Foreground="#F2F2F2"
+                                 BorderBrush="#42464D"
+                                 Padding="9,7"
+                                 Margin="0,0,0,12" />
+                        <WrapPanel>
+                            <Button Content="SAVE PROFILE"
+                                    Style="{StaticResource ActionButton}"
+                                    Command="{Binding SaveProfileCommand}" />
+                            <Button Content="LOAD PROFILE"
+                                    Style="{StaticResource ActionButton}"
+                                    Command="{Binding LoadProfileCommand}" />
+                        </WrapPanel>
+                        <TextBlock Text="Profiles stay on this PC. Loading a profile updates the editor; press APPLY to send it to the keyboard."
+                                   Foreground="#777C84"
+                                   FontSize="10"
+                                   TextWrapping="Wrap"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
             <Border Grid.Column="2" Style="{StaticResource PanelBorder}">
-                <StackPanel>
-                    <TextBlock Text="RGB TEST" Style="{StaticResource SectionLabel}" />
-                    <TextBlock Text="Solid-color preview"
-                               FontSize="20"
-                               FontWeight="SemiBold" />
-                    <TextBlock Text="Send a solid-colour frame to all LED slots. The selected colour can remain visible until another lighting command changes it."
-                               Foreground="#A7ABB2"
-                               FontSize="13"
-                               Margin="0,8,0,20"
-                               TextWrapping="Wrap" />
-                    <WrapPanel>
-                        <Button Content="RED"
-                                Style="{StaticResource ActionButton}"
-                                Background="#8F2027"
-                                Command="{Binding SendColorCommand}"
-                                CommandParameter="FF2020"
-                                IsEnabled="{Binding IsConnected}" />
-                        <Button Content="GREEN"
-                                Style="{StaticResource ActionButton}"
-                                Background="#24643F"
-                                Command="{Binding SendColorCommand}"
-                                CommandParameter="20D878"
-                                IsEnabled="{Binding IsConnected}" />
-                        <Button Content="BLUE"
-                                Style="{StaticResource ActionButton}"
-                                Background="#244D83"
-                                Command="{Binding SendColorCommand}"
-                                CommandParameter="287BDF"
-                                IsEnabled="{Binding IsConnected}" />
-                        <Button Content="OFF"
-                                Style="{StaticResource ActionButton}"
-                                Command="{Binding SendColorCommand}"
-                                CommandParameter="000000"
-                                IsEnabled="{Binding IsConnected}" />
-                    </WrapPanel>
-                    <ProgressBar Style="{StaticResource BusyIndicator}"
-                                 Margin="0,12,0,14" />
-                    <TextBlock Text="{Binding OperationMessage}"
-                               Foreground="#C6C9CE"
-                               FontSize="12"
-                               TextWrapping="Wrap" />
-                    <TextBlock Text="Sends 60 Feature Reports over approximately 3 seconds. No settings are saved to device memory and no firmware is modified. The last displayed colour can remain active until another device or software command changes it."
-                               Foreground="#777C84"
-                               FontSize="11"
-                               Margin="0,20,0,0"
-                               TextWrapping="Wrap" />
-                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <TextBlock Text="LIGHTING STUDIO" Style="{StaticResource SectionLabel}" />
+                        <TextBlock Text="Solid RGB editor"
+                                   FontSize="21"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="Choose a colour, tune its RGB channels and brightness, then send one complete frame to all 126 LED slots."
+                                   Foreground="#A7ABB2"
+                                   FontSize="12"
+                                   Margin="0,7,0,18"
+                                   TextWrapping="Wrap" />
+
+                        <Grid Margin="0,0,0,18">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    Height="76"
+                                    CornerRadius="9"
+                                    Background="{Binding PreviewBrush}"
+                                    BorderBrush="#4A4D53"
+                                    BorderThickness="1" />
+                            <StackPanel Grid.Column="1" Margin="15,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="OUTPUT PREVIEW"
+                                           Foreground="#92969D"
+                                           FontSize="10"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding EffectiveColorHex}"
+                                           FontFamily="Consolas"
+                                           FontSize="20"
+                                           FontWeight="SemiBold"
+                                           Margin="0,4,0,0" />
+                                <TextBlock Text="Preview includes brightness adjustment"
+                                           Foreground="#777C84"
+                                           FontSize="10"
+                                           Margin="0,3,0,0" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="HEX COLOUR" Style="{StaticResource SectionLabel}" />
+                        <DockPanel LastChildFill="False" Margin="0,0,0,18">
+                            <TextBox Text="{Binding HexInput, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="130"
+                                     Background="#24272B"
+                                     Foreground="#F2F2F2"
+                                     BorderBrush="#42464D"
+                                     FontFamily="Consolas"
+                                     Padding="10,8"
+                                     MaxLength="7"
+                                     VerticalContentAlignment="Center" />
+                            <Button Content="APPLY HEX"
+                                    Style="{StaticResource ActionButton}"
+                                    Margin="10,0,0,0"
+                                    Command="{Binding ApplyHexCommand}" />
+                        </DockPanel>
+
+                        <TextBlock Text="RGB CHANNELS" Style="{StaticResource SectionLabel}" />
+                        <Grid Margin="0,0,0,15">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="22" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="42" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="R" Foreground="#E66B70" VerticalAlignment="Center" FontWeight="Bold" />
+                            <Slider Grid.Row="0" Grid.Column="1" Style="{StaticResource ChannelSlider}"
+                                    Value="{Binding RedValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding RedValue, StringFormat=F0}"
+                                       Foreground="#C6C9CE" FontFamily="Consolas" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="G" Foreground="#63C58A" VerticalAlignment="Center" FontWeight="Bold" />
+                            <Slider Grid.Row="1" Grid.Column="1" Style="{StaticResource ChannelSlider}"
+                                    Value="{Binding GreenValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding GreenValue, StringFormat=F0}"
+                                       Foreground="#C6C9CE" FontFamily="Consolas" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="B" Foreground="#69A6EB" VerticalAlignment="Center" FontWeight="Bold" />
+                            <Slider Grid.Row="2" Grid.Column="1" Style="{StaticResource ChannelSlider}"
+                                    Value="{Binding BlueValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding BlueValue, StringFormat=F0}"
+                                       Foreground="#C6C9CE" FontFamily="Consolas" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+
+                        <DockPanel Margin="0,0,0,6">
+                            <TextBlock Text="BRIGHTNESS" Style="{StaticResource SectionLabel}" />
+                            <TextBlock DockPanel.Dock="Right"
+                                       Text="{Binding BrightnessValue, StringFormat=F0, TargetNullValue=100}%"
+                                       Foreground="#C6C9CE"
+                                       FontFamily="Consolas"
+                                       FontSize="11" />
+                        </DockPanel>
+                        <Slider Minimum="0"
+                                Maximum="100"
+                                TickFrequency="1"
+                                Value="{Binding BrightnessValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Margin="0,0,0,18" />
+
+                        <TextBlock Text="QUICK PRESETS" Style="{StaticResource SectionLabel}" />
+                        <WrapPanel>
+                            <Button Content="RED" Background="#8F2027" Style="{StaticResource ActionButton}"
+                                    Command="{Binding SendColorCommand}" CommandParameter="FF2020" IsEnabled="{Binding IsConnected}" />
+                            <Button Content="ORANGE" Background="#95531E" Style="{StaticResource ActionButton}"
+                                    Command="{Binding SendColorCommand}" CommandParameter="FF8A20" IsEnabled="{Binding IsConnected}" />
+                            <Button Content="YELLOW" Background="#80711D" Style="{StaticResource ActionButton}"
+                                    Command="{Binding SendColorCommand}" CommandParameter="FFE83A" IsEnabled="{Binding IsConnected}" />
+                            <Button Content="GREEN" Background="#24643F" Style="{StaticResource ActionButton}"
+                                    Command="{Binding SendColorCommand}" CommandParameter="20D878" IsEnabled="{Binding IsConnected}" />
+                            <Button Content="CYAN" Background="#216C75" Style="{StaticResource ActionButton}"
+                                    Command="{Binding SendColorCommand}" CommandParameter="20DDE0" IsEnabled="{Binding IsConnected}" />
+                            <Button Content="BLUE" Background="#244D83" Style="{StaticResource ActionButton}"
+                                    Command="{Binding SendColorCommand}" CommandParameter="287BDF" IsEnabled="{Binding IsConnected}" />
+                            <Button Content="VIOLET" Background="#623D82" Style="{StaticResource ActionButton}"
+                                    Command="{Binding SendColorCommand}" CommandParameter="A45BDE" IsEnabled="{Binding IsConnected}" />
+                            <Button Content="WHITE" Background="#64666A" Style="{StaticResource ActionButton}"
+                                    Command="{Binding SendColorCommand}" CommandParameter="FFFFFF" IsEnabled="{Binding IsConnected}" />
+                        </WrapPanel>
+
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button Content="APPLY CURRENT COLOUR"
+                                    Style="{StaticResource ActionButton}"
+                                    Command="{Binding SendColorCommand}"
+                                    IsEnabled="{Binding IsConnected}" />
+                            <Button Content="LIGHTS OFF"
+                                    Style="{StaticResource ActionButton}"
+                                    Command="{Binding SendColorCommand}"
+                                    CommandParameter="000000"
+                                    IsEnabled="{Binding IsConnected}" />
+                        </WrapPanel>
+
+                        <ProgressBar Style="{StaticResource BusyIndicator}" Margin="0,10,0,13" />
+                        <TextBlock Text="{Binding OperationMessage}"
+                                   Foreground="#D0D2D6"
+                                   FontSize="12"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="Transport: HID Feature Report 0x08 · 382 bytes · one report per update. Settings are temporary and are not written to keyboard memory. Firmware is not modified."
+                                   Foreground="#777C84"
+                                   FontSize="10"
+                                   Margin="0,16,0,0"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
 
-        <Grid Grid.Row="2" Margin="0,20,0,0">
-            <TextBlock Text="LOCAL DEVICE COMMUNICATION · NO TELEMETRY"
+        <Grid Grid.Row="2" Margin="0,18,0,0">
+            <TextBlock Text="LOCAL USB COMMUNICATION · NO KEYSTROKE LOGGING · NO TELEMETRY"
                        Foreground="#6F747B"
-                       FontSize="10"
+                       FontSize="9"
                        VerticalAlignment="Center" />
             <TextBlock Text="{Binding FooterStatus}"
                        Foreground="#9EA3AA"
-                       FontSize="11"
+                       FontSize="10"
                        HorizontalAlignment="Right"
                        VerticalAlignment="Center" />
         </Grid>

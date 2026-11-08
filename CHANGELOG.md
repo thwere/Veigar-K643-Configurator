@@ -1,31 +1,34 @@
-Copyright (C) 2026 thwere
+# Changelog
 
-CHANGELOG
+All notable project changes are documented here.
 
-This file records notable changes to Veigar K643 Configurator.
-The project has not yet reached its first application release.
+## [0.2.0-alpha] - 2026-11-08
 
-[Unreleased]
+### Added
+- RGB studio with editable red, green and blue channels.
+- Six-digit HEX colour input.
+- Brightness control with live output preview.
+- Eight quick colour presets plus a dedicated lights-off command.
+- Local JSON lighting profiles with save and load dialogs.
+- Elapsed-time reporting for each hardware update.
 
-Initial application implementation:
-- Added a four-project Visual Studio solution targeting .NET Framework 4.8.
-- Added a minimal WPF application shell with device status and solid-colour RGB test controls.
-- Added Windows HID interface enumeration for USB VID 258A / PID 0049.
-- Added a device-specific Veigar K643 controller for the observed MI_01 / Col08 collection.
-- Added the experimental 382-byte Feature Report 0x08 RGB frame builder and three-second colour preview.
-- Added build and development documentation. Local compilation and hardware validation are still pending.
+### Changed
+- RGB updates now send one 382-byte HID Feature Report instead of 60 repeated reports.
+- HID writes run on a background task to keep the WPF interface responsive.
+- Removed the automatic device refresh after every colour update.
 
-Repository foundation:
-- Added GNU GPL-3.0-or-later license.
-- Added .gitignore for Visual Studio, .NET build output and temporary files.
-- Added .editorconfig for consistent source formatting.
-- Added .gitattributes for consistent line endings and binary-file handling.
+### Notes
+- This is an experimental pre-release for the Redragon Veigar K643.
+- Physical validation of the new editor and profile workflow is still required.
+- Profiles store editor values locally; applying a profile to the keyboard remains an explicit action.
+- Lighting settings are temporary and no firmware is modified.
 
-Research and prototype work completed before the first public application release:
-- Identified the keyboard as USB VID 258A / PID 0049.
-- Inspected the keyboard's HID interfaces and report descriptors.
-- Successfully transmitted temporary RGB frames using a C# proof-of-concept.
-- Experimentally mapped RGB slots to physical keys.
-- Verified physical key detection using Windows Raw Input.
+## [0.1.0-alpha] - 2026-11-08
 
-The first application prototype is now present in source. It has not yet been compiled and validated on the development PC, so it is not a stable or tested release.
+### Added
+- Initial WPF application and automatic device discovery.
+- Basic solid-colour RGB preview commands.
+- First GitHub Actions build and pre-release publishing workflow.
+
+### Notes
+- The initial release was intended for first hardware validation.

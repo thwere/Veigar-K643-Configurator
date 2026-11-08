@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/branding/veigar-k643-readme-banner-concept.svg" alt="Veigar K643 Configurator" width="100%" />
-</p>
-
 # Veigar K643 Configurator
 
 **Unofficial configuration software for the Redragon Veigar K643**
@@ -16,51 +12,47 @@ Copyright (C) 2026 thwere
 
 ### Project status
 
-This project is in an early experimental development stage. It is not yet a finished application, and no stable release is available.
+The project is an experimental Windows application for the Redragon Veigar K643. The first expanded alpha build includes a WPF RGB Studio with custom colour controls and local lighting profiles.
 
-The repository now contains the first WPF application prototype. It includes HID device discovery for the tested K643 interface and basic solid-colour RGB preview controls. The initial build and hardware validation on the development PC are still pending.
+### Current application features
 
-### Purpose
+- Automatic HID detection for the tested Veigar K643 interface (VID 258A / PID 0049, MI_01 / Col08).
+- Solid RGB lighting across all 126 LED slots.
+- RGB channel sliders and six-digit HEX colour input.
+- Global brightness adjustment and live output preview.
+- Quick colour presets and lights-off command.
+- Local JSON profile save/load.
+- Single-report HID updates dispatched away from the UI thread.
 
-Veigar K643 Configurator is an independent Windows application project focused on configuring and customizing the Redragon Veigar K643 keyboard.
+### Hardware and validation status
 
-The long-term goal is to provide a flexible alternative to the manufacturer's configuration software, with particular attention to RGB lighting and custom lighting effects.
+The first WPF build successfully lit all keyboard keys during user testing. The expanded editor, profile storage and one-report low-latency transport are included in the v0.2.0-alpha pre-release and require additional hardware validation.
 
-### Currently verified in experiments
-
-- The keyboard has been identified over USB (VID 258A, PID 0049).
-- A custom C# test program has successfully sent temporary RGB frames to the keyboard.
-- Individual RGB slots have been mapped experimentally to physical keys.
-- Windows Raw Input has successfully detected physical key presses from the keyboard.
-
-These are development experiments and early source-code implementations, not features of a stable end-user release. The current WPF prototype still requires local compilation and hardware validation. Compatibility and behaviour must continue to be tested.
+The current UI controls global solid-colour lighting. Experimental slot-to-key mapping and Raw Input key detection are not yet integrated into the application.
 
 ### Planned areas
 
-- Per-key RGB lighting.
-- Lighting profiles and presets.
-- A layered lighting system combining static colours, animations and reactive effects.
+- Verified per-key RGB editing and a visual keyboard layout.
+- Lighting layers, animations and reactive effects.
 - Frame-based animation editor.
-- Painting colours directly on a visual keyboard layout, as well as assigning colours by pressing physical keys.
-- Audio-reactive lighting.
-- Lighting reactions to key presses.
-- Further keyboard configuration features, subject to protocol research and device capabilities.
+- Audio-reactive and keypress-reactive lighting.
+- Further configuration features as protocol research progresses.
 
 ### Target platform
 
 - Windows 10 x64.
-- Windows 11 x64 (planned compatibility; testing is required).
+- Windows 11 x64 (testing required).
 - Redragon Veigar K643 connected through USB.
 
 ### Independence notice
 
-This is an unofficial community-developed project. It is not affiliated with, endorsed by, or supported by Redragon. Redragon and Veigar are names and/or marks of their respective owners. The project does not claim ownership of the keyboard or its firmware.
+This is an unofficial community-developed project. It is not affiliated with, endorsed by, or supported by Redragon. Redragon and Veigar are names and/or marks of their respective owners.
 
 ### License
 
-The project source code is licensed under the GNU General Public License version 3 or (at your option) any later version. See the [LICENSE](LICENSE) file for the complete license text.
+The project source code is licensed under the GNU General Public License version 3 or (at your option) any later version. See [LICENSE](LICENSE).
 
-No warranty is provided. The software is experimental and should not be relied upon for critical use.
+No warranty is provided. This software is experimental.
 
 ---
 
@@ -68,46 +60,44 @@ No warranty is provided. The software is experimental and should not be relied u
 
 ### Статус проекта
 
-Проект находится на ранней экспериментальной стадии разработки. Готового приложения и стабильных публичных релизов пока нет.
+Проект представляет собой экспериментальное Windows-приложение для Redragon Veigar K643. Первая расширенная alpha-сборка включает RGB Studio с настройкой произвольного цвета и локальными профилями подсветки.
 
-### Назначение
+### Возможности текущей сборки
 
-Veigar K643 Configurator — независимый проект Windows-приложения для настройки и персонализации клавиатуры Redragon Veigar K643.
+- Автоматическое обнаружение проверенного HID-интерфейса Veigar K643 (VID 258A / PID 0049, MI_01 / Col08).
+- Управление общей RGB-подсветкой всех 126 LED-слотов.
+- Ползунки каналов R, G и B, ввод цвета в HEX.
+- Регулировка общей яркости и предпросмотр итогового цвета.
+- Быстрые цветовые пресеты и команда выключения подсветки.
+- Сохранение и загрузка локальных JSON-профилей.
+- Отправка одного HID-отчёта в фоновом потоке без искусственной трёхсекундной серии повторов.
 
-Долгосрочная цель — создать гибкую альтернативу фирменному ПО производителя, уделив особое внимание RGB-подсветке и пользовательским световым эффектам.
+### Статус проверки оборудования
 
-### Что уже проверено в экспериментах
+Первая WPF-сборка успешно зажгла все клавиши при пользовательском тестировании. Расширенный редактор, профили и однократная отправка отчёта входят в v0.2.0-alpha и требуют дополнительной проверки на клавиатуре.
 
-- Клавиатура определена по USB (VID 258A, PID 0049).
-- Тестовая программа на C# успешно отправляла клавиатуре временные RGB-кадры.
-- Соответствие отдельных RGB-слотов физическим клавишам экспериментально восстановлено.
-- Windows Raw Input успешно распознавал физические нажатия клавиш этой клавиатуры.
+Текущий интерфейс управляет общей одноцветной подсветкой. Экспериментальная карта соответствия LED-слотов клавишам и обнаружение нажатий Raw Input пока не интегрированы в приложение.
 
-Это результаты исследовательских экспериментов, а не функции готового пользовательского приложения. Совместимость и поведение ещё предстоит проверять.
+### Дальнейшие направления
 
-### Планируемые направления
-
-- Индивидуальная RGB-подсветка клавиш.
-- Профили и предустановки подсветки.
-- Многослойная система подсветки, объединяющая статичные цвета, анимации и реактивные эффекты.
-- Редактор покадровой анимации.
-- Рисование цветов на визуальной модели клавиатуры и назначение цветов нажатием физических клавиш.
-- Реакция подсветки на звук.
-- Реакция подсветки на нажатия клавиш.
-- Другие функции настройки клавиатуры по мере изучения протокола и возможностей устройства.
+- Проверенный редактор индивидуальной подсветки клавиш и визуальная модель клавиатуры.
+- Слои подсветки, анимации и реактивные эффекты.
+- Покадровый редактор анимаций.
+- Реакция на звук и нажатия клавиш.
+- Дополнительные функции по мере исследования протокола.
 
 ### Целевые платформы
 
 - Windows 10 x64.
-- Windows 11 x64 (совместимость планируется, требуется тестирование).
+- Windows 11 x64 (требуется тестирование).
 - Redragon Veigar K643, подключённая по USB.
 
 ### Независимость проекта
 
-Это неофициальный независимый проект сообщества. Он не связан с Redragon, не одобрен и не поддерживается компанией Redragon. Названия Redragon и Veigar принадлежат соответствующим правообладателям. Проект не заявляет прав на клавиатуру или её прошивку.
+Это неофициальный независимый проект сообщества. Он не связан с Redragon, не одобрен и не поддерживается компанией Redragon. Названия Redragon и Veigar принадлежат соответствующим правообладателям.
 
 ### Лицензия
 
-Исходный код проекта распространяется под GNU GPL версии 3 или, по выбору пользователя, любой более поздней версии. Полный текст лицензии находится в файле [LICENSE](LICENSE).
+Исходный код распространяется под GNU GPL версии 3 или, по выбору пользователя, любой более поздней версии. Полный текст находится в файле [LICENSE](LICENSE).
 
-Гарантии не предоставляются. Программа находится в экспериментальной разработке и не предназначена для критически важных задач.
+Гарантии не предоставляются. Программа находится в экспериментальной разработке.

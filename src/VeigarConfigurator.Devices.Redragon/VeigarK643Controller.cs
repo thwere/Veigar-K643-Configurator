@@ -16,6 +16,7 @@ namespace VeigarConfigurator.Devices.Redragon
 
         private readonly IDeviceInterfaceEnumerator _enumerator;
         private readonly IHidFeatureTransport _transport;
+        private readonly object _sessionLock = new object();
         private IHidFeatureSession _session;
         private string _connectedPath;
         private bool _disposed;
@@ -85,36 +86,41 @@ namespace VeigarConfigurator.Devices.Redragon
                 _connectedPath);
         }
 
-        public async Task SendSolidColorPreviewAsync(
+        public Task SendSolidColorPreviewAsync(
             byte red,
             byte green,
             byte blue,
             CancellationToken cancellationToken)
         {
             ThrowIfDisposed();
-
-            if (_session == null)
-            {
-                throw new InvalidOperationException("The Veigar K643 is not connected.");
-            }
+            cancellationToken.ThrowIfCancellationRequested();
 
             byte[] frame = VeigarRgbFrameBuilder.CreateSolidColorFrame(red, green, blue);
 
-            // The proof-of-concept used 60 consecutive Feature Report writes over 3 seconds.
-            for (int frameIndex = 0; frameIndex < 60; frameIndex++)
+            // HidD_SetFeature is synchronous. Run the single report write away from
+            // the WPF dispatcher so a slow USB driver cannot freeze the interface.
+            return Task.Run(delegate
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                int errorCode;
-                if (!_session.SetFeatureReport(frame, out errorCode))
+                lock (_sessionLock)
                 {
-                    throw new System.ComponentModel.Win32Exception(
-                        errorCode,
-                        "HidD_SetFeature failed while sending RGB frame " + (frameIndex + 1) + ".");
-                }
+                    ThrowIfDisposed();
 
-                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
-            }
+                    if (_session == null)
+                    {
+                        throw new InvalidOperationException("The Veigar K643 is not connected.");
+                    }
+
+                    int errorCode;
+                    if (!_session.SetFeatureReport(frame, out errorCode))
+                    {
+                        throw new System.ComponentModel.Win32Exception(
+                            errorCode,
+                            "HidD_SetFeature failed while sending the RGB frame.");
+                    }
+                }
+            }, cancellationToken);
         }
 
         public void Dispose()
@@ -130,13 +136,16 @@ namespace VeigarConfigurator.Devices.Redragon
 
         private void Disconnect()
         {
-            if (_session != null)
+            lock (_sessionLock)
             {
-                _session.Dispose();
-                _session = null;
-            }
+                if (_session != null)
+                {
+                    _session.Dispose();
+                    _session = null;
+                }
 
-            _connectedPath = null;
+                _connectedPath = null;
+            }
         }
 
         private void ThrowIfDisposed()
