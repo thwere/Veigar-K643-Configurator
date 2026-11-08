@@ -1,0 +1,65 @@
+name: Publish first pre-release
+
+on:
+  create:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-alpha:
+    name: Build and publish v0.1.0-alpha
+    if: github.event.ref_type == 'branch' && github.event.ref == 'release/v0.1.0-alpha'
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Release
+        shell: cmd
+        run: msbuild VeigarConfigurator.sln /m /p:Configuration=Release /verbosity:minimal
+
+      - name: Package portable x64 build
+        shell: pwsh
+        run: |
+          $source = "src/VeigarConfigurator.App/bin/Release"
+          $stage = "dist/VeigarConfigurator-v0.1.0-alpha-win-x64"
+          $files = @(
+            "VeigarConfigurator.exe",
+            "VeigarConfigurator.Core.dll",
+            "VeigarConfigurator.Devices.Redragon.dll",
+            "VeigarConfigurator.Windows.dll"
+          )
+
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+
+          foreach ($file in $files) {
+            $path = Join-Path $source $file
+            if (-not (Test-Path $path)) {
+              throw "Required build output is missing: $path"
+            }
+            Copy-Item $path -Destination $stage
+          }
+
+          $archive = "VeigarConfigurator-v0.1.0-alpha-win-x64.zip"
+          Compress-Archive -Path "$stage/*" -DestinationPath $archive -Force
+          Get-FileHash $archive -Algorithm SHA256
+
+      - name: Create GitHub pre-release and attach ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release create "v0.1.0-alpha" `
+            "VeigarConfigurator-v0.1.0-alpha-win-x64.zip" `
+            --repo "${{ github.repository }}" `
+            --target "main" `
+            --title "Veigar K643 Configurator v0.1.0-alpha" `
+            --notes-file "docs/releases/v0.1.0-alpha.md" `
+            --prerelease
