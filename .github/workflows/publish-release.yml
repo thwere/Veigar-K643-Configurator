@@ -11,20 +11,16 @@ jobs:
     name: Build and publish pre-release
     if: github.event.ref_type == 'branch' && startsWith(github.event.ref, 'release/')
     runs-on: windows-latest
-
     steps:
       - name: Check out main
         uses: actions/checkout@v4
         with:
           ref: main
-
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
-
       - name: Build Release
         shell: cmd
         run: msbuild VeigarConfigurator.sln /m /p:Configuration=Release /verbosity:minimal
-
       - name: Package portable Windows build
         shell: pwsh
         run: |
@@ -34,38 +30,26 @@ jobs:
           $stage = "dist/VeigarConfigurator-$tag-win-x64"
           $files = @(
             "VeigarConfigurator.exe",
+            "VeigarConfigurator.exe.config",
             "VeigarConfigurator.Core.dll",
             "VeigarConfigurator.Devices.Redragon.dll",
             "VeigarConfigurator.Windows.dll"
           )
-
           New-Item -ItemType Directory -Path $stage -Force | Out-Null
           foreach ($file in $files) {
             $path = Join-Path $source $file
-            if (-not (Test-Path $path)) {
-              throw "Required build output is missing: $path"
-            }
+            if (-not (Test-Path $path)) { throw "Required build output is missing: $path" }
             Copy-Item $path -Destination $stage
           }
-
+          Copy-Item "Start-VeigarConfigurator.cmd" -Destination $stage
           Compress-Archive -Path "$stage/*" -DestinationPath $archive -Force
           Get-FileHash $archive -Algorithm SHA256
           "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append
-
       - name: Create GitHub pre-release and attach ZIP
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           $notes = "docs/releases/$env:RELEASE_TAG.md"
-          if (-not (Test-Path $notes)) {
-            throw "Release notes file not found: $notes"
-          }
-
-          gh release create "$env:RELEASE_TAG" `
-            "VeigarConfigurator-$env:RELEASE_TAG-win-x64.zip" `
-            --repo "${{ github.repository }}" `
-            --target "main" `
-            --title "Veigar K643 Configurator $env:RELEASE_TAG" `
-            --notes-file $notes `
-            --prerelease
+          if (-not (Test-Path $notes)) { throw "Release notes file not found: $notes" }
+          gh release create "$env:RELEASE_TAG" "VeigarConfigurator-$env:RELEASE_TAG-win-x64.zip" --repo "${{ github.repository }}" --target "main" --title "Veigar K643 Configurator $env:RELEASE_TAG" --notes-file $notes --prerelease

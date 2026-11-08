@@ -25,18 +25,11 @@ namespace VeigarConfigurator.App
             var controller = new VeigarK643Controller(enumerator, transport);
 
             AudioPeakMeter audioMeter = null;
-            try
-            {
-                audioMeter = new AudioPeakMeter();
-            }
-            catch
-            {
-                // Audio-reactive lighting remains optional when no endpoint meter is available.
-            }
+            try { audioMeter = new AudioPeakMeter(); }
+            catch { /* Audio-reactive lighting is optional. */ }
 
             _viewModel = new MainViewModel(controller, audioMeter);
             DataContext = _viewModel;
-
             _rawInputListener = new RawInputKeyboardListener();
             _rawInputListener.KeyReceived += RawInputListener_KeyReceived;
             SourceInitialized += MainWindow_SourceInitialized;
@@ -45,13 +38,16 @@ namespace VeigarConfigurator.App
 
         private void MainWindow_SourceInitialized(object sender, EventArgs e)
         {
-            IntPtr handle = new WindowInteropHelper(this).Handle;
-            bool registered = _rawInputListener.Register(handle);
-
-            if (!registered)
+            try
             {
-                _viewModel.OnRawInputStatus(
-                    "Raw Input registration failed. Key mapping and key-reactive lighting are unavailable.");
+                IntPtr handle = new WindowInteropHelper(this).Handle;
+                bool registered = _rawInputListener.Register(handle);
+                if (!registered)
+                    _viewModel.OnRawInputStatus("Raw Input registration failed. Key mapping and key-reactive lighting are unavailable.");
+            }
+            catch (Exception exception)
+            {
+                _viewModel.OnRawInputStatus("Raw Input is unavailable: " + exception.Message);
             }
         }
 

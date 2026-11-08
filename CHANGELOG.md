@@ -2,6 +2,19 @@
 
 All notable project changes are documented here.
 
+## [0.3.1-alpha] - 2026-11-08
+
+### Fixed
+- Main-window startup is explicit and startup exceptions are shown instead of silently terminating.
+- Unhandled WPF dispatcher exceptions now produce a local diagnostic log.
+- Optional dark title-bar styling and Raw Input registration failures no longer block startup.
+- Added .NET Framework 4.8 runtime declaration and a launch helper that checks the installed runtime.
+- Added the executable configuration file and launch helper to the portable release archive.
+
+### Notes
+- Diagnostic logs are local: %LOCALAPPDATA%\VeigarConfigurator\Logs. They are not uploaded.
+- The v0.3.0 feature set is retained; physical-device testing remains required.
+
 ## [0.3.0-alpha] - 2026-11-08
 
 ### Added
@@ -20,7 +33,7 @@ All notable project changes are documented here.
 ### Changed
 - Full 126-slot RGB scenes are packed into one 382-byte Feature Report.
 - Audio-reactive updates are throttled to meaningful output-level changes.
-- The interface now has dedicated tabs for LED editing, layers/animation, key reactions, audio, profiles and roadmap.
+- Dedicated tabs for LED editing, layers/animation, key reactions, audio, profiles and roadmap.
 
 ### Not included yet
 - Verified physical key geometry, ripple and neighbour-ripple.
@@ -30,7 +43,7 @@ All notable project changes are documented here.
 
 ### Notes
 - v0.1.0-alpha hardware test confirmed all keys illuminated.
-- v0.3.0-alpha adds new control paths that require physical-device validation.
+- v0.3.0-alpha adds control paths that require physical-device validation.
 - The 126-cell grid represents protocol LED slots, not an established keyboard diagram.
 - No audio is recorded or stored, typed text is not logged, and no telemetry is sent.
 - Lighting remains temporary; no firmware is modified.
@@ -46,9 +59,9 @@ All notable project changes are documented here.
 - Elapsed-time reporting for each hardware update.
 
 ### Changed
-- RGB updates now send one 382-byte HID Feature Report instead of 60 repeated reports.
+- RGB updates send one 382-byte HID Feature Report instead of 60 repeated reports.
 - HID writes run on a background task to keep the WPF interface responsive.
-- Removed the automatic device refresh after every colour update.
+- Removed automatic device refresh after every colour update.
 
 ### Notes
 - Experimental pre-release; additional hardware validation required.
