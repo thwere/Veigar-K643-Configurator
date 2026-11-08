@@ -229,7 +229,7 @@ namespace VeigarConfigurator.App.ViewModels
 
             SaveAnimationCommand = new RelayCommand(
                 delegate { SaveAnimation(); },
-                delegate { Layers.Any(item => item.Mode == "Animation"); });
+                delegate { return Layers.Any(item => item.Mode == "Animation"); });
 
             LoadAnimationCommand = new RelayCommand(
                 delegate { LoadAnimation(); },
