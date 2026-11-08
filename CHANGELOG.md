@@ -2,20 +2,13 @@
 
 All notable project changes are documented here.
 
-## [0.3.1-alpha] - 2026-11-08
+## [0.3.0-alpha] - 2026-11-08
 
 ### Fixed
-- Main-window startup is explicit and startup exceptions are shown instead of silently terminating.
-- Unhandled WPF dispatcher exceptions now produce a local diagnostic log.
+- Audio peak indicator now uses a one-way WPF binding, preventing startup failure when binding to the read-only AudioPeakLevel property.
+- Explicit startup error reporting and local diagnostic logs.
 - Optional dark title-bar styling and Raw Input registration failures no longer block startup.
-- Added .NET Framework 4.8 runtime declaration and a launch helper that checks the installed runtime.
-- Added the executable configuration file and launch helper to the portable release archive.
-
-### Notes
-- Diagnostic logs are local: %LOCALAPPDATA%\VeigarConfigurator\Logs. They are not uploaded.
-- The v0.3.0 feature set is retained; physical-device testing remains required.
-
-## [0.3.0-alpha] - 2026-11-08
+- Portable archive includes the .NET Framework 4.8 configuration and launch helper.
 
 ### Added
 - Full 126-slot RGB editor with per-slot colour assignment.

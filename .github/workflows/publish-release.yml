@@ -45,6 +45,22 @@ jobs:
           Compress-Archive -Path "$stage/*" -DestinationPath $archive -Force
           Get-FileHash $archive -Algorithm SHA256
           "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Remove superseded alpha releases and tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          foreach ($oldTag in @("v0.3.0-alpha", "v0.3.1-alpha")) {
+            gh release view $oldTag --repo "${{ github.repository }}" 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              gh release delete $oldTag --repo "${{ github.repository }}" --yes --cleanup-tag
+            } else {
+              git ls-remote --exit-code --tags origin "refs/tags/$oldTag" *> $null
+              if ($LASTEXITCODE -eq 0) {
+                git push origin --delete "refs/tags/$oldTag"
+              }
+            }
+          }
       - name: Create GitHub pre-release and attach ZIP
         env:
           GH_TOKEN: ${{ github.token }}

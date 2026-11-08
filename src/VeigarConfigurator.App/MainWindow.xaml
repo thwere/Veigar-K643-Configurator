@@ -323,7 +323,7 @@
               <TextBlock Text="Windows default output meter" FontSize="21" FontWeight="SemiBold"/>
               <TextBlock Text="Audio level is read from the Windows Core Audio endpoint peak meter. The app does not record, save or transmit audio." Foreground="#9AA2AE" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,18"/>
               <CheckBox Content="Enable audio-reactive lighting" IsChecked="{Binding AudioReactiveEnabled}"/>
-              <ProgressBar Minimum="0" Maximum="100" Value="{Binding AudioPeakLevel}" Height="14" Margin="0,12,0,10"/>
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding AudioPeakLevel, Mode=OneWay}" Height="14" Margin="0,12,0,10"/>
               <TextBlock Text="{Binding AudioStatus}" Foreground="#BBC2CC" FontSize="11"/>
               <TextBlock Text="This build scales the audio layer by output peak. Frequency-band and spectrum effects remain a later step." Foreground="#818A97" FontSize="11" TextWrapping="Wrap" Margin="0,18,0,0"/>
             </StackPanel>
