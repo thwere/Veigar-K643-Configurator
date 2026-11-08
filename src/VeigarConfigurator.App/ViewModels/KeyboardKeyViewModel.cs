@@ -16,7 +16,7 @@ namespace VeigarConfigurator.App.ViewModels
 
         public KeyboardKeyViewModel(
             string keyId, string label, int virtualKeyCode, int scanCodeHint,
-            double x, double y, double width, double height)
+            double x, double y, double width, double height, bool isExtendedHint)
         {
             KeyId = keyId;
             Label = label;
@@ -26,6 +26,7 @@ namespace VeigarConfigurator.App.ViewModels
             Y = y;
             Width = width;
             Height = height;
+            IsExtendedHint = isExtendedHint;
             _brush = new SolidColorBrush(Color.FromRgb(54, 62, 73));
             _borderBrush = new SolidColorBrush(Color.FromRgb(83, 95, 110));
             _mappingName = "Not calibrated";
@@ -41,6 +42,7 @@ namespace VeigarConfigurator.App.ViewModels
         public double Y { get; private set; }
         public double Width { get; private set; }
         public double Height { get; private set; }
+        public bool IsExtendedHint { get; private set; }
 
         public Brush Brush
         {
@@ -96,10 +98,21 @@ namespace VeigarConfigurator.App.ViewModels
             public int ScanCode;
             public double Width;
             public double GapBefore;
+            public double Height;
+            public bool IsExtended;
 
             public KeySpec(string id, string label, int vk, double width, double gapBefore)
             {
                 Id = id; Label = label; VirtualKey = vk; Width = width; GapBefore = gapBefore;
+                Height = KeyHeight;
+                IsExtended = false;
+            }
+
+            public KeySpec(string id, string label, int vk, double width, double gapBefore, double height, bool isExtended)
+                : this(id, label, vk, width, gapBefore)
+            {
+                Height = height;
+                IsExtended = isExtended;
             }
 
             public KeySpec(string id, string label, int vk) : this(id, label, vk, 1.0, 0.0) { }
@@ -145,29 +158,48 @@ namespace VeigarConfigurator.App.ViewModels
             AddRow(keys, 4, new KeySpec[] {
                 K("LSHIFT","Shift",0x10,2.25), L("Z"), L("X"), L("C"), L("V"), L("B"),
                 L("N"), L("M"), K("COMMA",",",0xBC), K("PERIOD",".",0xBE), K("SLASH","/",0xBF),
-                K("RSHIFT","Shift",0x10,2.75,0,0x36),
-                K("UP","↑",0x26,1,3.0), K("NUM1","1",0x61,1,.6),
-                K("NUM2","2",0x62), K("NUM3","3",0x63), K("NUMENTER","Enter",0x0D,1)
+                KEx("RSHIFT","Shift",0x10,2.75,0,KeyHeight,0x36,false),
+                KEx("UP","↑",0x26,1,3.0,KeyHeight, true), K("NUM1","1",0x61,1,.6),
+                K("NUM2","2",0x62), K("NUM3","3",0x63),
+                KEx("NUMENTER","Enter",0x0D,1,0,KeyHeight*2+RowGap, true)
             });
 
             AddRow(keys, 5, new KeySpec[] {
-                K("LCTRL","Ctrl",0x11,1.25), K("LWIN","Win",0x5B,1.25),
+                K("LCTRL","Ctrl",0x11,1.25), KEx("LWIN","Win",0x5B,1.25,0,KeyHeight,true),
                 K("LALT","Alt",0x12,1.25), K("SPACE","",0x20,6.25),
-                K("RALT","Alt",0x12,1.25), K("FN","Fn",0x00), K("MENU","Menu",0x5D,1.25),
-                K("RCTRL","Ctrl",0x11,1.25), K("LEFT","←",0x25,1,.6),
-                K("DOWN","↓",0x28), K("RIGHT","→",0x27),
-                K("NUM0","0",0x60,2,.6), K("NUMDOT",".",0x6E), K("NUMENTER2","Enter",0x0D)
+                KEx("RALT","Alt",0x12,1.25,0,KeyHeight,true), K("FN","Fn",0x00), KEx("MENU","Menu",0x5D,1.25,0,KeyHeight,true),
+                KEx("RCTRL","Ctrl",0x11,1.25,0,KeyHeight,true), KEx("LEFT","←",0x25,1,.6,KeyHeight,true),
+                KEx("DOWN","↓",0x28,1,0,KeyHeight,true), KEx("RIGHT","→",0x27,1,0,KeyHeight,true),
+                K("NUM0","0",0x60,2,.6), K("NUMDOT",".",0x6E)
             });
 
             return keys;
         }
 
-        public static string KeyIdFromInput(int virtualKey, int scanCode)
+        public static string KeyIdFromInput(int virtualKey, int scanCode, bool isExtended)
         {
             if (virtualKey == 0x10) return scanCode == 0x36 ? "RSHIFT" : "LSHIFT";
-            if (virtualKey == 0x11 && scanCode == 0x1D) return "LCTRL";
+            if (virtualKey == 0x11) return isExtended ? "RCTRL" : "LCTRL";
+            if (virtualKey == 0x12) return isExtended ? "RALT" : "LALT";
+            if (virtualKey == 0x0D) return isExtended ? "NUMENTER" : "ENTER";
+            if (virtualKey == 0x5B) return "LWIN";
+            if (virtualKey == 0x5C) return "RWIN";
+
+            // Navigation virtual keys are shared with NumPad when NumLock is off.
+            if (virtualKey == 0x24) return isExtended ? "HOME" : "NUM7";
+            if (virtualKey == 0x21) return isExtended ? "PGUP" : "NUM9";
+            if (virtualKey == 0x23) return isExtended ? "END" : "NUM1";
+            if (virtualKey == 0x22) return isExtended ? "PGDN" : "NUM3";
+            if (virtualKey == 0x2D) return isExtended ? "INS" : "NUM0";
+            if (virtualKey == 0x2E) return isExtended ? "DEL" : "NUMDOT";
+            if (virtualKey == 0x26) return isExtended ? "UP" : "NUM8";
+            if (virtualKey == 0x25) return isExtended ? "LEFT" : "NUM4";
+            if (virtualKey == 0x28) return isExtended ? "DOWN" : "NUM2";
+            if (virtualKey == 0x27) return isExtended ? "RIGHT" : "NUM6";
+
             KeyboardKeyViewModel key = Create().FirstOrDefault(
                 item => item.VirtualKeyCode == virtualKey &&
+                        item.IsExtendedHint == isExtended &&
                         (item.ScanCodeHint == 0 || item.ScanCodeHint == scanCode));
             return key == null ? string.Empty : key.KeyId;
         }
@@ -199,6 +231,13 @@ namespace VeigarConfigurator.App.ViewModels
             return spec;
         }
 
+        private static KeySpec KEx(
+            string id, string label, int vk, double width, double gapBefore,
+            double height, bool isExtended)
+        {
+            return new KeySpec(id, label, vk, width, gapBefore, height, isExtended);
+        }
+
         private static void AddRow(
             ObservableCollection<KeyboardKeyViewModel> target,
             int row,
@@ -213,7 +252,7 @@ namespace VeigarConfigurator.App.ViewModels
                 double width = Unit * spec.Width + Gap * (spec.Width - 1);
                 target.Add(new KeyboardKeyViewModel(
                     spec.Id, spec.Label, spec.VirtualKey, spec.ScanCode,
-                    x, y, width, KeyHeight));
+                    x, y, width, spec.Height, spec.IsExtended));
                 x += width + Gap;
             }
         }

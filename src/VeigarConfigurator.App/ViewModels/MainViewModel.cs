@@ -928,6 +928,7 @@ namespace VeigarConfigurator.App.ViewModels
             mapping.VirtualKey = key.VirtualKeyCode;
             mapping.ScanCode = key.ScanCodeHint;
             mapping.KeyName = key.Label;
+            mapping.IsExtended = key.IsExtendedHint;
             OnPropertyChanged("MappingsCount");
             UpdateSelectedSlotMapping();
             RefreshKeyboardPreviews();
@@ -939,6 +940,7 @@ namespace VeigarConfigurator.App.ViewModels
             if (key == null || key.VirtualKeyCode == 0) return null;
             return KeyMappings.FirstOrDefault(item =>
                 item.VirtualKey == key.VirtualKeyCode &&
+                item.IsExtended == key.IsExtendedHint &&
                 (item.ScanCode == 0 || key.ScanCodeHint == 0 || item.ScanCode == key.ScanCodeHint));
         }
 
@@ -1201,7 +1203,7 @@ namespace VeigarConfigurator.App.ViewModels
             try { keyName = System.Windows.Input.KeyInterop.KeyFromVirtualKey(args.VirtualKey).ToString(); }
             catch { keyName = "VK " + args.VirtualKey; }
 
-            string keyId = KeyboardLayoutBuilder.KeyIdFromInput(args.VirtualKey, args.ScanCode);
+            string keyId = KeyboardLayoutBuilder.KeyIdFromInput(args.VirtualKey, args.ScanCode, args.IsExtended);
             KeyboardKeyViewModel keyboardKey = KeyboardKeys.FirstOrDefault(item => item.KeyId == keyId);
             if (keyboardKey != null)
             {
@@ -1231,6 +1233,7 @@ namespace VeigarConfigurator.App.ViewModels
 
                 existing.VirtualKey = args.VirtualKey;
                 existing.ScanCode = args.ScanCode;
+                existing.IsExtended = args.IsExtended;
                 existing.KeyName = keyboardKey == null ? keyName : keyboardKey.Label;
                 IsMappingArmed = false;
                 OnPropertyChanged("MappingsCount");
@@ -1243,6 +1246,7 @@ namespace VeigarConfigurator.App.ViewModels
 
             KeyLedMapping mapping = KeyMappings.FirstOrDefault(
                 item => item.VirtualKey == args.VirtualKey &&
+                        item.IsExtended == args.IsExtended &&
                         (item.ScanCode == args.ScanCode || item.ScanCode == 0));
 
             if (mapping == null)

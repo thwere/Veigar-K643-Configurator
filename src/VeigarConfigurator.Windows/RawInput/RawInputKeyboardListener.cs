@@ -15,6 +15,7 @@ namespace VeigarConfigurator.Windows.RawInput
         private const uint RidiDeviceName = 0x20000007;
         private const uint RimTypeKeyboard = 1;
         private const ushort RiKeyBreak = 0x0001;
+        private const ushort RiKeyE0 = 0x0002;
         private const uint RidevRemove = 0x00000001;
         private const uint RidevInputSink = 0x00000100;
         private const ushort HidUsagePageGeneric = 0x01;
@@ -120,6 +121,7 @@ namespace VeigarConfigurator.Windows.RawInput
                     typeof(RawKeyboard));
 
                 bool isKeyDown = (keyboard.Flags & RiKeyBreak) == 0;
+                bool isExtended = (keyboard.Flags & RiKeyE0) != 0;
                 EventHandler<RawKeyEventArgs> handler = KeyReceived;
                 if (handler != null)
                 {
@@ -127,7 +129,8 @@ namespace VeigarConfigurator.Windows.RawInput
                         keyboard.VirtualKey,
                         keyboard.MakeCode,
                         isKeyDown,
-                        devicePath));
+                        devicePath,
+                        isExtended));
                 }
             }
             finally

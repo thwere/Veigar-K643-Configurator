@@ -16,5 +16,8 @@ namespace VeigarConfigurator.App.Models
 
         [DataMember(Order = 4)]
         public string KeyName { get; set; }
+
+        [DataMember(Order = 5)]
+        public bool IsExtended { get; set; }
     }
 }
