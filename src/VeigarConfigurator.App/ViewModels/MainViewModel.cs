@@ -920,6 +920,13 @@ namespace VeigarConfigurator.App.ViewModels
                 return;
             }
 
+            // One physical key must point to one LED slot. Remove any previous custom
+            // assignment for that same physical key before adding the new one.
+            KeyLedMapping previousForKey = KeyMappings.FirstOrDefault(item =>
+                item.VirtualKey == key.VirtualKeyCode &&
+                item.IsExtended == key.IsExtendedHint &&
+                (item.ScanCode == 0 || key.ScanCodeHint == 0 || item.ScanCode == key.ScanCodeHint));
+
             KeyLedMapping mapping = FindCustomMappingForSlot(_selectedSlotIndex);
             if (mapping == null)
             {
@@ -928,13 +935,16 @@ namespace VeigarConfigurator.App.ViewModels
                 KeyMappings.Add(mapping);
             }
 
+            if (previousForKey != null && !object.ReferenceEquals(previousForKey, mapping))
+                KeyMappings.Remove(previousForKey);
+
             mapping.VirtualKey = key.VirtualKeyCode;
             mapping.ScanCode = key.ScanCodeHint;
             mapping.KeyName = key.Label;
             mapping.IsExtended = key.IsExtendedHint;
             OnPropertyChanged("MappingsCount");
             UpdateSelectedSlotMapping();
-            RefreshKeyboardPreviews();
+            RefreshSlotPreviews();
             OperationMessage = key.Label + " is assigned to LED slot " + (_selectedSlotIndex + 1) + ".";
         }
 
@@ -1267,13 +1277,23 @@ namespace VeigarConfigurator.App.ViewModels
 
             if (IsMappingArmed && args.IsKeyDown)
             {
-                KeyLedMapping existing = FindMappingForSlot(_selectedSlotIndex);
+                // Find only an explicit custom mapping here. FindMappingForSlot() can
+                // return a temporary object from the built-in measured table.
+                KeyLedMapping existing = FindCustomMappingForSlot(_selectedSlotIndex);
+                KeyLedMapping previousForKey = KeyMappings.FirstOrDefault(item =>
+                    item.VirtualKey == args.VirtualKey &&
+                    item.IsExtended == args.IsExtended &&
+                    (item.ScanCode == args.ScanCode || item.ScanCode == 0));
+
                 if (existing == null)
                 {
                     existing = new KeyLedMapping();
                     existing.SlotIndex = _selectedSlotIndex;
                     KeyMappings.Add(existing);
                 }
+
+                if (previousForKey != null && !object.ReferenceEquals(previousForKey, existing))
+                    KeyMappings.Remove(previousForKey);
 
                 existing.VirtualKey = args.VirtualKey;
                 existing.ScanCode = args.ScanCode;
@@ -1283,7 +1303,6 @@ namespace VeigarConfigurator.App.ViewModels
                 OnPropertyChanged("MappingsCount");
                 UpdateSelectedSlotMapping();
                 RefreshSlotPreviews();
-                RefreshKeyboardPreviews();
                 OperationMessage = existing.KeyName + " mapped to LED slot " + (_selectedSlotIndex + 1) + ".";
                 return;
             }
