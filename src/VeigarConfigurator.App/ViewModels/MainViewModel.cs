@@ -497,7 +497,10 @@ namespace VeigarConfigurator.App.ViewModels
             set
             {
                 if (SetFieldValue(ref _isLightTheme, value, "IsLightTheme"))
+                {
                     OnPropertyChanged("ThemeButtonText");
+                    RefreshKeyboardPreviews();
+                }
             }
         }
 

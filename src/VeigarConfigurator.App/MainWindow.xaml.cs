@@ -69,6 +69,16 @@ namespace VeigarConfigurator.App
                 light ? ColorFromRgb(216, 225, 234) : ColorFromRgb(48, 58, 71));
             Resources["KeyTextBrush"] = new System.Windows.Media.SolidColorBrush(
                 light ? ColorFromRgb(50, 64, 79) : ColorFromRgb(230, 236, 243));
+            Resources["KeyboardCanvasBrush"] = new System.Windows.Media.SolidColorBrush(
+                light ? ColorFromRgb(222, 230, 238) : ColorFromRgb(24, 34, 46));
+            Resources["ScrollTrackBrush"] = new System.Windows.Media.SolidColorBrush(
+                light ? ColorFromRgb(218, 227, 236) : ColorFromRgb(25, 37, 50));
+            Resources["ScrollThumbBrush"] = new System.Windows.Media.SolidColorBrush(
+                light ? ColorFromRgb(143, 158, 174) : ColorFromRgb(88, 105, 124));
+            Resources["SliderTrackBrush"] = new System.Windows.Media.SolidColorBrush(
+                light ? ColorFromRgb(188, 202, 216) : ColorFromRgb(64, 80, 99));
+            Resources["SliderThumbBrush"] = new System.Windows.Media.SolidColorBrush(
+                light ? ColorFromRgb(196, 68, 83) : ColorFromRgb(228, 90, 99));
             DarkTitleBar.Set(this, !light);
         }
 
