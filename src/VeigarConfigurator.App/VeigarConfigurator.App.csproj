@@ -77,6 +77,7 @@
     </Compile>
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="ViewModels\LedSlotViewModel.cs" />
+    <Compile Include="ViewModels\KeyboardKeyViewModel.cs" />
     <Compile Include="Commands\RelayCommand.cs" />
     <Compile Include="Profiles\LightingProfile.cs" />
     <Compile Include="Profiles\LightingProfileStore.cs" />

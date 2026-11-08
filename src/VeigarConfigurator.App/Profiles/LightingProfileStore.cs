@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization.Json;
 using VeigarConfigurator.App.Models;
 
@@ -92,6 +93,39 @@ namespace VeigarConfigurator.App.Profiles
 
                 return profile;
             }
+        }
+
+        public static void SaveAnimation(string path, string name, IList<LightingLayer> layers)
+        {
+            if (layers == null) throw new ArgumentNullException("layers");
+            List<LightingLayer> animationLayers = layers
+                .Where(layer => layer != null && layer.Mode == "Animation")
+                .ToList();
+
+            if (animationLayers.Count == 0)
+                throw new InvalidDataException("There are no animation layers to save.");
+
+            var project = new LightingProfile
+            {
+                Name = string.IsNullOrWhiteSpace(name) ? "Veigar animation" : name.Trim(),
+                Layers = animationLayers,
+                KeyMappings = new List<KeyLedMapping>()
+            };
+
+            Save(path, project);
+        }
+
+        public static IList<LightingLayer> LoadAnimation(string path)
+        {
+            LightingProfile project = Load(path);
+            List<LightingLayer> animationLayers = project.Layers
+                .Where(layer => layer != null && layer.Mode == "Animation")
+                .ToList();
+
+            if (animationLayers.Count == 0)
+                throw new InvalidDataException("The selected .vca file does not contain animation layers.");
+
+            return animationLayers;
         }
 
         private static int Clamp(int value, int minimum, int maximum)
