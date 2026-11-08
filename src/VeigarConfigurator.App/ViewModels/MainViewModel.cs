@@ -508,7 +508,7 @@ namespace VeigarConfigurator.App.ViewModels
 
         public bool HasSelectedMapping
         {
-            get { return FindMappingForSlot(_selectedSlotIndex) != null; }
+            get { return FindCustomMappingForSlot(_selectedSlotIndex) != null; }
         }
 
         public bool IsMappingArmed
@@ -528,7 +528,7 @@ namespace VeigarConfigurator.App.ViewModels
 
         public int MappingsCount
         {
-            get { return KeyMappings.Count; }
+            get { return KeyboardKeys.Count(item => FindMappingForKey(item) != null); }
         }
 
         public bool AudioReactiveEnabled
@@ -911,13 +911,13 @@ namespace VeigarConfigurator.App.ViewModels
 
         private void MapKeyboardKeyToSelectedSlot(KeyboardKeyViewModel key)
         {
-            if (key == null || key.VirtualKeyCode == 0)
+            if (key == null)
             {
-                OperationMessage = "This key cannot be calibrated automatically. Use physical key capture instead.";
+                OperationMessage = "Select a physical key on the map first.";
                 return;
             }
 
-            KeyLedMapping mapping = FindMappingForSlot(_selectedSlotIndex);
+            KeyLedMapping mapping = FindCustomMappingForSlot(_selectedSlotIndex);
             if (mapping == null)
             {
                 mapping = new KeyLedMapping();
@@ -932,16 +932,35 @@ namespace VeigarConfigurator.App.ViewModels
             OnPropertyChanged("MappingsCount");
             UpdateSelectedSlotMapping();
             RefreshKeyboardPreviews();
-            OperationMessage = key.Label + " is now mapped to LED slot " + (_selectedSlotIndex + 1) + ".";
+            OperationMessage = key.Label + " is assigned to LED slot " + (_selectedSlotIndex + 1) + ".";
+        }
+
+        private KeyLedMapping FindCustomMappingForSlot(int slot)
+        {
+            return KeyMappings.FirstOrDefault(item => item.SlotIndex == slot);
         }
 
         private KeyLedMapping FindMappingForKey(KeyboardKeyViewModel key)
         {
-            if (key == null || key.VirtualKeyCode == 0) return null;
-            return KeyMappings.FirstOrDefault(item =>
+            if (key == null) return null;
+
+            KeyLedMapping custom = KeyMappings.FirstOrDefault(item =>
                 item.VirtualKey == key.VirtualKeyCode &&
                 item.IsExtended == key.IsExtendedHint &&
                 (item.ScanCode == 0 || key.ScanCodeHint == 0 || item.ScanCode == key.ScanCodeHint));
+            if (custom != null) return custom;
+
+            int measuredSlot;
+            if (!VeigarK643LedMap.TryGetSlot(key.KeyId, out measuredSlot)) return null;
+
+            return new KeyLedMapping
+            {
+                VirtualKey = key.VirtualKeyCode,
+                ScanCode = key.ScanCodeHint,
+                IsExtended = key.IsExtendedHint,
+                SlotIndex = measuredSlot,
+                KeyName = key.Label
+            };
         }
 
         private void PaintSlotColor(int slot, RgbColor color)
@@ -975,24 +994,46 @@ namespace VeigarConfigurator.App.ViewModels
         private void RefreshKeyboardPreviews()
         {
             if (KeyboardKeys == null) return;
-            Color activeColor = Color.FromRgb(ToByte(RedValue), ToByte(GreenValue), ToByte(BlueValue));
-            Brush physicalBrush = new SolidColorBrush(activeColor);
-            Brush pressedBrush = new SolidColorBrush(Color.FromRgb(69, 190, 185));
-            Brush defaultBrush = new SolidColorBrush(Color.FromRgb(49, 57, 68));
-            Brush selectedBorder = new SolidColorBrush(Color.FromRgb(225, 81, 91));
-            Brush normalBorder = new SolidColorBrush(Color.FromRgb(83, 95, 110));
+
+            Brush pressedBrush = new SolidColorBrush(Color.FromArgb(170, 47, 190, 177));
+            Brush selectedBorder = new SolidColorBrush(Color.FromRgb(232, 87, 98));
+            Brush normalBorder = new SolidColorBrush(IsLightTheme
+                ? Color.FromRgb(116, 132, 149)
+                : Color.FromRgb(93, 107, 123));
+            Brush unmappedBrush = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
 
             foreach (KeyboardKeyViewModel key in KeyboardKeys)
             {
                 KeyLedMapping mapping = FindMappingForKey(key);
-                key.MappingName = mapping == null ? "Not calibrated" : "LED " + (mapping.SlotIndex + 1);
+                key.MappingName = mapping == null
+                    ? key.Label + " · no measured LED address"
+                    : key.Label + " · LED slot " + (mapping.SlotIndex + 1).ToString("000");
                 key.IsSelected = key.KeyId == SelectedKeyboardKey;
-                if (_pressedKeyboardKeys.Contains(key.KeyId))
-                    key.Brush = PaintOnPhysicalPress ? physicalBrush : pressedBrush;
+                key.IsPhysicallyPressed = _pressedKeyboardKeys.Contains(key.KeyId);
+
+                if (key.IsPhysicallyPressed)
+                {
+                    if (PaintOnPhysicalPress)
+                    {
+                        key.Brush = new SolidColorBrush(Color.FromArgb(
+                            190, ToByte(RedValue), ToByte(GreenValue), ToByte(BlueValue)));
+                    }
+                    else
+                    {
+                        key.Brush = pressedBrush;
+                    }
+                }
                 else if (mapping != null && mapping.SlotIndex >= 0 && mapping.SlotIndex < LedSlots.Count)
-                    key.Brush = LedSlots[mapping.SlotIndex].Brush;
+                {
+                    SolidColorBrush slotBrush = LedSlots[mapping.SlotIndex].Brush as SolidColorBrush;
+                    Color colour = slotBrush == null ? Colors.Black : slotBrush.Color;
+                    byte alpha = (colour.R == 0 && colour.G == 0 && colour.B == 0) ? (byte)0 : (byte)155;
+                    key.Brush = new SolidColorBrush(Color.FromArgb(alpha, colour.R, colour.G, colour.B));
+                }
                 else
-                    key.Brush = defaultBrush;
+                {
+                    key.Brush = unmappedBrush;
+                }
 
                 key.BorderBrush = key.IsSelected ? selectedBorder : normalBorder;
             }
@@ -1249,10 +1290,15 @@ namespace VeigarConfigurator.App.ViewModels
                         item.IsExtended == args.IsExtended &&
                         (item.ScanCode == args.ScanCode || item.ScanCode == 0));
 
+            if (mapping == null && keyboardKey != null)
+            {
+                mapping = FindMappingForKey(keyboardKey);
+            }
+
             if (mapping == null)
             {
                 if (args.IsKeyDown && keyboardKey != null && PaintOnPhysicalPress)
-                    OperationMessage = keyboardKey.Label + " detected. Assign it to an LED slot with the Map tool to paint the physical key.";
+                    OperationMessage = keyboardKey.Label + " detected. No measured LED address exists for this key; it can be calibrated manually.";
                 return;
             }
 
@@ -1286,7 +1332,7 @@ namespace VeigarConfigurator.App.ViewModels
 
         private void ClearSelectedMapping()
         {
-            KeyLedMapping existing = FindMappingForSlot(_selectedSlotIndex);
+            KeyLedMapping existing = FindCustomMappingForSlot(_selectedSlotIndex);
             if (existing != null)
             {
                 KeyMappings.Remove(existing);
@@ -1294,11 +1340,37 @@ namespace VeigarConfigurator.App.ViewModels
                 UpdateSelectedSlotMapping();
                 RefreshSlotPreviews();
             }
+            else
+            {
+                OperationMessage = "The measured factory map is read-only. Assign another key to this slot to override it.";
+            }
         }
 
         private KeyLedMapping FindMappingForSlot(int slot)
         {
-            return KeyMappings.FirstOrDefault(item => item.SlotIndex == slot);
+            KeyLedMapping custom = FindCustomMappingForSlot(slot);
+            if (custom != null) return custom;
+
+            string keyId;
+            if (!VeigarK643LedMap.TryGetKeyId(slot, out keyId)) return null;
+
+            KeyboardKeyViewModel key = KeyboardKeys.FirstOrDefault(item => item.KeyId == keyId);
+            if (key == null) return null;
+
+            bool keyWasOverridden = KeyMappings.Any(item =>
+                item.VirtualKey == key.VirtualKeyCode &&
+                item.IsExtended == key.IsExtendedHint &&
+                item.SlotIndex != slot);
+            if (keyWasOverridden) return null;
+
+            return new KeyLedMapping
+            {
+                VirtualKey = key.VirtualKeyCode,
+                ScanCode = key.ScanCodeHint,
+                IsExtended = key.IsExtendedHint,
+                SlotIndex = slot,
+                KeyName = key.Label
+            };
         }
 
         private static LedSlotColor FindSlotColor(IList<LedSlotColor> colors, int slot)
@@ -1315,9 +1387,10 @@ namespace VeigarConfigurator.App.ViewModels
         {
             KeyLedMapping mapping = FindMappingForSlot(_selectedSlotIndex);
             SelectedSlotMapping = mapping == null
-                ? "No physical key assigned to this LED slot."
-                : "Mapped key: " + mapping.KeyName + " · VK " + mapping.VirtualKey +
-                  " · scan " + mapping.ScanCode;
+                ? "No physical key is recorded for this LED slot."
+                : (FindCustomMappingForSlot(_selectedSlotIndex) == null ? "Measured key: " : "Custom key: ") +
+                  mapping.KeyName + " · LED " + (_selectedSlotIndex + 1).ToString("000") +
+                  " · VK " + mapping.VirtualKey + " · scan " + mapping.ScanCode;
             OnPropertyChanged("HasSelectedMapping");
         }
 
