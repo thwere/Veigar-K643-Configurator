@@ -2,6 +2,46 @@
 
 All notable project changes are documented here.
 
+## Veigar K643 Configurator v0.4.0-alpha
+
+The RGB Studio workspace now includes an editable physical keyboard map and paint workflow.
+
+### Added
+- Minimal desktop workspace with dark and light themes and translucent glass-like panels.
+- Full-size on-screen keyboard map built from individual key controls.
+- Brush, fill, colour picker, eraser and key-to-LED mapping tools.
+- Physical key press feedback in the keyboard map using Raw Input from the K643.
+- Optional physical-key painting: after calibration, a key press applies the selected colour to its mapped LED slot and sends the updated RGB frame.
+- Calibrated physical key-to-LED slot mappings are saved inside .vcp paint projects.
+- Native .vcp paint project save/load and .vca animation project save/load actions.
+- Dedicated paint, calibration, animation, audio and project screens.
+
+### Changed
+- Keyboard editor is shown alongside the colour inspector and layer stack.
+- Key map selection, selected key feedback and colour preview update together.
+- The 126-slot protocol editor remains available in the Calibration screen.
+
+### Important hardware note
+- The graphical keyboard layout is a physical-key view; the K643 HID lighting protocol exposes 126 LED slots.
+- A physical key must be calibrated to its LED slot before painting that key can change the corresponding hardware LED.
+- The visual keyboard-to-LED mapping and physical paint workflow require validation on the actual keyboard.
+- Key events are transient. Typed text is not logged, audio is not recorded, and no telemetry is sent.
+
+### Project formats
+- .vcp: local paint project containing layers, colours, animation data and physical-key mappings.
+- .vca: local animation project containing animation layers and their captured frames.
+- Both formats use a readable JSON-based payload under their dedicated extensions.
+
+### Not included yet
+- Verified factory mapping for every physical key and HID LED slot.
+- Ripple / neighbour-ripple until a complete physical geometry and LED map is validated.
+- Macro editor and software key remapping.
+- Installer and updater.
+
+**Platform:** Windows 10/11 x64 with .NET Framework 4.8 or newer.
+
+This is an experimental pre-release, not a stable release.
+
 ## [0.3.0-alpha] - 2026-11-08
 
 ### Fixed
