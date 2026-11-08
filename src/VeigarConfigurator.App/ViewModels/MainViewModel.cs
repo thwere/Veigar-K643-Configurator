@@ -233,7 +233,7 @@ namespace VeigarConfigurator.App.ViewModels
 
             LoadAnimationCommand = new RelayCommand(
                 delegate { LoadAnimation(); },
-                delegate { !IsBusy; });
+                delegate { return !IsBusy; });
 
             _deviceTimer = new DispatcherTimer();
             _deviceTimer.Interval = TimeSpan.FromSeconds(2);
