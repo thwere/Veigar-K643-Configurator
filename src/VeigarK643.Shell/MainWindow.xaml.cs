@@ -56,7 +56,7 @@ public partial class MainWindow : Window
                         ? new SolidColorBrush(Color.FromRgb(247, 250, 248))
                         : new SolidColorBrush(Color.FromRgb(48, 57, 62)),
                     FontFamily = new FontFamily("Segoe UI"),
-                    FontSize = label.Length > 4 ? 8 : 10,
+                    FontSize = label.Length > 5 ? 8 : 10,
                     FontWeight = FontWeights.Medium,
                     TextAlignment = TextAlignment.Center,
                     HorizontalAlignment = HorizontalAlignment.Center,
@@ -69,7 +69,7 @@ public partial class MainWindow : Window
             KeyboardCanvas.Children.Add(key);
         }
 
-        // Function row
+        // Function row: Esc, three four-key groups, Print Screen and two compact controls.
         AddKey("Esc", 0, 0);
         string[] functionKeys = { "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12" };
         for (int i = 0; i < functionKeys.Length; i++)
@@ -77,48 +77,42 @@ public partial class MainWindow : Window
             double column = i < 4 ? i + 2 : i < 8 ? i + 3 : i + 4;
             AddKey(functionKeys[i], 0, column, accent: i >= 4 && i <= 7);
         }
-        AddKey("PrtSc", 0, 17);
-        AddKey("−", 0, 18);
-        AddKey("+", 0, 19);
+        AddKey("PrtSc", 0, 16.5);
+        AddKey("-", 0, 17.5);
+        AddKey("+", 0, 18.5);
 
-        // Number row and integrated numeric keypad
-        string[] numberRow = { "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace" };
-        double numberColumn = 0;
-        for (int i = 0; i < numberRow.Length; i++)
-        {
-            double width = i == 13 ? 2 : 1;
-            AddKey(numberRow[i], 1, numberColumn, width);
-            numberColumn += width;
-        }
-        AddKey("Num", 1, 15);
-        AddKey("/", 1, 16);
-        AddKey("*", 1, 17);
-        AddKey("−", 1, 18);
+        // Number row.
+        AddKey("~", 1, 0);
+        string[] numberKeys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "+" };
+        for (int i = 0; i < numberKeys.Length; i++) AddKey(numberKeys[i], 1, i + 1);
+        AddKey("Backspace", 1, 13, 2);
+        AddKey("Num", 1, 16.5);
+        AddKey("/", 1, 17.5);
+        AddKey("*", 1, 18.5);
 
-        // Q row
+        // QWERTY row.
         AddKey("Tab", 2, 0, 1.5);
         string[] qRow = { "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P" };
         for (int i = 0; i < qRow.Length; i++) AddKey(qRow[i], 2, 1.5 + i);
         AddKey("[", 2, 11.5);
         AddKey("]", 2, 12.5);
         AddKey("\\", 2, 13.5, 1.5);
-        AddKey("7", 2, 15);
-        AddKey("8", 2, 16);
-        AddKey("9", 2, 17);
-        AddKey("+", 2, 18, heightRows: 2);
+        AddKey("7", 2, 16.5);
+        AddKey("8", 2, 17.5);
+        AddKey("9", 2, 18.5);
 
-        // Home row
-        AddKey("Caps", 3, 0, 1.75);
+        // Home row.
+        AddKey("CapsLk", 3, 0, 1.75);
         string[] homeRow = { "A", "S", "D", "F", "G", "H", "J", "K", "L" };
         for (int i = 0; i < homeRow.Length; i++) AddKey(homeRow[i], 3, 1.75 + i);
         AddKey(";", 3, 10.75);
         AddKey("'", 3, 11.75);
         AddKey("Enter", 3, 12.75, 2.25);
-        AddKey("4", 3, 15);
-        AddKey("5", 3, 16);
-        AddKey("6", 3, 17);
+        AddKey("4", 3, 16.5);
+        AddKey("5", 3, 17.5);
+        AddKey("6", 3, 18.5);
 
-        // Lower letter row, arrows and numeric keypad
+        // Bottom letter row. Up arrow sits directly below Enter.
         AddKey("Shift", 4, 0, 2.25);
         string[] lowerRow = { "Z", "X", "C", "V", "B", "N", "M" };
         for (int i = 0; i < lowerRow.Length; i++) AddKey(lowerRow[i], 4, 2.25 + i);
@@ -126,25 +120,24 @@ public partial class MainWindow : Window
         AddKey(".", 4, 10.25);
         AddKey("/", 4, 11.25);
         AddKey("Shift", 4, 12.25, 1.75);
-        AddKey("↑", 4, 14);
-        AddKey("1", 4, 15);
-        AddKey("2", 4, 16);
-        AddKey("3", 4, 17);
-        AddKey("Enter", 4, 18, heightRows: 2);
+        AddKey("←", 5, 13.5);
+        AddKey("↑", 4, 14.5);
+        AddKey("↓", 5, 14.5);
+        AddKey("→", 5, 15.5);
+        AddKey("1", 4, 16.5);
+        AddKey("2", 4, 17.5);
+        AddKey("3", 4, 18.5);
 
-        // Bottom row
+        // Bottom modifier row and integrated navigation/numeric keys.
         AddKey("Ctrl", 5, 0, 1.25);
         AddKey("Win", 5, 1.25, 1.25);
         AddKey("Alt", 5, 2.5, 1.25);
-        AddKey("", 5, 3.75, 6.25);
+        AddKey("Space", 5, 3.75, 6.25);
         AddKey("Alt", 5, 10, 1.25);
-        AddKey("Fn", 5, 11.25, 1.25);
-        AddKey("Ctrl", 5, 12.5, 1.25);
-        AddKey("←", 5, 14);
-        AddKey("↓", 5, 15);
-        AddKey("→", 5, 16);
-        AddKey("0", 5, 17, 2);
-        AddKey(".", 5, 19);
+        AddKey("Ctrl", 5, 11.25, 1.25);
+        AddKey("Fn", 5, 12.5, 1);
+        AddKey("0\nIns", 5, 16.5, 2);
+        AddKey(".\nDel", 5, 18.5);
     }
 
     private static FontFamily GetCaptionFontFamily()
