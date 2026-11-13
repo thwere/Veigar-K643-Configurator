@@ -7,10 +7,7 @@
         MinWidth="760"
         MinHeight="520"
         WindowStartupLocation="CenterScreen"
-        WindowStyle="SingleBorderWindow"
-        ResizeMode="CanResize"
         Background="#FF191B22"
-        ShowInTaskbar="True"
         SnapsToDevicePixels="True"
         UseLayoutRounding="True">
 

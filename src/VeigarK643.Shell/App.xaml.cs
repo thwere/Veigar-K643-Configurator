@@ -76,7 +76,7 @@ public partial class App : Application
                         {
                             if (MainWindow is MainWindow window)
                             {
-                                window.RestoreFromTray();
+                                window.ActivateWindow();
                             }
                         }));
                 }
