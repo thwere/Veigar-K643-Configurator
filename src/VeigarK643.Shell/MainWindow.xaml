@@ -77,9 +77,8 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Custom title bar. The DWM backdrop is visible through this translucent surface. -->
             <Grid Grid.Row="0">
-                <Border Background="#B5222530">
+                <Border>
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                             <GradientStop Color="#D52B2F3B" Offset="0" />
@@ -150,7 +149,6 @@
 
                         <Button x:Name="CloseButton"
                                 Width="44"
-                                Style="{StaticResource CaptionButtonStyle}"
                                 shell:WindowChrome.IsHitTestVisibleInChrome="True"
                                 Click="CloseButton_Click"
                                 ToolTip="Скрыть в трей">
@@ -177,7 +175,6 @@
                 </Grid>
             </Grid>
 
-            <!-- Intentionally empty workspace. -->
             <Grid Grid.Row="1"
                   Background="#FF191B22" />
         </Grid>
