@@ -1,0 +1,70 @@
+name: Build portable pre-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Pre-release version (for example v0.0.1)"
+        required: true
+        default: "v0.0.1"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Validate version
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}"
+          if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "Version must use vMAJOR.MINOR.PATCH format, for example v0.0.1" }
+          "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish portable Windows x64
+        run: dotnet publish src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true --output publish/win-x64
+
+      - name: Assemble package with recoverable source
+        shell: pwsh
+        run: |
+          $package = "Veigar-K643-Configurator-$env:VERSION-win-x64"
+          New-Item -ItemType Directory -Force -Path "$package/Portable" | Out-Null
+          New-Item -ItemType Directory -Force -Path "$package/Source" | Out-Null
+          Copy-Item "publish/win-x64/*" "$package/Portable/" -Recurse -Force
+          git archive --format=tar HEAD | tar -xf - -C "$package/Source"
+          @"
+          Veigar K643 Configurator $env:VERSION
+
+          Portable:
+          Run the executable in the Portable folder on Windows 10/11 x64.
+
+          Source:
+          Source contains tracked repository files used for this build.
+          Install the .NET 10 SDK to restore and rebuild the WPF project.
+
+          This is a pre-release build.
+          "@ | Set-Content "$package/README.txt" -Encoding UTF8
+          Compress-Archive -Path "$package/*" -DestinationPath "$package.zip" -CompressionLevel Optimal
+
+      - name: Create GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = $env:VERSION
+          gh release view $tag --json tagName 2>$null
+          if ($LASTEXITCODE -eq 0) { throw "Release $tag already exists. Choose the next pre-release version." }
+          gh release create $tag "$tag-win-x64.zip" --repo "${{ github.repository }}" --target main --title $tag --prerelease --notes "Windows x64 portable pre-release. Includes portable application and recoverable source files."
