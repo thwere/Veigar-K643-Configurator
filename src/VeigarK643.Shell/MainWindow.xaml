@@ -187,8 +187,8 @@
         </Border>
 
         <Grid Grid.Row="1" Background="#FF191B22">
-            <Border Width="760"
-                    Height="242"
+            <Border Width="724"
+                    Height="212"
                     Padding="9"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
@@ -197,8 +197,8 @@
                     BorderThickness="1"
                     CornerRadius="5">
                 <Canvas x:Name="KeyboardCanvas"
-                        Width="740"
-                        Height="222"
+                        Width="704"
+                        Height="192"
                         ClipToBounds="False" />
             </Border>
         </Grid>
