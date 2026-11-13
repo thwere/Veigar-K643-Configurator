@@ -36,7 +36,7 @@ jobs:
             $version = "${{ inputs.version }}"
           }
           if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "Version must use vMAJOR.MINOR.PATCH format, for example v0.0.1" }
-          "VERSION=$version" >> $env:GITHUB_ENV
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
 
       - name: Checkout release source
         uses: actions/checkout@v4
@@ -49,40 +49,8 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Check NuGet connectivity
-        shell: pwsh
-        run: |
-          $urls = @(
-            "https://api.nuget.org/v3/index.json",
-            "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.win-x64/10.0.15/microsoft.netcore.app.runtime.win-x64.10.0.15.nupkg",
-            "https://api.nuget.org/v3-flatcontainer/microsoft.windowsdesktop.app.runtime.win-x64/10.0.15/microsoft.windowsdesktop.app.runtime.win-x64.10.0.15.nupkg",
-            "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.app.runtime.win-x64/10.0.15/microsoft.aspnetcore.app.runtime.win-x64.10.0.15.nupkg"
-          )
-          foreach ($url in $urls) {
-            Write-Host "Checking $url"
-            curl.exe --fail --silent --show-error --head $url
-            if ($LASTEXITCODE -ne 0) { throw "NuGet endpoint check failed: $url" }
-          }
-
       - name: Restore dependencies
-        run: dotnet restore src/VeigarK643.Shell/VeigarK643.Shell.csproj --runtime win-x64 --source https://api.nuget.org/v3/index.json --verbosity normal --disable-parallel -p:NuGetAudit=false -p:RestoreEnablePackagePruning=false -p:RestoreNoCache=true
-
-      - name: Print NuGet restore diagnostics
-        if: always()
-        shell: pwsh
-        run: |
-          $assetsPath = "src/VeigarK643.Shell/obj/project.assets.json"
-          if (Test-Path $assetsPath) {
-            $assets = Get-Content $assetsPath -Raw | ConvertFrom-Json -AsHashtable
-            Write-Host "NuGet restore log entries:"
-            if ($assets.ContainsKey("logs") -and $assets["logs"]) {
-              ConvertTo-Json -InputObject $assets["logs"] -Depth 12 | Write-Host
-            } else {
-              Write-Host "The assets file contains no log entries."
-            }
-          } else {
-            Write-Host "project.assets.json was not generated."
-          }
+        run: dotnet restore src/VeigarK643.Shell/VeigarK643.Shell.csproj --runtime win-x64 --source https://api.nuget.org/v3/index.json --verbosity minimal -p:NuGetAudit=false
 
       - name: Publish portable Windows x64
         run: dotnet publish src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Release --runtime win-x64 --self-contained true --no-restore -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true --output publish/win-x64
@@ -90,14 +58,14 @@ jobs:
       - name: Assemble package with recoverable source
         shell: pwsh
         run: |
-          $package = "Veigar-K643-Configurator-$env:VERSION-win-x64"
+          $package = "Veigar-K643-Configurator-$env:RELEASE_VERSION-win-x64"
           "PACKAGE=$package" >> $env:GITHUB_ENV
           New-Item -ItemType Directory -Force -Path "$package/Portable" | Out-Null
           New-Item -ItemType Directory -Force -Path "$package/Source" | Out-Null
           Copy-Item "publish/win-x64/*" "$package/Portable/" -Recurse -Force
           git archive --format=tar HEAD | tar -xf - -C "$package/Source"
           @"
-          Veigar K643 Configurator $env:VERSION
+          Veigar K643 Configurator $env:RELEASE_VERSION
 
           Portable:
           Run the executable in the Portable folder on Windows 10/11 x64.
@@ -115,7 +83,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $tag = $env:VERSION
+          $tag = $env:RELEASE_VERSION
           $archive = "$env:PACKAGE.zip"
           gh release view $tag --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) { throw "Release $tag already exists. Choose the next pre-release version." }
