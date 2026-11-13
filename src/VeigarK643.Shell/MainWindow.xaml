@@ -160,8 +160,7 @@
                             VerticalAlignment="Top"
                             Margin="0,2,3,0">
                     <Button Style="{StaticResource CaptionButtonStyle}"
-                            Click="Minimize_Click"
->
+                            Click="Minimize_Click">
                         <TextBlock x:Name="MinimizeGlyph"
                                    Text="&#xE921;"
                                    FontFamily="Segoe Fluent Icons"
@@ -169,8 +168,7 @@
                     </Button>
 
                     <Button Style="{StaticResource CaptionButtonStyle}"
-                            Click="MaximizeRestore_Click"
->
+                            Click="MaximizeRestore_Click">
                         <TextBlock x:Name="MaximizeGlyph"
                                    Text="&#xE922;"
                                    FontFamily="Segoe Fluent Icons"
@@ -178,8 +176,7 @@
                     </Button>
 
                     <Button Style="{StaticResource CloseCaptionButtonStyle}"
-                            Click="Close_Click"
->
+                            Click="Close_Click">
                         <TextBlock x:Name="CloseGlyph"
                                    Text="&#xE8BB;"
                                    FontFamily="Segoe Fluent Icons"
