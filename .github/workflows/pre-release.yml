@@ -8,25 +8,40 @@ on:
         required: true
         default: "v0.0.1"
         type: string
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
 
 permissions:
   contents: write
 
 jobs:
   build-and-release:
+    if: >-
+      github.event_name != 'push' ||
+      github.ref_type == 'tag' ||
+      github.event.head_commit.message == 'chore(release): bootstrap v0.0.1'
     runs-on: windows-latest
     steps:
       - name: Validate version
         shell: pwsh
         run: |
-          $version = "${{ inputs.version }}"
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            $version = $env:GITHUB_REF_NAME
+          } elseif ($env:GITHUB_EVENT_NAME -eq "push") {
+            $version = "v0.0.1"
+          } else {
+            $version = "${{ inputs.version }}"
+          }
           if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "Version must use vMAJOR.MINOR.PATCH format, for example v0.0.1" }
           "VERSION=$version" >> $env:GITHUB_ENV
 
-      - name: Checkout main
+      - name: Checkout release source
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref_type == 'tag' && github.ref_name || 'main' }}
           fetch-depth: 0
 
       - name: Setup .NET 10
@@ -41,6 +56,7 @@ jobs:
         shell: pwsh
         run: |
           $package = "Veigar-K643-Configurator-$env:VERSION-win-x64"
+          "PACKAGE=$package" >> $env:GITHUB_ENV
           New-Item -ItemType Directory -Force -Path "$package/Portable" | Out-Null
           New-Item -ItemType Directory -Force -Path "$package/Source" | Out-Null
           Copy-Item "publish/win-x64/*" "$package/Portable/" -Recurse -Force
@@ -65,6 +81,7 @@ jobs:
         shell: pwsh
         run: |
           $tag = $env:VERSION
+          $archive = "$env:PACKAGE.zip"
           gh release view $tag --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) { throw "Release $tag already exists. Choose the next pre-release version." }
-          gh release create $tag "$package.zip" --repo "${{ github.repository }}" --target main --title $tag --prerelease --notes "Windows x64 portable pre-release. Includes portable application and recoverable source files."
+          gh release create $tag $archive --repo "${{ github.repository }}" --target main --title $tag --prerelease --notes "Windows x64 portable pre-release. Includes portable application and recoverable source files."
