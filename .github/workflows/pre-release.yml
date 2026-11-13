@@ -21,8 +21,8 @@ jobs:
   build-and-release:
     if: >-
       github.event_name != 'push' ||
-      github.ref_type == 'tag' ||
-      github.event.head_commit.message == 'chore(release): bootstrap v0.0.1'
+      (github.ref_type == 'branch' && github.event.head_commit.message == 'chore(release): rebuild v0.0.1') ||
+      (github.ref_type == 'tag' && github.event.created == true)
     runs-on: windows-latest
     steps:
       - name: Validate version
@@ -55,36 +55,33 @@ jobs:
       - name: Publish portable Windows x64
         run: dotnet publish src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Release --runtime win-x64 --self-contained true --no-restore -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true --output publish/win-x64
 
-      - name: Assemble package with recoverable source
+      - name: Assemble flat portable archive
         shell: pwsh
         run: |
           $package = "Veigar-K643-Configurator-$env:RELEASE_VERSION-win-x64"
-          "PACKAGE=$package" >> $env:GITHUB_ENV
-          New-Item -ItemType Directory -Force -Path "$package/Portable" | Out-Null
-          New-Item -ItemType Directory -Force -Path "$package/Source" | Out-Null
-          Copy-Item "publish/win-x64/*" "$package/Portable/" -Recurse -Force
-          git archive --format=tar HEAD | tar -xf - -C "$package/Source"
-          @"
-          Veigar K643 Configurator $env:RELEASE_VERSION
-
-          Portable:
-          Run the executable in the Portable folder on Windows 10/11 x64.
-
-          Source:
-          Source contains tracked repository files used for this build.
-          Install the .NET 10 SDK to restore and rebuild the WPF project.
-
-          This is a pre-release build.
-          "@ | Set-Content "$package/README.txt" -Encoding UTF8
+          New-Item -ItemType Directory -Force -Path "$package" | Out-Null
+          Copy-Item "publish/win-x64/*" "$package/" -Recurse -Force
           Compress-Archive -Path "$package/*" -DestinationPath "$package.zip" -CompressionLevel Optimal
 
-      - name: Create GitHub pre-release
+      - name: Create or update GitHub pre-release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           $tag = $env:RELEASE_VERSION
-          $archive = "$env:PACKAGE.zip"
-          gh release view $tag --json tagName 2>$null
-          if ($LASTEXITCODE -eq 0) { throw "Release $tag already exists. Choose the next pre-release version." }
-          gh release create $tag $archive --repo "${{ github.repository }}" --target main --title $tag --prerelease --notes "Windows x64 portable pre-release. Includes portable application and recoverable source files."
+          $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
+
+          $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            # Keep the existing version tag attached to the exact source used for this rebuild.
+            git push --force origin "HEAD:refs/tags/$tag"
+            if ($LASTEXITCODE -ne 0) { throw "Failed to update tag $tag to the rebuilt source." }
+
+            gh release upload $tag $archive --repo "${{ github.repository }}" --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Failed to replace the portable ZIP for $tag." }
+
+            gh release edit $tag --repo "${{ github.repository }}" --title $tag --prerelease --notes "Windows x64 portable pre-release. The ZIP contains only portable application files. Source code is maintained in the repository under src/VeigarK643.Shell."
+            if ($LASTEXITCODE -ne 0) { throw "Failed to update release metadata for $tag." }
+          } else {
+            gh release create $tag $archive --repo "${{ github.repository }}" --target main --title $tag --prerelease --notes "Windows x64 portable pre-release. The ZIP contains only portable application files. Source code is maintained in the repository under src/VeigarK643.Shell."
+          }
