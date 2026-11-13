@@ -73,10 +73,10 @@ jobs:
         run: |
           $assetsPath = "src/VeigarK643.Shell/obj/project.assets.json"
           if (Test-Path $assetsPath) {
-            $assets = Get-Content $assetsPath -Raw | ConvertFrom-Json
+            $assets = Get-Content $assetsPath -Raw | ConvertFrom-Json -AsHashtable
             Write-Host "NuGet restore log entries:"
-            if ($assets.logs) {
-              $assets.logs | ConvertTo-Json -Depth 12 | Write-Host
+            if ($assets.ContainsKey("logs") -and $assets["logs"]) {
+              ConvertTo-Json -InputObject $assets["logs"] -Depth 12 | Write-Host
             } else {
               Write-Host "The assets file contains no log entries."
             }
