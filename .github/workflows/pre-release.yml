@@ -49,6 +49,21 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Check NuGet connectivity
+        shell: pwsh
+        run: |
+          $urls = @(
+            "https://api.nuget.org/v3/index.json",
+            "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.win-x64/10.0.15/microsoft.netcore.app.runtime.win-x64.10.0.15.nupkg",
+            "https://api.nuget.org/v3-flatcontainer/microsoft.windowsdesktop.app.runtime.win-x64/10.0.15/microsoft.windowsdesktop.app.runtime.win-x64.10.0.15.nupkg",
+            "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.app.runtime.win-x64/10.0.15/microsoft.aspnetcore.app.runtime.win-x64.10.0.15.nupkg"
+          )
+          foreach ($url in $urls) {
+            Write-Host "Checking $url"
+            curl.exe --fail --silent --show-error --head $url
+            if ($LASTEXITCODE -ne 0) { throw "NuGet endpoint check failed: $url" }
+          }
+
       - name: Restore dependencies
         run: dotnet restore src/VeigarK643.Shell/VeigarK643.Shell.csproj --runtime win-x64 --source https://api.nuget.org/v3/index.json --verbosity normal -p:NuGetAudit=false
 
