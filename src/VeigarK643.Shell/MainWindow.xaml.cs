@@ -62,8 +62,8 @@ public partial class MainWindow : Window
     private void UpdateMaximizeGlyph()
     {
         MaximizeGlyph.Text = WindowState == WindowState.Maximized
-            ? "\\uE923"
-            : "\\uE922";
+            ? "\uE923"
+            : "\uE922";
     }
 
     private void DisableRoundedCorners()
