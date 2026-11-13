@@ -23,7 +23,7 @@
 
     <Window.Resources>
         <Style x:Key="CaptionButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Width" Value="46" />
+            <Setter Property="Width" Value="42" />
             <Setter Property="Height" Value="42" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Foreground" Value="#FFE7E9ED" />
@@ -34,7 +34,13 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonBackground" Background="Transparent">
+                        <Border x:Name="ButtonBackground"
+                                Width="36"
+                                Height="34"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                CornerRadius="4">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
                         </Border>
@@ -42,12 +48,18 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ButtonBackground"
                                         Property="Background"
-                                        Value="#FF3A3D44" />
+                                        Value="#FF353942" />
+                                <Setter TargetName="ButtonBackground"
+                                        Property="BorderBrush"
+                                        Value="#FF50545E" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonBackground"
                                         Property="Background"
-                                        Value="#FF50545D" />
+                                        Value="#FF454A54" />
+                                <Setter TargetName="ButtonBackground"
+                                        Property="BorderBrush"
+                                        Value="#FF656B77" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45" />
@@ -68,7 +80,13 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonBackground" Background="Transparent">
+                        <Border x:Name="ButtonBackground"
+                                Width="36"
+                                Height="34"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                CornerRadius="4">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
                         </Border>
@@ -77,11 +95,17 @@
                                 <Setter TargetName="ButtonBackground"
                                         Property="Background"
                                         Value="#FFC42B1C" />
+                                <Setter TargetName="ButtonBackground"
+                                        Property="BorderBrush"
+                                        Value="#FFE06B61" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonBackground"
                                         Property="Background"
                                         Value="#FF9D2117" />
+                                <Setter TargetName="ButtonBackground"
+                                        Property="BorderBrush"
+                                        Value="#FFB94A40" />
                             </Trigger>
                             <DataTrigger Binding="{Binding IsActive, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
                                          Value="False">
@@ -149,7 +173,8 @@
                 <StackPanel Grid.Column="2"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
-                            VerticalAlignment="Center">
+                            VerticalAlignment="Center"
+                            Margin="0,0,6,0">
                     <Button Style="{StaticResource CaptionButtonStyle}"
                             Click="Minimize_Click"
                             ToolTip="Свернуть">
