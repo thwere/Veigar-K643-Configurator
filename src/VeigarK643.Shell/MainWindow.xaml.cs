@@ -2,6 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace VeigarK643.Shell;
 
@@ -14,10 +15,31 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        FontFamily captionFont = GetCaptionFontFamily();
+        MinimizeGlyph.FontFamily = captionFont;
+        MaximizeGlyph.FontFamily = captionFont;
+        CloseGlyph.FontFamily = captionFont;
+
         SourceInitialized += (_, _) => DisableRoundedCorners();
         StateChanged += (_, _) => UpdateMaximizeGlyph();
 
         UpdateMaximizeGlyph();
+    }
+
+    private static FontFamily GetCaptionFontFamily()
+    {
+        foreach (FontFamily font in Fonts.SystemFontFamilies)
+        {
+            if (string.Equals(
+                font.Source,
+                "Segoe Fluent Icons",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return font;
+            }
+        }
+
+        return new FontFamily("Segoe MDL2 Assets");
     }
 
     private void Minimize_Click(object sender, RoutedEventArgs e)
@@ -40,8 +62,8 @@ public partial class MainWindow : Window
     private void UpdateMaximizeGlyph()
     {
         MaximizeGlyph.Text = WindowState == WindowState.Maximized
-            ? "\uE923"
-            : "\uE922";
+            ? "\\uE923"
+            : "\\uE922";
     }
 
     private void DisableRoundedCorners()
