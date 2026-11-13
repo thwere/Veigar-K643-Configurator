@@ -23,18 +23,24 @@
 
     <Window.Resources>
         <Style x:Key="CaptionButtonStyle" TargetType="{x:Type Button}">
-            <Setter Property="Width" Value="46" />
-            <Setter Property="Height" Value="42" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Margin" Value="0,0,5,0" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Foreground" Value="#FFE3E5EA" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="#FF333741" />
+            <Setter Property="BorderBrush" Value="#FF444955" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Focusable" Value="False" />
             <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonBackground" Background="Transparent">
+                        <Border x:Name="ButtonBackground"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
                         </Border>
@@ -42,12 +48,15 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ButtonBackground"
                                         Property="Background"
-                                        Value="#FF353944" />
+                                        Value="#FF484D59" />
+                                <Setter TargetName="ButtonBackground"
+                                        Property="BorderBrush"
+                                        Value="#FF5A606E" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonBackground"
                                         Property="Background"
-                                        Value="#FF454954" />
+                                        Value="#FF555B68" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.5" />
@@ -61,10 +70,15 @@
         <Style x:Key="CloseCaptionButtonStyle"
                TargetType="{x:Type Button}"
                BasedOn="{StaticResource CaptionButtonStyle}">
+            <Setter Property="Margin" Value="0" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonBackground" Background="Transparent">
+                        <Border x:Name="ButtonBackground"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
                         </Border>
@@ -72,12 +86,18 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ButtonBackground"
                                         Property="Background"
-                                        Value="#FFE81123" />
+                                        Value="#FFE04450" />
+                                <Setter TargetName="ButtonBackground"
+                                        Property="BorderBrush"
+                                        Value="#FFE85A64" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="ButtonBackground"
                                         Property="Background"
-                                        Value="#FFC50F1F" />
+                                        Value="#FFC92C39" />
+                                <Setter TargetName="ButtonBackground"
+                                        Property="BorderBrush"
+                                        Value="#FFD9434D" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -98,20 +118,51 @@
                 BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="140" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="140" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0"
+                <!-- Reserved PNG slot; replace the placeholder when the app icon is ready. -->
+                <Grid Grid.Column="0"
+                      Width="28"
+                      Height="28"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Center"
+                      Margin="12,0,0,0">
+                    <Border Background="#FF353944"
+                            BorderBrush="#FF484D59"
+                            BorderThickness="1"
+                            CornerRadius="6">
+                        <TextBlock Text="PNG"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="#FF9298A6"
+                                   FontFamily="Segoe UI"
+                                   FontSize="8"
+                                   FontWeight="Bold" />
+                    </Border>
+                    <Image x:Name="AppIconImage"
+                           Width="28"
+                           Height="28"
+                           Stretch="Uniform"
+                           Visibility="Collapsed" />
+                </Grid>
+
+                <TextBlock Grid.Column="1"
                            Text="Veigar K643 Configurator"
-                           Margin="16,0,0,0"
+                           HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            Foreground="#FFE3E5EA"
                            FontFamily="Segoe UI"
                            FontSize="13"
                            FontWeight="SemiBold" />
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Margin="0,0,10,0">
                     <Button Style="{StaticResource CaptionButtonStyle}"
                             Click="Minimize_Click"
                             ToolTip="Свернуть">
