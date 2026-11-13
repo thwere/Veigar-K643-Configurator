@@ -186,6 +186,21 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1" Background="#FF191B22" />
+        <Grid Grid.Row="1" Background="#FF191B22">
+            <Border Width="760"
+                    Height="242"
+                    Padding="9"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="#FFD8DDE1"
+                    BorderBrush="#FFB8C0C6"
+                    BorderThickness="1"
+                    CornerRadius="5">
+                <Canvas x:Name="KeyboardCanvas"
+                        Width="740"
+                        Height="222"
+                        ClipToBounds="False" />
+            </Border>
+        </Grid>
     </Grid>
 </Window>
