@@ -16,6 +16,7 @@ using VeigarConfigurator.App.Models;
 using VeigarConfigurator.App.Profiles;
 using VeigarConfigurator.Core.Devices;
 using VeigarConfigurator.Windows.Audio;
+using VeigarConfigurator.Windows.Diagnostics;
 using VeigarConfigurator.Windows.RawInput;
 
 namespace VeigarConfigurator.App.ViewModels
@@ -35,6 +36,8 @@ namespace VeigarConfigurator.App.ViewModels
         private byte[] _pendingFrame;
         private bool _pendingFrameShowResult;
         private bool _disposed;
+        private bool _deviceStateLogged;
+        private string _lastDeviceError;
         private bool _isMappingArmed;
         private bool _audioReactiveEnabled;
         private bool _keyReactiveEnabled;
@@ -77,6 +80,7 @@ namespace VeigarConfigurator.App.ViewModels
 
             LedSlots = new ObservableCollection<LedSlotViewModel>();
             KeyboardKeys = KeyboardLayoutBuilder.Create();
+            DiagnosticLog.Info("UI", "Keyboard hit zones initialized: " + KeyboardKeys.Count + " key(s).");
             Layers = new ObservableCollection<LightingLayer>();
             AvailableLayerTypes = new ObservableCollection<string>
             {
@@ -761,10 +765,24 @@ namespace VeigarConfigurator.App.ViewModels
             try
             {
                 DeviceConnectionInfo info = _deviceController.RefreshConnection();
+                bool stateChanged = !_deviceStateLogged || IsConnected != info.IsConnected;
+
                 IsConnected = info.IsConnected;
                 ConnectionTitle = info.Title;
                 ConnectionMessage = info.Message;
                 FooterStatus = info.IsConnected ? "Device ready" : "Device unavailable";
+
+                if (stateChanged)
+                {
+                    DiagnosticLog.Info(
+                        "DEVICE",
+                        info.IsConnected
+                            ? "Target HID interface connected: " + info.Title + ". " + info.Message
+                            : "Target HID interface not available: " + info.Message);
+                }
+
+                _deviceStateLogged = true;
+                _lastDeviceError = null;
 
                 if (!info.IsConnected)
                 {
@@ -777,6 +795,13 @@ namespace VeigarConfigurator.App.ViewModels
                 ConnectionTitle = "Device check failed";
                 ConnectionMessage = exception.Message;
                 FooterStatus = "Device check error";
+
+                if (!_deviceStateLogged || !string.Equals(_lastDeviceError, exception.Message, StringComparison.Ordinal))
+                {
+                    DiagnosticLog.Error("DEVICE", "HID device refresh failed.", exception);
+                    _lastDeviceError = exception.Message;
+                }
+                _deviceStateLogged = true;
             }
         }
 
@@ -820,6 +845,9 @@ namespace VeigarConfigurator.App.ViewModels
                 stopwatch.Stop();
                 if (showResult)
                 {
+                    DiagnosticLog.Info(
+                        "HID",
+                        "RGB frame sent successfully in " + stopwatch.ElapsedMilliseconds + " ms (382-byte report).");
                     OperationMessage = "Applied " + EffectiveColorHex + " in " +
                                        stopwatch.ElapsedMilliseconds + " ms · one 382-byte HID report.";
                     FooterStatus = "Lighting updated";
@@ -830,6 +858,7 @@ namespace VeigarConfigurator.App.ViewModels
                 stopwatch.Stop();
                 if (showResult || !AnimationRunning)
                 {
+                    DiagnosticLog.Error("HID", "RGB frame transmission failed.", exception);
                     OperationMessage = "RGB update failed: " + exception.Message;
                     FooterStatus = "RGB update error";
                 }
@@ -1369,6 +1398,10 @@ namespace VeigarConfigurator.App.ViewModels
             KeyboardKeyViewModel keyboardKey = KeyboardKeys.FirstOrDefault(item => item.KeyId == keyId);
             if (keyboardKey != null)
             {
+                DiagnosticLog.Input(
+                    "Visual key matched: " + keyboardKey.Label + " (" + keyId + "), "
+                    + (args.IsKeyDown ? "DOWN" : "UP") + ".");
+
                 if (args.IsKeyDown)
                 {
                     _pressedKeyboardKeys.Add(keyId);
@@ -1379,6 +1412,14 @@ namespace VeigarConfigurator.App.ViewModels
                     _pressedKeyboardKeys.Remove(keyId);
                 }
                 RefreshKeyboardPreviews();
+            }
+            else
+            {
+                DiagnosticLog.Warning(
+                    "RAWINPUT",
+                    "K643 event did not match a visual key: VK=0x" + args.VirtualKey.ToString("X2")
+                        + ", scan=0x" + args.ScanCode.ToString("X2")
+                        + ", E0=" + args.IsExtended + ".");
             }
 
             LastDetectedKey = (keyboardKey == null ? keyName : keyboardKey.Label) + " · scan " + args.ScanCode;

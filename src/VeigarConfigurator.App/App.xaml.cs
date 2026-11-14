@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Threading;
+using VeigarConfigurator.Windows.Diagnostics;
 
 namespace VeigarConfigurator.App
 {
@@ -10,21 +11,31 @@ namespace VeigarConfigurator.App
     {
         public App()
         {
+            DiagnosticLog.Initialize();
+            DiagnosticLog.Info("APP", "Veigar K643 Configurator process started.");
+            DiagnosticLog.Info("APP", "OS=" + Environment.OSVersion
+                + "; CLR=" + Environment.Version
+                + "; 64-bit process=" + Environment.Is64BitProcess
+                + "; base directory=" + AppDomain.CurrentDomain.BaseDirectory);
+
             DispatcherUnhandledException += App_DispatcherUnhandledException;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
         }
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            DiagnosticLog.Info("APP", "WPF startup requested.");
             base.OnStartup(e);
             try
             {
                 MainWindow window = new MainWindow();
                 MainWindow = window;
                 window.Show();
+                DiagnosticLog.Info("APP", "Main window shown successfully.");
             }
             catch (Exception exception)
             {
+                DiagnosticLog.Error("APP", "Application startup failed.", exception);
                 ShowStartupFailure(exception);
                 Shutdown(-1);
             }
@@ -32,6 +43,7 @@ namespace VeigarConfigurator.App
 
         private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
+            DiagnosticLog.Error("APP", "Unhandled WPF dispatcher exception.", e.Exception);
             ShowStartupFailure(e.Exception);
             e.Handled = true;
             Shutdown(-1);
@@ -41,11 +53,22 @@ namespace VeigarConfigurator.App
         {
             Exception exception = e.ExceptionObject as Exception;
             if (exception != null)
+            {
+                DiagnosticLog.Error("APP", "Unhandled application-domain exception.", exception);
                 WriteErrorLog(exception);
+            }
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            DiagnosticLog.Info("APP", "Application exiting with code " + e.ApplicationExitCode + ".");
+            DiagnosticLog.Shutdown();
+            base.OnExit(e);
         }
 
         private static void ShowStartupFailure(Exception exception)
         {
+            DiagnosticLog.Error("APP", "Startup failure details.", exception);
             string logPath = WriteErrorLog(exception);
             string message = "Veigar K643 Configurator не удалось запустить или продолжить работу."
                 + Environment.NewLine + Environment.NewLine

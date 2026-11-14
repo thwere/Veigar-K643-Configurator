@@ -6,6 +6,7 @@ using VeigarConfigurator.App.UI;
 using VeigarConfigurator.App.ViewModels;
 using VeigarConfigurator.Devices.Redragon;
 using VeigarConfigurator.Windows.Audio;
+using VeigarConfigurator.Windows.Diagnostics;
 using VeigarConfigurator.Windows.Hid;
 using VeigarConfigurator.Windows.RawInput;
 
@@ -18,16 +19,25 @@ namespace VeigarConfigurator.App
 
         public MainWindow()
         {
+            DiagnosticLog.Info("UI", "Creating main RGB Studio window.");
             InitializeComponent();
             DarkTitleBar.Apply(this);
 
             var enumerator = new HidDeviceEnumerator();
             var transport = new HidFeatureTransport();
             var controller = new VeigarK643Controller(enumerator, transport);
+            DiagnosticLog.Info("DEVICE", "HID controller services initialized for Veigar K643.");
 
             AudioPeakMeter audioMeter = null;
-            try { audioMeter = new AudioPeakMeter(); }
-            catch { /* Audio-reactive lighting remains optional. */ }
+            try
+            {
+                audioMeter = new AudioPeakMeter();
+                DiagnosticLog.Info("AUDIO", "Windows output peak meter initialized.");
+            }
+            catch (Exception exception)
+            {
+                DiagnosticLog.Warning("AUDIO", "Audio-reactive meter is unavailable: " + exception.Message);
+            }
 
             _viewModel = new MainViewModel(controller, audioMeter);
             DataContext = _viewModel;
@@ -36,6 +46,7 @@ namespace VeigarConfigurator.App
 
             _rawInputListener = new RawInputKeyboardListener();
             _rawInputListener.KeyReceived += RawInputListener_KeyReceived;
+            DiagnosticLog.Info("RAWINPUT", "Raw Input listener created; waiting for the main window handle.");
             SourceInitialized += MainWindow_SourceInitialized;
             Closed += MainWindow_Closed;
         }
@@ -99,18 +110,28 @@ namespace VeigarConfigurator.App
             try
             {
                 IntPtr handle = new WindowInteropHelper(this).Handle;
+                DiagnosticLog.Info("RAWINPUT", "Main window source initialized. Registering target keyboard input.");
                 bool registered = _rawInputListener.Register(handle);
-                if (!registered)
+                if (registered)
+                {
+                    DiagnosticLog.Info("RAWINPUT", "Raw Input registration completed.");
+                }
+                else
+                {
+                    DiagnosticLog.Warning("RAWINPUT", "Raw Input registration failed. Physical-key visualization is unavailable.");
                     _viewModel.OnRawInputStatus("Raw Input registration failed. Key mapping and physical painting are unavailable.");
+                }
             }
             catch (Exception exception)
             {
+                DiagnosticLog.Error("RAWINPUT", "Raw Input initialization threw an exception.", exception);
                 _viewModel.OnRawInputStatus("Raw Input is unavailable: " + exception.Message);
             }
         }
 
         private void MainWindow_Closed(object sender, EventArgs e)
         {
+            DiagnosticLog.Info("UI", "Main RGB Studio window closed.");
             _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
             _rawInputListener.KeyReceived -= RawInputListener_KeyReceived;
             _rawInputListener.Dispose();
