@@ -766,7 +766,7 @@ public partial class MainWindow : Window
                 else { existing.Name = groupName; existing.ColorHex = _dialogColor; existing.State = state.SelectedItem?.ToString() ?? "Статичный"; }
                 RenderSelection(); ScheduleProfileSave(); CloseModal(); ShowGroupsManager();
             }),
-            ("Отмена", ShowGroupsManager));
+            ("Отмена", () => { CloseModal(); ShowGroupsManager(); }));
     }
 
     private StackPanel BuildColorSwatches(Action<string> choose, string selected)
