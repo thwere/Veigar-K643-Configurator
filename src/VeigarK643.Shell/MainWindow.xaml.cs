@@ -468,7 +468,7 @@ public partial class MainWindow : Window
             }
         }
         if (combined is null) return;
-        Color outlineColor = (Color)ColorConverter.ConvertFromString(stroke)!;
+        Color outlineColor = ((SolidColorBrush)BrushFrom(stroke)).Color;
         System.Windows.Shapes.Path outline = new()
         {
             Data = combined,
