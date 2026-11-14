@@ -197,7 +197,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="32" />
+                    <ColumnDefinition Width="36" />
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="0"
@@ -230,27 +230,83 @@
                     <Grid x:Name="ToolsPanelContent" />
                 </Border>
 
-                <Button x:Name="ToolsPanelToggle"
-                        Grid.Column="2"
-                        Width="32"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Padding="0"
-                        Background="#FF242730"
-                        Foreground="#FFE3E5EA"
-                        BorderBrush="#FF3A3D47"
-                        BorderThickness="1,0,0,0"
-                        Cursor="Hand"
-                        Focusable="False"
-                        Click="ToolsPanelToggle_Click"
-                        ToolTip="Open tools panel">
-                    <TextBlock x:Name="ToolsPanelToggleGlyph"
-                               Text="&#xE76C;"
-                               FontFamily="Segoe MDL2 Assets"
-                               FontSize="12"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center" />
-                </Button>
+                <Grid Grid.Column="2"
+                      Background="Transparent">
+                    <Border Width="7"
+                            HorizontalAlignment="Right"
+                            Background="#FF30343D" />
+                    <Button x:Name="ToolsPanelToggle"
+                            Width="34"
+                            Height="34"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Padding="0"
+                            Background="Transparent"
+                            Foreground="#FFE3E5EA"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Focusable="False"
+                            Click="ToolsPanelToggle_Click"
+                            MouseEnter="ToolsPanelToggle_MouseEnter">
+                        <Button.Template>
+                            <ControlTemplate TargetType="{x:Type Button}">
+                                <Border x:Name="ToggleCircle"
+                                        Width="34"
+                                        Height="34"
+                                        CornerRadius="17"
+                                        Background="#FF30343D"
+                                        BorderBrush="#FF555B68"
+                                        BorderThickness="1">
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Foreground" Value="#FF191B22" />
+                                        <Trigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <ColorAnimation Storyboard.TargetName="ToggleCircle"
+                                                                    Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                                    To="#FFFFFFFF"
+                                                                    Duration="0:0:0.16" />
+                                                    <ColorAnimation Storyboard.TargetName="ToggleCircle"
+                                                                    Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                                    To="#FFFFFFFF"
+                                                                    Duration="0:0:0.16" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.EnterActions>
+                                        <Trigger.ExitActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <ColorAnimation Storyboard.TargetName="ToggleCircle"
+                                                                    Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                                    To="#FF30343D"
+                                                                    Duration="0:0:0.16" />
+                                                    <ColorAnimation Storyboard.TargetName="ToggleCircle"
+                                                                    Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                                    To="#FF555B68"
+                                                                    Duration="0:0:0.16" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.ExitActions>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="ToggleCircle" Property="Opacity" Value="0.82" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <TextBlock x:Name="ToolsPanelToggleGlyph"
+                                   Text="&lt;"
+                                   FontFamily="Segoe UI"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Button>
+                </Grid>
             </Grid>
         </Grid>
     </Grid>
