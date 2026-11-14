@@ -385,7 +385,7 @@ public partial class MainWindow : Window
         _lastPaintedKey = key;
         _keyColors.Remove(key);
         UpdateKeyVisual(key);
-        _ = SendHardwareFrameAsync();
+        ScheduleHardwareFrame();
     }
 
     private void UpdateKeyVisual(string key)
@@ -421,7 +421,7 @@ public partial class MainWindow : Window
             _keyColors[key] = _currentColor;
             UpdateKeyVisual(key);
         }
-        _ = SendHardwareFrameAsync();
+        ScheduleHardwareFrame();
     }
 
     private void ScheduleHardwareFrame()
