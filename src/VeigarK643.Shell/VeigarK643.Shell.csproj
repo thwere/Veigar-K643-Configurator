@@ -10,5 +10,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="..\..\assets\branding\key.png" Link="assets\branding\key.png" />
+    <Resource Include="..\..\assets\layout\veigar-k643-layout.json" Link="assets\layout\veigar-k643-layout.json" />
   </ItemGroup>
 </Project>

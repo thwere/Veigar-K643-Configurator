@@ -6,7 +6,7 @@ A minimal WPF shell for the Redragon Veigar K643 keyboard.
 
 The app displays the keyboard artwork and highlights pressed keys while the application window is active. This preview uses normal WPF keyboard events: it does not capture input globally and does not use Raw Input. HID communication and RGB control are not implemented.
 
-The `v0.0.1` pre-release remains the original minimal shell build and does not include this key-press preview.
+The existing `v0.0.1` pre-release is rebuilt from the current `main` source and includes this key-press preview.
 
 The current application source is:
 
@@ -15,6 +15,8 @@ The current application source is:
 The keyboard artwork is:
 
 `assets/branding/key.png`
+
+Key highlight regions are loaded from `assets/layout/veigar-k643-layout.json` in the 599×222 artwork coordinate space.
 
 ## Build
 
