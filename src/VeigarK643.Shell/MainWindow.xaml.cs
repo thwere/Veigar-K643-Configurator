@@ -504,10 +504,12 @@ public partial class MainWindow : Window
             targets = clickedGroup.Keys;
         else if (_selectedKeys.Count > 0 && clickedKey is not null && _selectedKeys.Contains(clickedKey))
             targets = _selectedKeys;
-        else if (_selectedKeys.Count > 0)
-            targets = _keyGlows.Keys.Where(key => !_selectedKeys.Contains(key));
-        else if (clickedKey is not null)
-            targets = _keyGlows.Keys.Where(key => !groupedKeys.Contains(key));
+        else if (groupedKeys.Count > 0 || _selectedKeys.Count > 0)
+        {
+            HashSet<string> excluded = new(groupedKeys, StringComparer.Ordinal);
+            excluded.UnionWith(_selectedKeys);
+            targets = _keyGlows.Keys.Where(key => !excluded.Contains(key));
+        }
         else
             targets = _keyGlows.Keys;
 
@@ -844,7 +846,7 @@ public partial class MainWindow : Window
             row.Children.Add(new Ellipse { Width = 11, Height = 11, Fill = BrushFrom(group.ColorHex), VerticalAlignment = VerticalAlignment.Center });
             Button select = CreatePanelButton($"{group.Name} · {group.Keys.Count}");
             select.Height = 32; select.HorizontalContentAlignment = HorizontalAlignment.Left;
-            select.Click += (_, _) => { _selectedKeys.Clear(); _selectedKeys.UnionWith(group.Keys); RenderSelection(); SetActiveTool(EditorTool.Select); };
+            select.Click += (_, _) => { _selectedKeys.Clear(); _selectedKeys.UnionWith(group.Keys); RenderSelection(); ToolStatusText.Text = $"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш)."; };
             Grid.SetColumn(select,1); row.Children.Add(select);
             StackPanel actions = new() { Orientation = Orientation.Horizontal };
             Button edit = CreatePanelButton("✎"); edit.Width = 30; edit.Margin = new Thickness(4,0,0,0); edit.ToolTip = "Настроить группу";
@@ -1134,6 +1136,8 @@ public partial class MainWindow : Window
     {
         _isPointerDown = false;
         _isMarquee = false;
+        _strokeUndoPushed = false;
+        _lastPaintedKey = null;
         Mouse.Capture(null);
         if (_marquee is not null) SelectionOverlayCanvas.Children.Remove(_marquee);
         _marquee = null;
