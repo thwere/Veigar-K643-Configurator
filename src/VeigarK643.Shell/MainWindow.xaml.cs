@@ -674,7 +674,7 @@ public partial class MainWindow : Window
             _keyColors.Clear();
             foreach (var pair in data.KeyColors)
             {
-                object? parsed = ColorConverter.ConvertFromString(pair.Value);
+                object? parsed = new ColorConverter().ConvertFromString(pair.Value);
                 if (parsed is Color color) _keyColors[pair.Key] = color;
             }
             foreach (string key in _keyGlows.Keys) UpdateKeyVisual(key);
@@ -719,7 +719,7 @@ public partial class MainWindow : Window
         add.Margin = new Thickness(0,12,0,0);
         add.Click += (_, _) => ShowGroupEditor(null);
         body.Children.Add(add);
-        ShowModal("ГРУППЫ", body, ("Закрыть", CloseModal));
+        ShowModal("ГРУППЫ", new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, MaxHeight = 340 }, ("Закрыть", CloseModal));
     }
 
     private void ShowGroupEditor(EditorGroup? existing)
@@ -803,7 +803,7 @@ public partial class MainWindow : Window
         create.Margin = new Thickness(0,12,0,0);
         create.Click += (_, _) => ShowProfileEditor(null, null);
         body.Children.Add(create);
-        ShowModal("ЛОКАЛЬНЫЕ ПРОФИЛИ", body, ("Закрыть", CloseModal));
+        ShowModal("ЛОКАЛЬНЫЕ ПРОФИЛИ", new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, MaxHeight = 340 }, ("Закрыть", CloseModal));
     }
 
     private void ShowProfileEditor(EditorProfileData? existing, string? oldPath)
