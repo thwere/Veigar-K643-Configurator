@@ -56,6 +56,11 @@ public partial class MainWindow : Window
     private Button? _profileButton;
     private Popup? _profilesPopup;
     private bool _strokeUndoPushed;
+    private bool _isGroupRemapping;
+    private EditorGroup? _remappingGroup;
+    private bool _isEyedropper;
+    private readonly List<Color> _recentColors = new();
+    private StackPanel? _recentColorsPanel;
     private StackPanel? _groupManagerContent;
     private TextBlock? _colorHintText;
     private Slider? _saturationSlider;
@@ -278,6 +283,9 @@ public partial class MainWindow : Window
         root.Children.Add(_colorPreview);
         _colorHexText = new TextBlock { Text = "#FF0000", Foreground = BrushFrom("#FF9299A7"), FontSize = 10, Margin = new Thickness(0,5,0,0), HorizontalAlignment = HorizontalAlignment.Center };
         root.Children.Add(_colorHexText);
+        Button pipette=CreatePanelButton("Пипетка");pipette.Height=28;pipette.Margin=new Thickness(0,8,0,0);pipette.Click+=(_,_)=>{_isEyedropper=true;ToolStatusText.Text="Пипетка: щёлкните по клавише с назначенным цветом.";};root.Children.Add(pipette);
+        root.Children.Add(new TextBlock{Text="ПОСЛЕДНИЕ ЦВЕТА",Foreground=BrushFrom("#FF9DA4B2"),FontSize=9,Margin=new Thickness(0,12,0,5)});
+        _recentColorsPanel=new StackPanel{Orientation=Orientation.Horizontal};root.Children.Add(_recentColorsPanel);
         _colorHintText = new TextBlock { Text = "Выберите оттенок и яркость на палитре. Насыщенность регулируется ползунком справа.", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,14,0,0) };
         root.Children.Add(_colorHintText);
         _groupManagerContent = new StackPanel { Visibility = Visibility.Collapsed };
@@ -345,7 +353,16 @@ public partial class MainWindow : Window
         Mouse.Capture(KeyHitboxCanvas, CaptureMode.Element);
 
         string? key = FindKeyAt(point);
-        if (_activeTool == EditorTool.Brush) PaintKey(key, _currentColor);
+        if (_isGroupRemapping && _remappingGroup is not null)
+        {
+            if (key is not null) { if (!_selectedKeys.Add(key)) _selectedKeys.Remove(key); RenderSelection(); ToolStatusText.Text = $"Переназначение «{_remappingGroup.Name}»: {_selectedKeys.Count} клавиш."; }
+        }
+        else if (_isEyedropper)
+        {
+            if (key is not null && _keyColors.TryGetValue(key, out Color sampled)) { SetCurrentColor(sampled); _isEyedropper=false; ToolStatusText.Text=$"Цвет взят с клавиши {key}."; }
+            else ToolStatusText.Text="На этой клавише нет назначенного цвета.";
+        }
+        else if (_activeTool == EditorTool.Brush) PaintKey(key, _currentColor);
         else if (_activeTool == EditorTool.Eraser) EraseKey(key);
         else if (_activeTool == EditorTool.Fill) ApplyFill(FindKeyAt(point));
         else
@@ -401,6 +418,7 @@ public partial class MainWindow : Window
     {
         if (!_isPointerDown) return;
         Point point = e.GetPosition(KeyHitboxCanvas);
+        if (_isGroupRemapping) { _isPointerDown=false; _lastPaintedKey=null; _strokeUndoPushed=false; Mouse.Capture(null); e.Handled=true; return; }
         if (_activeTool == EditorTool.Select)
         {
             if (_isMarquee)
@@ -450,6 +468,7 @@ public partial class MainWindow : Window
         if (!_keyColors.TryGetValue(key, out Color oldColor) || oldColor != color)
         {
             PushStrokeUndoSnapshot();
+            AddRecentColor(color);
             _keyColors[key] = color;
         }
         else return;
@@ -680,11 +699,31 @@ public partial class MainWindow : Window
     private void UpdateColorFromControls()
     {
         if (_saturationSlider is null) return;
-        _currentColor = HsvToColor(_selectedHue, _saturationSlider.Value, _selectedValue);
+        SetCurrentColor(HsvToColor(_selectedHue, _saturationSlider.Value, _selectedValue));
         if (_colorPreview is not null) _colorPreview.Background = new SolidColorBrush(_currentColor);
         if (_colorHexText is not null) _colorHexText.Text = $"#{_currentColor.R:X2}{_currentColor.G:X2}{_currentColor.B:X2}";
     }
 
+    private void SetCurrentColor(Color color)
+    {
+        _currentColor=color; _selectedHue=ColorToHue(color); _selectedValue=Math.Max(color.R,Math.Max(color.G,color.B))/255d;
+        if(_saturationSlider is not null)_saturationSlider.Value=ColorToSaturation(color);
+        if(_colorPreview is not null)_colorPreview.Background=new SolidColorBrush(color);
+        if(_colorHexText is not null)_colorHexText.Text=$"#{color.R:X2}{color.G:X2}{color.B:X2}";
+        AddRecentColor(color);
+    }
+    private static double ColorToHue(Color c)
+    {
+        double r=c.R/255d,g=c.G/255d,b=c.B/255d,max=Math.Max(r,Math.Max(g,b)),min=Math.Min(r,Math.Min(g,b)),d=max-min;
+        if(d==0)return 0; if(max==r)return 60*(((g-b)/d)%6); if(max==g)return 60*((b-r)/d+2); return 60*((r-g)/d+4);
+    }
+    private static double ColorToSaturation(Color c){double max=Math.Max(c.R,Math.Max(c.G,c.B))/255d,min=Math.Min(c.R,Math.Min(c.G,c.B))/255d;return max==0?0:(max-min)/max;}
+    private void AddRecentColor(Color c)
+    {
+        _recentColors.Remove(c);_recentColors.Insert(0,c);if(_recentColors.Count>8)_recentColors.RemoveAt(8);
+        if(_recentColorsPanel is null)return;_recentColorsPanel.Children.Clear();
+        foreach(Color recent in _recentColors){Button b=new(){Width=23,Height=23,Margin=new Thickness(0,0,5,0),Padding=new Thickness(0),Background=new SolidColorBrush(recent),BorderBrush=BrushFrom("#FF687080"),BorderThickness=new Thickness(1),ToolTip=$"#{recent.R:X2}{recent.G:X2}{recent.B:X2}"};b.Click+=(_,_)=>SetCurrentColor(recent);_recentColorsPanel.Children.Add(b);}
+    }
     private static Color HsvToColor(double hue, double saturation, double value)
     {
         hue = ((hue % 360) + 360) % 360;
@@ -814,6 +853,7 @@ public partial class MainWindow : Window
         {
             EditorProfileData? data = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (data is null) return;
+            _profileSaveTimer.Stop();
             _keyColors.Clear();
             foreach (var pair in data.KeyColors)
             {
@@ -824,6 +864,7 @@ public partial class MainWindow : Window
             _groups.Clear();
             foreach (EditorGroupData group in data.Groups)
                 _groups.Add(new EditorGroup { Name = group.Name, ColorHex = group.ColorHex, State = group.State, Keys = new HashSet<string>(group.Keys, StringComparer.Ordinal) });
+            _selectedKeys.Clear();
             _activeProfileName = data.Name;
             _activeProfileColor = data.ColorHex;
             RenderSelection();
@@ -854,11 +895,11 @@ public partial class MainWindow : Window
             row.Children.Add(new Ellipse { Width = 11, Height = 11, Fill = BrushFrom(group.ColorHex), VerticalAlignment = VerticalAlignment.Center });
             Button select = CreatePanelButton($"{group.Name} · {group.Keys.Count}");
             select.Height = 32; select.HorizontalContentAlignment = HorizontalAlignment.Left;
-            select.Click += (_, _) => { _selectedKeys.Clear(); _selectedKeys.UnionWith(group.Keys); RenderSelection(); ToolStatusText.Text = $"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш)."; };
+            select.Click += (_, _) => { _isGroupRemapping=false; _remappingGroup=null; _selectedKeys.Clear(); _selectedKeys.UnionWith(group.Keys); RenderSelection(); ToolStatusText.Text = $"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш)."; };
             Grid.SetColumn(select,1); row.Children.Add(select);
             StackPanel actions = new() { Orientation = Orientation.Horizontal };
             Button edit = CreatePanelButton("✎"); edit.Width = 30; edit.Margin = new Thickness(4,0,0,0); edit.ToolTip = "Настроить группу";
-            edit.Click += (_, _) => ShowGroupEditor(group);
+            edit.Click += (_, _) => ShowInlineGroupEditor(group);
             Button delete = CreatePanelButton("×"); delete.Width = 28; delete.Margin = new Thickness(3,0,0,0); delete.ToolTip = "Удалить группу";
             delete.Click += (_, _) =>
             {
@@ -917,6 +958,23 @@ public partial class MainWindow : Window
                 RenderSelection(); ScheduleProfileSave(); CloseModal(); ShowGroupsManager();
             }),
             ("Отмена", () => { CloseModal(); ShowGroupsManager(); }));
+    }
+
+    private void ShowInlineGroupEditor(EditorGroup group)
+    {
+        if(_groupManagerContent is null)return;
+        _groupManagerContent.Children.Clear();
+        _groupManagerContent.Children.Add(new TextBlock{Text=$"НАСТРОЙКИ: {group.Name}",Foreground=BrushFrom("#FFE3E5EA"),FontSize=10,Margin=new Thickness(0,8,0,8)});
+        TextBox name=new(){Text=group.Name,Height=30,Padding=new Thickness(7,4,7,4),Background=BrushFrom("#FF191B22"),Foreground=BrushFrom("#FFE3E5EA"),BorderBrush=BrushFrom("#FF454A55")};
+        ComboBox state=new(){Height=30,Margin=new Thickness(0,8,0,8),ItemsSource=new[]{"Статичный","Анимация","По сценарию"},SelectedItem=group.State};
+        string color=group.ColorHex; StackPanel swatches=BuildColorSwatches(c=>color=c,color);
+        _groupManagerContent.Children.Add(name);_groupManagerContent.Children.Add(new TextBlock{Text="Цвет",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,8,0,4)});_groupManagerContent.Children.Add(swatches);
+        _groupManagerContent.Children.Add(new TextBlock{Text="Состояние",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,8,0,4)});_groupManagerContent.Children.Add(state);
+        Button remap=CreatePanelButton("Переназначить клавиши");remap.Margin=new Thickness(0,8,0,0);
+        remap.Click+=(_,_)=>{_isGroupRemapping=true;_remappingGroup=group;_selectedKeys.Clear();_selectedKeys.UnionWith(group.Keys);RenderSelection();ToolStatusText.Text="Выделите клавиши на схеме, затем нажмите «Сохранить».";};_groupManagerContent.Children.Add(remap);
+        Button save=CreatePanelButton("Сохранить");save.Margin=new Thickness(0,8,0,0);
+        save.Click+=(_,_)=>{if(string.IsNullOrWhiteSpace(name.Text)){ToolStatusText.Text="Введите название группы.";return;}if(_isGroupRemapping&&_remappingGroup==group){if(_selectedKeys.Count==0){ToolStatusText.Text="Выберите хотя бы одну клавишу.";return;}group.Keys=new HashSet<string>(_selectedKeys,StringComparer.Ordinal);}PushUndoSnapshot();group.Name=name.Text.Trim();group.ColorHex=color;group.State=state.SelectedItem?.ToString()??"Статичный";_isGroupRemapping=false;_remappingGroup=null;RenderSelection();ScheduleProfileSave();ShowGroupsManager();};_groupManagerContent.Children.Add(save);
+        Button back=CreatePanelButton("Назад");back.Margin=new Thickness(0,5,0,0);back.Click+=(_,_)=>{_isGroupRemapping=false;_remappingGroup=null;ShowGroupsManager();};_groupManagerContent.Children.Add(back);
     }
 
     private StackPanel BuildColorSwatches(Action<string> choose, string selected)
@@ -1046,10 +1104,12 @@ public partial class MainWindow : Window
                 { ToolStatusText.Text = "Профиль с таким названием уже существует."; return; }
                 if (existing is null)
                 {
+                    _profileSaveTimer.Stop();
                     SaveCurrentProfile();
-                    _activeProfileName = profileName;
-                    _activeProfileColor = _dialogColor;
-                    SaveCurrentProfile();
+                    _keyColors.Clear(); _groups.Clear(); _selectedKeys.Clear();
+                    foreach(string key in _keyGlows.Keys) UpdateKeyVisual(key);
+                    _activeProfileName=profileName; _activeProfileColor=_dialogColor;
+                    _lastHardwareFrameSignature=null; RenderSelection(); ScheduleHardwareFrame(); SaveCurrentProfile();
                 }
                 else
                 {
