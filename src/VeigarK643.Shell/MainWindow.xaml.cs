@@ -155,6 +155,9 @@ public partial class MainWindow : Window
     {
         ToolbarHost.Children.Clear();
         _toolButtons.Clear();
+        Grid layout = new();
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         StackPanel tools = new()
         {
             Orientation = Orientation.Horizontal,
@@ -162,22 +165,47 @@ public partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(10, 0, 0, 0)
         };
-        AddToolButton(tools, "\uE2A2", "Кисть (B)", EditorTool.Brush);
-        AddToolButton(tools, "\uE792", "Заливка (G)", EditorTool.Fill);
-        AddToolButton(tools, "\uE8A7", "Выделение (V)", EditorTool.Select);
-        AddToolButton(tools, "\uE75C", "Ластик (E)", EditorTool.Eraser);
-        tools.Children.Add(new Border { Width = 1, Height = 24, Background = BrushFrom("#FF454A55"), Margin = new Thickness(8,0,8,0) });
-        _profileButton = CreateToolbarButton("\uE77B", "Профили", ShowProfilesManager);
-        tools.Children.Add(_profileButton);
-        tools.Children.Add(CreateToolbarButton("\uE902", "Группы", ShowGroupsManager));
-        ToolbarHost.Children.Add(tools);
+        AddToolButton(tools, "✎", "Кисть (B)", EditorTool.Brush);
+        AddToolButton(tools, "▰", "Заливка (G)", EditorTool.Fill);
+        AddToolButton(tools, "▧", "Выделение (V)", EditorTool.Select);
+        AddToolButton(tools, "⌫", "Ластик (E)", EditorTool.Eraser);
+        layout.Children.Add(tools);
+        StackPanel right = new()
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 0, 10, 0)
+        };
+        _profileButton = CreateToolbarButton("", "Профили", ShowProfilesManager);
+        _profileButton.Width = 180;
+        right.Children.Add(_profileButton);
+        Button groups = CreateToolbarButton("▦", "Группы клавиш", ShowGroupsManager);
+        groups.Content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children =
+            {
+                new TextBlock { Text = "▦", FontFamily = new FontFamily("Segoe UI Symbol"), FontSize = 15, Margin = new Thickness(0,0,7,0) },
+                new TextBlock { Text = "Группы клавиш", FontSize = 11, VerticalAlignment = VerticalAlignment.Center }
+            }
+        };
+        groups.Width = 142;
+        groups.Margin = new Thickness(6,0,0,0);
+        right.Children.Add(groups);
+        Grid.SetColumn(right, 1);
+        layout.Children.Add(right);
+        ToolbarHost.Children.Add(layout);
+        UpdateProfileButton();
     }
 
     private void AddToolButton(Panel host, string glyph, string tooltip, EditorTool tool)
     {
         Button button = new()
         {
-            Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe UI Symbol"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             Tag = tool, Width = 42, Height = 34, Margin = new Thickness(2,0,2,0),
             Padding = new Thickness(0), ToolTip = tooltip, Foreground = BrushFrom("#FFDCE0E8"),
             Background = BrushFrom("#FF2A2E38"), BorderBrush = BrushFrom("#FF3E4350"),
@@ -1041,7 +1069,7 @@ public partial class MainWindow : Window
         _toolsPanelIsOpen = isOpen;
         ToolsPanel.BeginAnimation(WidthProperty, new System.Windows.Media.Animation.DoubleAnimation
         {
-            To = _toolsPanelIsOpen ? 240 : 0,
+            To = _toolsPanelIsOpen ? 280 : 0,
             Duration = TimeSpan.FromMilliseconds(220),
             EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseInOut }
         });
