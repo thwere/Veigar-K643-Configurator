@@ -88,7 +88,7 @@ public partial class MainWindow : Window
         {
             _reconnectTimer.Stop();
             bool sent = await SendHardwareFrameAsync();
-            if (!sent && ++_reconnectAttempts < 5) _reconnectTimer.Start();
+            if (!sent && ++_reconnectAttempts < 10) _reconnectTimer.Start();
         };
     }
 
@@ -549,7 +549,12 @@ public partial class MainWindow : Window
     {
         Dictionary<string, Color> frame = new(_keyColors, StringComparer.Ordinal);
         try { await VeigarK643HidController.SendColorsAsync(frame); return true; }
-        catch (Exception ex) { Debug.WriteLine("Veigar K643 HID: " + ex.Message); return false; }
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Veigar K643 HID: " + ex.Message);
+            ToolStatusText.Text = "Не удалось применить подсветку: " + ex.Message;
+            return false;
+        }
     }
 
     private string? FindKeyAt(Point point)
