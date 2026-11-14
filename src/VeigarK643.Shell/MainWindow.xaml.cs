@@ -902,10 +902,12 @@ public partial class MainWindow : Window
                 StackPanel actions = new() { Orientation = Orientation.Horizontal };
                 Button load = CreatePanelButton("Открыть"); load.Width = 72;
                 load.Click += (_, _) => { SaveCurrentProfile(); LoadProfile(file); CloseModal(); };
-                Button edit = CreatePanelButton("Изменить"); edit.Width = 72; edit.Margin = new Thickness(5,0,0,0);
-                edit.Click += (_, _) => ShowProfileEditor(data, file);
-                Button delete = CreatePanelButton("×"); delete.Width = 32; delete.Margin = new Thickness(5,0,0,0);
-                delete.Click += (_, _) =>
+                Button more = CreatePanelButton("⋯"); more.Width = 34; more.Margin = new Thickness(5,0,0,0);
+                ContextMenu profileMenu = new();
+                MenuItem configure = new() { Header = "Настроить" };
+                configure.Click += (_, _) => ShowProfileEditor(data, file);
+                MenuItem remove = new() { Header = "Удалить" };
+                remove.Click += (_, _) =>
                 {
                     int profileCount = Directory.GetFiles(_profilesDirectory, "*.json").Length;
                     bool isActive = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
@@ -913,7 +915,10 @@ public partial class MainWindow : Window
                     ShowModal("ПОДТВЕРДИТЕ УДАЛЕНИЕ", new TextBlock { Text = $"Удалить профиль «{data.Name}»? Это действие нельзя отменить.", Foreground = BrushFrom("#FFE3E5EA"), TextWrapping = TextWrapping.Wrap },
                         ("Удалить", () => { File.Delete(file); CloseModal(); ShowProfilesManager(); }), ("Отмена", CloseModal));
                 };
-                actions.Children.Add(load); actions.Children.Add(edit); actions.Children.Add(delete);
+                profileMenu.Items.Add(configure); profileMenu.Items.Add(remove);
+                more.ContextMenu = profileMenu;
+                more.Click += (_, _) => { more.ContextMenu!.PlacementTarget = more; more.ContextMenu.IsOpen = true; };
+                actions.Children.Add(load); actions.Children.Add(more);
                 Grid.SetColumn(actions,2); row.Children.Add(actions);
                 body.Children.Add(row);
             }
