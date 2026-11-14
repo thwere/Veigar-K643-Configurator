@@ -11,7 +11,8 @@
         AllowsTransparency="False"
         Background="#FF191B22"
         SnapsToDevicePixels="True"
-        UseLayoutRounding="True">
+        UseLayoutRounding="True"
+        Focusable="True">
 
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="42"
@@ -193,12 +194,20 @@
                     VerticalAlignment="Center"
                     Background="Transparent"
                     BorderThickness="0">
-                <Image Source="/assets/branding/key.png"
-                       Width="704"
-                       Height="260.9"
-                       Stretch="Uniform"
-                       RenderOptions.BitmapScalingMode="HighQuality"
-                       SnapsToDevicePixels="True" />
+                <Viewbox Stretch="Uniform">
+                    <Grid Width="599" Height="222">
+                        <Image Source="/assets/branding/key.png"
+                               Width="599"
+                               Height="222"
+                               Stretch="Fill"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               SnapsToDevicePixels="True" />
+                        <Canvas x:Name="KeyOverlayCanvas"
+                                Width="599"
+                                Height="222"
+                                IsHitTestVisible="False" />
+                    </Grid>
+                </Viewbox>
             </Border>
         </Grid>
     </Grid>

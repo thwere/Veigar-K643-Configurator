@@ -2,9 +2,11 @@
 
 A minimal WPF shell for the Redragon Veigar K643 keyboard.
 
-## Current baseline: v0.0.1
+## Current development state: `main`
 
-This baseline intentionally contains only the application window and the keyboard artwork exported for the project. The keyboard is currently a visual reference; physical-key input, RGB control, HID communication and key interactivity are not part of this build.
+The app displays the keyboard artwork and highlights pressed keys while the application window is active. This preview uses normal WPF keyboard events: it does not capture input globally and does not use Raw Input. HID communication and RGB control are not implemented.
+
+The `v0.0.1` pre-release remains the original minimal shell build and does not include this key-press preview.
 
 The current application source is:
 
@@ -32,7 +34,7 @@ The GitHub Actions workflow builds and publishes the current `main` baseline as 
 
 ## Project status
 
-The repository is deliberately kept on the minimal shell baseline. Older experimental RGB Studio, HID, Raw Input, profile and lighting-layer implementations were removed from the current source tree so they cannot be confused with the active project.
+The repository is deliberately kept on the `VeigarK643.Shell` project. Older experimental RGB Studio, HID, Raw Input, profile and lighting-layer implementations remain excluded from the current source tree so they cannot be confused with the active project.
 
 ## License
 
