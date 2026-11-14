@@ -28,6 +28,9 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, Color> _keyColors = new(StringComparer.Ordinal);
     private readonly HashSet<string> _selectedKeys = new(StringComparer.Ordinal);
     private readonly List<EditorGroup> _groups = new();
+    private readonly Stack<EditorSnapshot> _undoHistory = new();
+    private readonly Stack<EditorSnapshot> _redoHistory = new();
+    private const int HistoryLimit = 250;
     private readonly List<Button> _toolButtons = new();
     private readonly string _profilesDirectory = IOPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "VeigarConfig", "Profiles");
     private string _activeProfileName = "Основной";
@@ -405,6 +408,7 @@ public partial class MainWindow : Window
     {
         if (key is null || key == _lastPaintedKey) return;
         _lastPaintedKey = key;
+        PushUndoSnapshot();
         _keyColors[key] = color;
         UpdateKeyVisual(key);
         ScheduleHardwareFrame();
@@ -415,6 +419,7 @@ public partial class MainWindow : Window
     {
         if (key is null || key == _lastPaintedKey) return;
         _lastPaintedKey = key;
+        PushUndoSnapshot();
         _keyColors.Remove(key);
         UpdateKeyVisual(key);
         ScheduleHardwareFrame();
@@ -449,6 +454,7 @@ public partial class MainWindow : Window
     private void ApplyFill()
     {
         IEnumerable<string> targets = _selectedKeys.Count > 0 ? _selectedKeys.ToArray() : _keyGlows.Keys.ToArray();
+        PushUndoSnapshot();
         foreach (string key in targets)
         {
             _keyColors[key] = _currentColor;
@@ -456,6 +462,52 @@ public partial class MainWindow : Window
         }
         ScheduleHardwareFrame();
         ScheduleProfileSave();
+    }
+
+    private void PushUndoSnapshot()
+    {
+        _undoHistory.Push(CaptureSnapshot());
+        if (_undoHistory.Count > HistoryLimit)
+        {
+            EditorSnapshot[] keep = _undoHistory.Take(HistoryLimit).Reverse().ToArray();
+            _undoHistory.Clear();
+            foreach (EditorSnapshot snapshot in keep) _undoHistory.Push(snapshot);
+        }
+        _redoHistory.Clear();
+    }
+
+    private EditorSnapshot CaptureSnapshot() => new()
+    {
+        KeyColors = new Dictionary<string, Color>(_keyColors, StringComparer.Ordinal),
+        Groups = _groups.Select(g => new EditorGroupData { Name = g.Name, ColorHex = g.ColorHex, State = g.State, Keys = g.Keys.ToList() }).ToList()
+    };
+
+    private void RestoreSnapshot(EditorSnapshot snapshot)
+    {
+        _keyColors.Clear();
+        foreach (var pair in snapshot.KeyColors) _keyColors[pair.Key] = pair.Value;
+        _groups.Clear();
+        foreach (EditorGroupData g in snapshot.Groups)
+            _groups.Add(new EditorGroup { Name = g.Name, ColorHex = g.ColorHex, State = g.State, Keys = new HashSet<string>(g.Keys, StringComparer.Ordinal) });
+        foreach (string key in _keyGlows.Keys) UpdateKeyVisual(key);
+        RenderSelection();
+        ScheduleHardwareFrame();
+        ScheduleProfileSave();
+        if (_groupManagerContent?.Visibility == Visibility.Visible) ShowGroupsManager();
+    }
+
+    private void Undo()
+    {
+        if (_undoHistory.Count == 0) return;
+        _redoHistory.Push(CaptureSnapshot());
+        RestoreSnapshot(_undoHistory.Pop());
+    }
+
+    private void Redo()
+    {
+        if (_redoHistory.Count == 0) return;
+        _undoHistory.Push(CaptureSnapshot());
+        RestoreSnapshot(_redoHistory.Pop());
     }
 
     private void ScheduleHardwareFrame()
@@ -582,6 +634,8 @@ public partial class MainWindow : Window
             return;
         }
         if (ModalOverlay.Visibility == Visibility.Visible) return;
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Z) { Undo(); e.Handled = true; return; }
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Y) { Redo(); e.Handled = true; return; }
         if (Keyboard.Modifiers == ModifierKeys.None)
         {
             if (e.Key == Key.B) SetActiveTool(EditorTool.Brush);
@@ -755,15 +809,25 @@ public partial class MainWindow : Window
         body.Children.Add(colors);
         body.Children.Add(new TextBlock { Text = "Состояние", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,8,0,5) });
         body.Children.Add(state);
-        body.Children.Add(new TextBlock { Text = existing is null ? $"В группу попадут выделенные клавиши: {_selectedKeys.Count}." : $"В группе клавиш: {existing.Keys.Count}.", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10 });
+        body.Children.Add(new TextBlock { Text = "Состав группы — отметьте клавиши, которые должны входить в неё:", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,10,0,5) });
+        ListBox membership = new() { Height = 150, Background = BrushFrom("#FF191B22"), Foreground = BrushFrom("#FFE3E5EA"), BorderBrush = BrushFrom("#FF454A55"), SelectionMode = SelectionMode.Extended };
+        foreach (string key in _keyGlows.Keys.OrderBy(k => k, StringComparer.Ordinal))
+        {
+            membership.Items.Add(key);
+            if (existing?.Keys.Contains(key) == true || (existing is null && _selectedKeys.Contains(key))) membership.SelectedItems.Add(key);
+        }
+        body.Children.Add(membership);
         ShowModal(existing is null ? "СОЗДАТЬ ГРУППУ" : "НАСТРОЙКА ГРУППЫ", body,
             (existing is null ? "Создать" : "Сохранить", () =>
             {
                 string groupName = name.Text.Trim();
                 if (groupName.Length == 0) { ToolStatusText.Text = "Введите название группы."; return; }
+                HashSet<string> memberKeys = membership.SelectedItems.Cast<string>().ToHashSet(StringComparer.Ordinal);
+                if (memberKeys.Count == 0) { ToolStatusText.Text = "В группе должна быть хотя бы одна клавиша."; return; }
+                PushUndoSnapshot();
                 if (existing is null)
-                    _groups.Add(new EditorGroup { Name = groupName, ColorHex = _dialogColor, State = state.SelectedItem?.ToString() ?? "Статичный", Keys = new HashSet<string>(_selectedKeys, StringComparer.Ordinal) });
-                else { existing.Name = groupName; existing.ColorHex = _dialogColor; existing.State = state.SelectedItem?.ToString() ?? "Статичный"; }
+                    _groups.Add(new EditorGroup { Name = groupName, ColorHex = _dialogColor, State = state.SelectedItem?.ToString() ?? "Статичный", Keys = memberKeys });
+                else { existing.Name = groupName; existing.ColorHex = _dialogColor; existing.State = state.SelectedItem?.ToString() ?? "Статичный"; existing.Keys = memberKeys; }
                 RenderSelection(); ScheduleProfileSave(); CloseModal(); ShowGroupsManager();
             }),
             ("Отмена", () => { CloseModal(); ShowGroupsManager(); }));
@@ -970,6 +1034,12 @@ public partial class MainWindow : Window
 internal sealed class KeyboardLayoutConfig { public List<KeyboardKeyConfig> Keys { get; set; } = new(); }
 internal sealed class KeyboardKeyConfig { public string Key { get; set; } = string.Empty; public List<KeyboardKeyArea> Areas { get; set; } = new(); }
 internal sealed class KeyboardKeyArea { public double X { get; set; } public double Y { get; set; } public double Width { get; set; } public double Height { get; set; } }
+
+internal sealed class EditorSnapshot
+{
+    public Dictionary<string, Color> KeyColors { get; set; } = new(StringComparer.Ordinal);
+    public List<EditorGroupData> Groups { get; set; } = new();
+}
 
 internal sealed class EditorGroup
 {
