@@ -10,24 +10,17 @@ on:
 
 jobs:
   build:
-    name: Build WPF solution
+    name: Build minimal WPF shell
     runs-on: windows-latest
 
     steps:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
 
       - name: Build Release
-        shell: cmd
-        run: msbuild VeigarConfigurator.sln /m /p:Configuration=Release /verbosity:minimal
-
-      - name: Upload portable prototype
-        uses: actions/upload-artifact@v4
-        with:
-          name: VeigarConfigurator-prototype
-          path: src/VeigarConfigurator.App/bin/Release/
-          if-no-files-found: error
-          retention-days: 7
+        run: dotnet build src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Release
