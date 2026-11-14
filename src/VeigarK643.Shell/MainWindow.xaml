@@ -98,16 +98,27 @@
                 </Border>
                 <Border x:Name="ToolsPanel" Grid.Column="1" Width="0" Background="#FF22252E" BorderBrush="#FF383C47" BorderThickness="1,0,0,0" ClipToBounds="True"><Grid x:Name="ToolsPanelContent" /></Border>
                 <Grid Grid.Column="2" Background="Transparent">
-                    <Border x:Name="ToolsPanelHandleBar" Width="25" HorizontalAlignment="Right" Background="#FF30343D" />
+                    <Border x:Name="ToolsPanelHandleBar" Width="25" HorizontalAlignment="Right" Background="#FF30343D">
+                        <Border.Style>
+                            <Style TargetType="{x:Type Border}">
+                                <Setter Property="Background" Value="#FF30343D" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type Grid}}}" Value="True">
+                                        <Setter Property="Background" Value="#FF383C45" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
                     <Button x:Name="ToolsPanelToggle" Width="34" Height="34" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0" Background="Transparent" Foreground="#FFADB2BC" BorderThickness="0" Cursor="Hand" Focusable="False" Click="ToolsPanelToggle_Click">
                         <Button.Template><ControlTemplate TargetType="{x:Type Button}">
                             <Border x:Name="ToggleCircle" Width="34" Height="34" CornerRadius="17" Background="#FF30343D" BorderBrush="#FF555B68" BorderThickness="1,0,0,0"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Foreground" Value="#FFC5CAD3" />
+                                    <Setter Property="Foreground" Value="#FFD0D3DA" />
                                     <Trigger.EnterActions><BeginStoryboard><Storyboard>
-                                        <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)" To="#FF3A3E47" Duration="0:0:0.18" />
-                                        <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)" To="#FF626875" Duration="0:0:0.18" />
+                                        <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)" To="#FF383C45" Duration="0:0:0.18" />
+                                        <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)" To="#FF5B616D" Duration="0:0:0.18" />
                                     </Storyboard></BeginStoryboard></Trigger.EnterActions>
                                     <Trigger.ExitActions><BeginStoryboard><Storyboard>
                                         <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)" To="#FF30343D" Duration="0:0:0.18" />
