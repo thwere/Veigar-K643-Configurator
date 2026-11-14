@@ -26,7 +26,14 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, List<Rect>> _keyBounds = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Color> _keyColors = new(StringComparer.Ordinal);
     private readonly HashSet<string> _selectedKeys = new(StringComparer.Ordinal);
-    private readonly List<HashSet<string>> _groups = new();
+    private readonly List<EditorGroup> _groups = new();
+    private readonly List<Button> _toolButtons = new();
+    private readonly string _profilesDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "VeigarConfig", "Profiles");
+    private string _activeProfileName = "Основной";
+    private string _activeProfileColor = "#FF6D8CFF";
+    private string _dialogColor = "#FF6D8CFF";
+    private IntPtr _deviceNotification = IntPtr.Zero;
+    private int _reconnectAttempts;
     private EditorTool _activeTool = EditorTool.Brush;
     private Color _currentColor = Colors.Red;
     private bool _toolsPanelIsOpen;
@@ -41,13 +48,12 @@ public partial class MainWindow : Window
     private Border? _colorPreview;
     private TextBlock? _colorHexText;
     private StackPanel? _colorControls;
-    private Button? _groupButton;
-    private Button? _fillButton;
-    private TextBlock? _toolHelpText;
-    private Slider? _brightnessSlider;
+    private Button? _profileButton;
     private Slider? _saturationSlider;
     private double _selectedHue;
     private double _selectedValue = 1;
+    private readonly DispatcherTimer _profileSaveTimer = new() { Interval = TimeSpan.FromMilliseconds(400) };
+    private readonly DispatcherTimer _reconnectTimer = new() { Interval = TimeSpan.FromMilliseconds(900) };
     private readonly DispatcherTimer _hardwareUpdateTimer = new() { Interval = TimeSpan.FromMilliseconds(45) };
 
     public MainWindow()
@@ -60,12 +66,23 @@ public partial class MainWindow : Window
         BuildToolbar();
         BuildToolsPanel();
         SetActiveTool(EditorTool.Brush);
-        SourceInitialized += (_, _) => DisableRoundedCorners();
+        SourceInitialized += MainWindow_SourceInitialized;
+        PreviewKeyDown += MainWindow_PreviewKeyDown;
+        Closed += (_, _) => { SaveCurrentProfile(); if (_deviceNotification != IntPtr.Zero) UnregisterDeviceNotification(_deviceNotification); };
         Deactivated += (_, _) => ReleasePointer();
+        InitializeProfiles();
+        UpdateProfileButton();
         _hardwareUpdateTimer.Tick += async (_, _) =>
         {
             _hardwareUpdateTimer.Stop();
             await SendHardwareFrameAsync();
+        };
+        _profileSaveTimer.Tick += (_, _) => { _profileSaveTimer.Stop(); SaveCurrentProfile(); };
+        _reconnectTimer.Tick += async (_, _) =>
+        {
+            _reconnectTimer.Stop();
+            bool sent = await SendHardwareFrameAsync();
+            if (!sent && ++_reconnectAttempts < 5) _reconnectTimer.Start();
         };
     }
 
@@ -131,6 +148,7 @@ public partial class MainWindow : Window
     private void BuildToolbar()
     {
         ToolbarHost.Children.Clear();
+        _toolButtons.Clear();
         StackPanel tools = new()
         {
             Orientation = Orientation.Horizontal,
@@ -138,102 +156,102 @@ public partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(10, 0, 0, 0)
         };
-        AddToolButton(tools, "✎", "Кисть", EditorTool.Brush);
-        AddToolButton(tools, "▧", "Заливка", EditorTool.Fill);
-        AddToolButton(tools, "□", "Выделение", EditorTool.Select);
-        AddToolButton(tools, "⌫", "Ластик", EditorTool.Eraser);
+        AddToolButton(tools, "\uE2A2", "Кисть (B)", EditorTool.Brush);
+        AddToolButton(tools, "\uE792", "Заливка (G)", EditorTool.Fill);
+        AddToolButton(tools, "\uE8A7", "Выделение (V)", EditorTool.Select);
+        AddToolButton(tools, "\uE75C", "Ластик (E)", EditorTool.Eraser);
+        tools.Children.Add(new Border { Width = 1, Height = 24, Background = BrushFrom("#FF454A55"), Margin = new Thickness(8,0,8,0) });
+        tools.Children.Add(CreateToolbarButton("\uE902", "Группы", ShowGroupsManager));
+        _profileButton = CreateToolbarButton("\uE77B", "Профили", ShowProfilesManager);
+        tools.Children.Add(_profileButton);
         ToolbarHost.Children.Add(tools);
     }
 
-    private void AddToolButton(Panel host, string glyph, string label, EditorTool tool)
+    private void AddToolButton(Panel host, string glyph, string tooltip, EditorTool tool)
     {
         Button button = new()
         {
-            Content = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Children =
-                {
-                    new TextBlock { Text = glyph, FontSize = 16, Margin = new Thickness(0,0,7,0) },
-                    new TextBlock { Text = label, FontSize = 12, VerticalAlignment = VerticalAlignment.Center }
-                }
-            },
-            Tag = tool, Height = 32, MinWidth = 84, Margin = new Thickness(2,0,2,0),
-            Padding = new Thickness(9,0,9,0), Foreground = new SolidColorBrush(Color.FromRgb(220,223,230)),
-            Background = new SolidColorBrush(Color.FromRgb(42,46,56)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(62,67,79)), BorderThickness = new Thickness(1),
-            Cursor = Cursors.Hand, Focusable = false
+            Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            Tag = tool, Width = 42, Height = 34, Margin = new Thickness(2,0,2,0),
+            Padding = new Thickness(0), ToolTip = tooltip, Foreground = BrushFrom("#FFDCE0E8"),
+            Background = BrushFrom("#FF2A2E38"), BorderBrush = BrushFrom("#FF3E4350"),
+            BorderThickness = new Thickness(1), Cursor = Cursors.Hand, Focusable = false
         };
         button.Click += (_, _) => SetActiveTool(tool);
+        _toolButtons.Add(button);
         host.Children.Add(button);
+    }
+
+    private Button CreateToolbarButton(string glyph, string tooltip, Action action)
+    {
+        Button button = new()
+        {
+            Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            Width = 42, Height = 34, Margin = new Thickness(2,0,2,0), ToolTip = tooltip,
+            Foreground = BrushFrom("#FFDCE0E8"), Background = BrushFrom("#FF2A2E38"),
+            BorderBrush = BrushFrom("#FF3E4350"), BorderThickness = new Thickness(1),
+            Cursor = Cursors.Hand, Focusable = false
+        };
+        button.Click += (_, _) => action();
+        return button;
     }
 
     private void BuildToolsPanel()
     {
         ToolsPanelContent.Children.Clear();
-        ScrollViewer scroll = new() { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-        StackPanel root = new() { Margin = new Thickness(14, 16, 14, 12) };
+        ScrollViewer scroll = new() { VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        StackPanel root = new() { Margin = new Thickness(16, 18, 16, 14) };
         scroll.Content = root;
         ToolsPanelContent.Children.Add(scroll);
+        root.Children.Add(new TextBlock { Text = "ПАРАМЕТРЫ", Foreground = BrushFrom("#FFE3E5EA"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,16) });
+        root.Children.Add(new TextBlock { Text = "ЦВЕТ КИСТИ", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, Margin = new Thickness(0,0,0,8) });
 
-        TextBlock title = new() { Text = "ПАРАМЕТРЫ ИНСТРУМЕНТА", Foreground = BrushFrom("#FFE3E5EA"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,14) };
-        root.Children.Add(title);
-        _toolHelpText = new TextBlock { Foreground = BrushFrom("#FFB8BEC9"), FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,0,0,12), Visibility = Visibility.Collapsed };
-        root.Children.Add(_toolHelpText);
-        _colorControls = new StackPanel();
-        root.Children.Add(_colorControls);
-        TextBlock colorLabel = new() { Text = "ЦВЕТ", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, Margin = new Thickness(0,0,0,8) };
-        _colorControls.Children.Add(colorLabel);
-
-        Grid fieldHost = new() { Width = 190, Height = 150, HorizontalAlignment = HorizontalAlignment.Left, ClipToBounds = false };
-        _colorField = new Canvas { Width = 190, Height = 150, Background = Brushes.Transparent };
-        Rectangle hue = new() { Width = 190, Height = 150, Fill = CreateHueBrush() };
-        Rectangle white = new() { Width = 190, Height = 150, Fill = new LinearGradientBrush(Colors.White, Color.FromArgb(0,255,255,255), 0) };
-        Rectangle black = new() { Width = 190, Height = 150, Fill = new LinearGradientBrush(Color.FromArgb(0,0,0,0), Colors.Black, 90) };
+        Grid paletteGrid = new() { Width = 230, Height = 178, HorizontalAlignment = HorizontalAlignment.Left };
+        paletteGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        paletteGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
+        _colorField = new Canvas { Width = 194, Height = 178, Background = Brushes.Transparent, ClipToBounds = true };
+        Rectangle hue = new() { Width = 194, Height = 178, Fill = CreateHueBrush(1) };
+        Rectangle black = new() { Width = 194, Height = 178, Fill = new LinearGradientBrush { StartPoint = new Point(0,0), EndPoint = new Point(0,1), GradientStops = new GradientStopCollection { new GradientStop(Color.FromArgb(0,0,0,0),0), new GradientStop(Colors.Black,1) } } };
         _colorField.Children.Add(hue);
-        _colorField.Children.Add(white);
         _colorField.Children.Add(black);
-        _colorThumb = new Ellipse { Width = 12, Height = 12, Stroke = Brushes.White, StrokeThickness = 2, Fill = Brushes.Transparent, IsHitTestVisible = false };
+        _colorThumb = new Ellipse { Width = 13, Height = 13, Stroke = Brushes.White, StrokeThickness = 2, Fill = Brushes.Transparent, IsHitTestVisible = false };
         _colorField.Children.Add(_colorThumb);
         _colorField.MouseLeftButtonDown += ColorField_MouseDown;
         _colorField.MouseMove += ColorField_MouseMove;
         _colorField.MouseLeftButtonUp += ColorField_MouseUp;
-        fieldHost.Children.Add(_colorField);
-        _colorControls.Children.Add(fieldHost);
-
-        StackPanel previewRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0,12,0,12), VerticalAlignment = VerticalAlignment.Center };
-        _colorPreview = new Border { Width = 32, Height = 32, CornerRadius = new CornerRadius(6), Background = new SolidColorBrush(_currentColor), BorderBrush = BrushFrom("#FF697080"), BorderThickness = new Thickness(1), Margin = new Thickness(0,0,10,0) };
-        previewRow.Children.Add(_colorPreview);
-        StackPanel previewText = new();
-        previewText.Children.Add(new TextBlock { Text = "Предпросмотр", Foreground = BrushFrom("#FFE0E3E9"), FontSize = 11 });
-         _colorHexText = new TextBlock { Text = "#FF0000", Foreground = BrushFrom("#FF9299A7"), FontSize = 10, Margin = new Thickness(0,3,0,0) };
-        previewText.Children.Add(_colorHexText);
-        previewRow.Children.Add(previewText);
-        _colorControls.Children.Add(previewRow);
-
-        AddSlider(_colorControls, "Яркость", out _brightnessSlider, 0, 1, 1);
-        AddSlider(_colorControls, "Насыщенность", out _saturationSlider, 0, 1, 1);
-        _brightnessSlider.ValueChanged += (_, _) => UpdateColorFromControls();
-        _saturationSlider.ValueChanged += (_, _) => UpdateColorFromControls();
-
-        Border separator = new() { Height = 1, Background = BrushFrom("#FF3A3F4A"), Margin = new Thickness(0,16,0,14) };
-        root.Children.Add(separator);
-        Button groupButton = CreatePanelButton("Создать группу из выделения");
-        groupButton.Click += (_, _) => CreateGroupFromSelection();
-        _groupButton = groupButton;
-        root.Children.Add(groupButton);
-        _fillButton = CreatePanelButton("Применить цвет");
-        _fillButton.Margin = new Thickness(0,8,0,0);
-        _fillButton.Click += (_, _) => ApplyFill();
-        root.Children.Add(_fillButton);
+        Grid.SetColumn(_colorField,0);
+        paletteGrid.Children.Add(_colorField);
+        _saturationSlider = new Slider
+        {
+            Minimum = 0, Maximum = 1, Value = 1, Orientation = Orientation.Vertical,
+            Width = 22, Height = 172, VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center, IsMoveToPointEnabled = false,
+            LargeChange = 0.08, SmallChange = 0.01, ToolTip = "Насыщенность"
+        };
+        _saturationSlider.ValueChanged += (_, _) => { UpdateHueBrush(); UpdateColorFromControls(); };
+        Grid.SetColumn(_saturationSlider,1);
+        paletteGrid.Children.Add(_saturationSlider);
+        root.Children.Add(paletteGrid);
+        _colorPreview = new Border { Height = 34, CornerRadius = new CornerRadius(5), Background = new SolidColorBrush(_currentColor), BorderBrush = BrushFrom("#FF697080"), BorderThickness = new Thickness(1), Margin = new Thickness(0,10,0,0) };
+        root.Children.Add(_colorPreview);
+        _colorHexText = new TextBlock { Text = "#FF0000", Foreground = BrushFrom("#FF9299A7"), FontSize = 10, Margin = new Thickness(0,5,0,0), HorizontalAlignment = HorizontalAlignment.Center };
+        root.Children.Add(_colorHexText);
+        root.Children.Add(new TextBlock { Text = "Выберите оттенок и яркость на палитре. Насыщенность регулируется ползунком справа.", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,14,0,0) });
         UpdateColorFromControls();
     }
 
-    private void AddSlider(Panel host, string label, out Slider slider, double min, double max, double value)
+    private static LinearGradientBrush CreateHueBrush(double saturation)
     {
-        host.Children.Add(new TextBlock { Text = label, Foreground = BrushFrom("#FFB8BEC9"), FontSize = 11, Margin = new Thickness(0,8,0,3) });
-        slider = new Slider { Minimum = min, Maximum = max, Value = value, Width = 190, HorizontalAlignment = HorizontalAlignment.Left };
-        host.Children.Add(slider);
+        LinearGradientBrush brush = new() { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
+        for (int i = 0; i <= 12; i++)
+            brush.GradientStops.Add(new GradientStop(HsvToColor(i * 30, saturation, 1), i / 12d));
+        return brush;
+    }
+
+    private void UpdateHueBrush()
+    {
+        if (_colorField is null || _saturationSlider is null || _colorField.Children.Count == 0) return;
+        if (_colorField.Children[0] is Rectangle hue) hue.Fill = CreateHueBrush(_saturationSlider.Value);
     }
 
     private Button CreatePanelButton(string text) => new()
@@ -262,23 +280,23 @@ public partial class MainWindow : Window
     private void SetActiveTool(EditorTool tool)
     {
         _activeTool = tool;
-        foreach (Button button in ((StackPanel)ToolbarHost.Children[0]).Children.OfType<Button>())
+        foreach (Button button in _toolButtons)
         {
             bool active = button.Tag is EditorTool candidate && candidate == tool;
             button.Background = BrushFrom(active ? "#FF515A6B" : "#FF2A2E38");
             button.BorderBrush = BrushFrom(active ? "#FF818B9F" : "#FF3E4350");
         }
-        if (_colorControls is not null)
-            _colorControls.Visibility = tool == EditorTool.Brush || tool == EditorTool.Fill ? Visibility.Visible : Visibility.Collapsed;
-        if (_groupButton is not null) _groupButton.Visibility = tool == EditorTool.Select ? Visibility.Visible : Visibility.Collapsed;
-        if (_fillButton is not null) _fillButton.Visibility = tool == EditorTool.Fill ? Visibility.Visible : Visibility.Collapsed;
-        if (_toolHelpText is not null)
+        bool colorTool = tool == EditorTool.Brush || tool == EditorTool.Fill;
+        if (_colorField?.Parent is Grid palette) palette.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
+        if (_colorPreview is not null) _colorPreview.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
+        if (_colorHexText is not null) _colorHexText.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
+        ToolStatusText.Text = tool switch
         {
-            _toolHelpText.Visibility = tool == EditorTool.Eraser || tool == EditorTool.Select ? Visibility.Visible : Visibility.Collapsed;
-            _toolHelpText.Text = tool == EditorTool.Eraser
-                ? "Проведите курсором по клавишам, чтобы убрать их подсветку."
-                : "Клик — выбрать. Shift — добавить или снять. Перетащите курсор — выделить рамкой.";
-        }
+            EditorTool.Brush => "Кисть: проведите по клавишам, чтобы назначить выбранный цвет.",
+            EditorTool.Fill => "Заливка: щёлкните по клавише, чтобы залить выделение или всю клавиатуру.",
+            EditorTool.Select => "Выделение: щелчок — выбрать; Shift — добавить/снять; перетаскивание — рамка; Esc — снять выделение.",
+            _ => "Ластик: проведите по клавишам, чтобы удалить их подсветку."
+        };
         if (!_toolsPanelIsOpen) SetToolsPanelOpen(true);
     }
 
