@@ -264,19 +264,6 @@ public partial class MainWindow : Window
 
     private static Brush BrushFrom(string color) => (Brush)new BrushConverter().ConvertFromString(color)!;
 
-    private static LinearGradientBrush CreateHueBrush()
-    {
-        LinearGradientBrush brush = new() { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
-        brush.GradientStops.Add(new GradientStop(Colors.Red, 0));
-        brush.GradientStops.Add(new GradientStop(Colors.Magenta, 0.17));
-        brush.GradientStops.Add(new GradientStop(Colors.Blue, 0.34));
-        brush.GradientStops.Add(new GradientStop(Colors.Cyan, 0.51));
-        brush.GradientStops.Add(new GradientStop(Colors.Lime, 0.68));
-        brush.GradientStops.Add(new GradientStop(Colors.Yellow, 0.84));
-        brush.GradientStops.Add(new GradientStop(Colors.Red, 1));
-        return brush;
-    }
-
     private void SetActiveTool(EditorTool tool)
     {
         _activeTool = tool;
@@ -386,7 +373,7 @@ public partial class MainWindow : Window
                 string? key = FindKeyAt(_dragStart);
                 if (key is not null && _shiftAtStart)
                 {
-                    HashSet<string>? group = _groups.FirstOrDefault(candidate => candidate.Contains(key));
+                    EditorGroup? group = _groups.FirstOrDefault(candidate => candidate.Keys.Contains(key));
                     IEnumerable<string> targets = group?.Keys ?? new HashSet<string>(new[] { key }, StringComparer.Ordinal);
                     bool remove = targets.All(_selectedKeys.Contains);
                     foreach (string target in targets)
