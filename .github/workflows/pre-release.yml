@@ -1,4 +1,4 @@
-name: Build portable pre-release # v0.0.3 release checkpoint
+name: Build portable pre-release
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   build-and-release:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref_type == 'tag' && github.event.created == true) || (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'chore(release): prepare v0.0.3'))
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.head_commit.message == 'chore(release): prepare v0.0.3') || (github.event_name == 'push' && github.ref_type == 'tag' && github.event.created == true)
     runs-on: windows-latest
     steps:
       - name: Validate version
