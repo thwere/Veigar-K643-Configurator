@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -52,6 +53,9 @@ public partial class MainWindow : Window
     private Border? _colorPreview;
     private TextBlock? _colorHexText;
     private Button? _profileButton;
+    private Popup? _profilesPopup;
+    private Popup? _profileActionsPopup;
+    private bool _strokeUndoPushed;
     private StackPanel? _groupManagerContent;
     private TextBlock? _colorHintText;
     private Slider? _saturationSlider;
@@ -177,8 +181,12 @@ public partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(0, 0, 10, 0)
         };
-        _profileButton = CreateToolbarButton("", "Профили", ShowProfilesManager);
-        _profileButton.Width = 180;
+        _profileButton = CreateToolbarButton("", "Профили", ToggleProfilesFlyout);
+        _profileButton.Width = 196;
+        _profileButton.Height = 34;
+        _profileButton.Background = BrushFrom("#FF2A2E38");
+        _profileButton.BorderBrush = BrushFrom("#FF515866");
+        _profileButton.Template = RoundedToolbarButtonTemplate(17);
         right.Children.Add(_profileButton);
         Button groups = CreateToolbarButton("▦", "Группы клавиш", ShowGroupsManager);
         groups.Content = new StackPanel
@@ -330,6 +338,7 @@ public partial class MainWindow : Window
     {
         Point point = e.GetPosition(KeyHitboxCanvas);
         _isPointerDown = true;
+        _strokeUndoPushed = false;
         _dragStart = point;
         _shiftAtStart = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
         _lastPaintedKey = null;
@@ -338,7 +347,7 @@ public partial class MainWindow : Window
         string? key = FindKeyAt(point);
         if (_activeTool == EditorTool.Brush) PaintKey(key, _currentColor);
         else if (_activeTool == EditorTool.Eraser) EraseKey(key);
-        else if (_activeTool == EditorTool.Fill) ApplyFill();
+        else if (_activeTool == EditorTool.Fill) ApplyFill(FindKeyAt(point));
         else
         {
             _isMarquee = false;
@@ -427,6 +436,7 @@ public partial class MainWindow : Window
         _isPointerDown = false;
         _isMarquee = false;
         _lastPaintedKey = null;
+        _strokeUndoPushed = false;
         if (_marquee is not null) SelectionOverlayCanvas.Children.Remove(_marquee);
         _marquee = null;
         Mouse.Capture(null);
@@ -437,8 +447,12 @@ public partial class MainWindow : Window
     {
         if (key is null || key == _lastPaintedKey) return;
         _lastPaintedKey = key;
-        PushUndoSnapshot();
-        _keyColors[key] = color;
+        if (!_keyColors.TryGetValue(key, out Color oldColor) || oldColor != color)
+        {
+            PushStrokeUndoSnapshot();
+            _keyColors[key] = color;
+        }
+        else return;
         UpdateKeyVisual(key);
         ScheduleHardwareFrame();
         ScheduleProfileSave();
@@ -448,7 +462,8 @@ public partial class MainWindow : Window
     {
         if (key is null || key == _lastPaintedKey) return;
         _lastPaintedKey = key;
-        PushUndoSnapshot();
+        if (!_keyColors.ContainsKey(key)) return;
+        PushStrokeUndoSnapshot();
         _keyColors.Remove(key);
         UpdateKeyVisual(key);
         ScheduleHardwareFrame();
@@ -480,17 +495,39 @@ public partial class MainWindow : Window
         return brush;
     }
 
-    private void ApplyFill()
+    private void ApplyFill(string? clickedKey)
     {
-        IEnumerable<string> targets = _selectedKeys.Count > 0 ? _selectedKeys.ToArray() : _keyGlows.Keys.ToArray();
+        HashSet<string> groupedKeys = _groups.SelectMany(group => group.Keys).ToHashSet(StringComparer.Ordinal);
+        EditorGroup? clickedGroup = clickedKey is null ? null : _groups.FirstOrDefault(group => group.Keys.Contains(clickedKey));
+        IEnumerable<string> targets;
+        if (clickedGroup is not null)
+            targets = clickedGroup.Keys;
+        else if (_selectedKeys.Count > 0 && clickedKey is not null && _selectedKeys.Contains(clickedKey))
+            targets = _selectedKeys;
+        else if (_selectedKeys.Count > 0)
+            targets = _keyGlows.Keys.Where(key => !_selectedKeys.Contains(key));
+        else if (clickedKey is not null)
+            targets = _keyGlows.Keys.Where(key => !groupedKeys.Contains(key));
+        else
+            targets = _keyGlows.Keys;
+
+        string[] targetArray = targets.Distinct(StringComparer.Ordinal).ToArray();
+        if (targetArray.Length == 0 || targetArray.All(key => _keyColors.TryGetValue(key, out Color existing) && existing == _currentColor)) return;
         PushUndoSnapshot();
-        foreach (string key in targets)
+        foreach (string key in targetArray)
         {
             _keyColors[key] = _currentColor;
             UpdateKeyVisual(key);
         }
         ScheduleHardwareFrame();
         ScheduleProfileSave();
+    }
+
+    private void PushStrokeUndoSnapshot()
+    {
+        if (_strokeUndoPushed) return;
+        PushUndoSnapshot();
+        _strokeUndoPushed = true;
     }
 
     private void PushUndoSnapshot()
@@ -1021,7 +1058,7 @@ public partial class MainWindow : Window
             content.Children.Add(new TextBlock { Text = "  ⋯", Foreground = BrushFrom("#FFB8BEC9"), VerticalAlignment = VerticalAlignment.Center });
             _profileButton.Content = content;
             _profileButton.ToolTip = "Профили и действия";
-            _profileButton.Width = 180;
+            _profileButton.Width = 196;
         }
     }
 
