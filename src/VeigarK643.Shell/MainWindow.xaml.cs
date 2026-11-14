@@ -12,6 +12,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace VeigarK643.Shell;
 
@@ -19,8 +20,6 @@ public partial class MainWindow : Window
 {
     private const int DwmwaWindowCornerPreference = 33;
     private const int DwmwcpDoNotRound = 1;
-    private const double LayoutWidth = 599;
-    private const double LayoutHeight = 222;
 
     private enum EditorTool { Brush, Fill, Select, Eraser }
     private readonly Dictionary<string, List<Border>> _keyGlows = new(StringComparer.Ordinal);
@@ -28,7 +27,6 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, Color> _keyColors = new(StringComparer.Ordinal);
     private readonly HashSet<string> _selectedKeys = new(StringComparer.Ordinal);
     private readonly List<HashSet<string>> _groups = new();
-    private readonly Dictionary<string, Color> _groupColors = new(StringComparer.Ordinal);
     private EditorTool _activeTool = EditorTool.Brush;
     private Color _currentColor = Colors.Red;
     private bool _toolsPanelIsOpen;
@@ -36,7 +34,6 @@ public partial class MainWindow : Window
     private bool _isMarquee;
     private bool _shiftAtStart;
     private Point _dragStart;
-    private HashSet<string> _selectionAtStart = new(StringComparer.Ordinal);
     private string? _lastPaintedKey;
     private Rectangle? _marquee;
     private Canvas? _colorField;
@@ -50,8 +47,7 @@ public partial class MainWindow : Window
     private Slider? _saturationSlider;
     private double _selectedHue;
     private double _selectedValue = 1;
-    private double _selectedSaturation = 1;
-    private bool _updatingColorControls;
+    private readonly DispatcherTimer _hardwareUpdateTimer = new() { Interval = TimeSpan.FromMilliseconds(45) };
 
     public MainWindow()
     {
@@ -65,7 +61,12 @@ public partial class MainWindow : Window
         SetActiveTool(EditorTool.Brush);
         SourceInitialized += (_, _) => DisableRoundedCorners();
         Deactivated += (_, _) => ReleasePointer();
-        _ = SendHardwareFrameAsync();
+        _hardwareUpdateTimer.Tick += async (_, _) =>
+        {
+            _hardwareUpdateTimer.Stop();
+            await SendHardwareFrameAsync();
+        };
+        ScheduleHardwareFrame();
     }
 
     private void CreateKeyVisuals()
@@ -245,7 +246,7 @@ public partial class MainWindow : Window
 
     private static LinearGradientBrush CreateHueBrush()
     {
-        LinearGradientBrush brush = new(90);
+        LinearGradientBrush brush = new(0);
         brush.GradientStops.Add(new GradientStop(Colors.Red, 0));
         brush.GradientStops.Add(new GradientStop(Colors.Magenta, 0.17));
         brush.GradientStops.Add(new GradientStop(Colors.Blue, 0.34));
@@ -282,7 +283,6 @@ public partial class MainWindow : Window
         _isPointerDown = true;
         _dragStart = point;
         _shiftAtStart = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
-        _selectionAtStart = new HashSet<string>(_selectedKeys, StringComparer.Ordinal);
         _lastPaintedKey = null;
         Mouse.Capture(KeyHitboxCanvas, CaptureMode.Element);
 
@@ -293,10 +293,10 @@ public partial class MainWindow : Window
         else
         {
             _isMarquee = false;
-            if (key is not null && !_shiftAtStart)
+            if (!_shiftAtStart)
             {
                 _selectedKeys.Clear();
-                _selectedKeys.Add(key);
+                if (key is not null) _selectedKeys.Add(key);
                 RenderSelection();
             }
         }
@@ -376,7 +376,7 @@ public partial class MainWindow : Window
         _lastPaintedKey = key;
         _keyColors[key] = color;
         UpdateKeyVisual(key);
-        _ = SendHardwareFrameAsync();
+        ScheduleHardwareFrame();
     }
 
     private void EraseKey(string? key)
@@ -422,6 +422,12 @@ public partial class MainWindow : Window
             UpdateKeyVisual(key);
         }
         _ = SendHardwareFrameAsync();
+    }
+
+    private void ScheduleHardwareFrame()
+    {
+        _hardwareUpdateTimer.Stop();
+        _hardwareUpdateTimer.Start();
     }
 
     private async Task SendHardwareFrameAsync()
@@ -513,10 +519,9 @@ public partial class MainWindow : Window
 
     private void UpdateColorFromControls()
     {
-        if (_updatingColorControls || _brightnessSlider is null || _saturationSlider is null) return;
-        _selectedSaturation = _saturationSlider.Value;
+        if (_brightnessSlider is null || _saturationSlider is null) return;
         double value = _selectedValue * _brightnessSlider.Value;
-        _currentColor = HsvToColor(_selectedHue, _selectedSaturation, value);
+        _currentColor = HsvToColor(_selectedHue, _saturationSlider.Value, value);
         if (_colorPreview is not null) _colorPreview.Background = new SolidColorBrush(_currentColor);
         if (_colorHexText is not null) _colorHexText.Text = $"#{_currentColor.R:X2}{_currentColor.G:X2}{_currentColor.B:X2}";
     }
