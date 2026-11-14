@@ -180,23 +180,78 @@
         </Border>
 
         <Grid Grid.Row="1" Background="#FF191B22">
-            <Border Width="704"
-                    Height="260.9"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Background="Transparent"
-                    BorderThickness="0">
-                <Viewbox Stretch="Uniform">
-                    <Grid Width="599" Height="222">
-                        <Canvas x:Name="KeyGlowCanvas" Width="599" Height="222" IsHitTestVisible="False" />
-                        <Image Source="/assets/branding/key.png"
-                               Width="599" Height="222" Stretch="Fill"
-                               RenderOptions.BitmapScalingMode="HighQuality"
-                               SnapsToDevicePixels="True" />
-                        <Canvas x:Name="KeyHitboxCanvas" Width="599" Height="222" Background="Transparent" />
-                    </Grid>
-                </Viewbox>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Persistent toolbar host; tools will be added in later iterations. -->
+            <Border Grid.Row="0"
+                    Background="#FF20232B"
+                    BorderBrush="#FF353944"
+                    BorderThickness="0,0,0,1">
+                <Grid x:Name="ToolbarHost" />
             </Border>
+
+            <Grid Grid.Row="1" ClipToBounds="True">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="32" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Height="260.9"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0">
+                    <Viewbox Stretch="Uniform">
+                        <Grid Width="599" Height="222">
+                            <Canvas x:Name="KeyGlowCanvas" Width="599" Height="222" IsHitTestVisible="False" />
+                            <Image Source="/assets/branding/key.png"
+                                   Width="599" Height="222" Stretch="Fill"
+                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                   SnapsToDevicePixels="True" />
+                            <Canvas x:Name="KeyHitboxCanvas" Width="599" Height="222" Background="Transparent" />
+                        </Grid>
+                    </Viewbox>
+                </Border>
+
+                <!-- Empty drawer host. Its width is animated so the keyboard workspace
+                     gives it room instead of allowing the drawer to cover the keyboard. -->
+                <Border x:Name="ToolsPanel"
+                        Grid.Column="1"
+                        Width="0"
+                        Background="#FF22252E"
+                        BorderBrush="#FF383C47"
+                        BorderThickness="1,0,0,0"
+                        ClipToBounds="True">
+                    <Grid x:Name="ToolsPanelContent" />
+                </Border>
+
+                <Button x:Name="ToolsPanelToggle"
+                        Grid.Column="2"
+                        Width="32"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Padding="0"
+                        Background="#FF242730"
+                        Foreground="#FFE3E5EA"
+                        BorderBrush="#FF3A3D47"
+                        BorderThickness="1,0,0,0"
+                        Cursor="Hand"
+                        Focusable="False"
+                        Click="ToolsPanelToggle_Click"
+                        ToolTip="Open tools panel">
+                    <TextBlock x:Name="ToolsPanelToggleGlyph"
+                               Text="&#xE76C;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Button>
+            </Grid>
         </Grid>
     </Grid>
 </Window>
