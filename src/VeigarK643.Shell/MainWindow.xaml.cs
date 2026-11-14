@@ -567,10 +567,10 @@ public partial class MainWindow : Window
 
     private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && ModalOverlay.Visibility != Visibility.Visible)
+        if (e.Key == Key.Escape)
         {
-            _selectedKeys.Clear();
-            RenderSelection();
+            if (ModalOverlay.Visibility == Visibility.Visible) CloseModal();
+            else { _selectedKeys.Clear(); RenderSelection(); }
             e.Handled = true;
             return;
         }
@@ -769,6 +769,7 @@ public partial class MainWindow : Window
 
     private void ShowProfilesManager()
     {
+        SaveCurrentProfile();
         StackPanel body = new() { Margin = new Thickness(0,8,0,0) };
         body.Children.Add(new TextBlock { Text = $"Активный профиль: {_activeProfileName}", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,0,0,10) });
         string[] files = Directory.Exists(_profilesDirectory) ? Directory.GetFiles(_profilesDirectory, "*.json") : Array.Empty<string>();
@@ -826,16 +827,29 @@ public partial class MainWindow : Window
                 { ToolStatusText.Text = "Профиль с таким названием уже существует."; return; }
                 if (existing is null)
                 {
+                    SaveCurrentProfile();
                     _activeProfileName = profileName;
                     _activeProfileColor = _dialogColor;
+                    SaveCurrentProfile();
                 }
                 else
                 {
+                    bool editingActive = oldPath is not null && string.Equals(IOPath.GetFullPath(oldPath), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
+                    existing.Name = profileName;
+                    existing.ColorHex = _dialogColor;
                     if (oldPath is not null && !string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase) && File.Exists(oldPath)) File.Delete(oldPath);
-                    _activeProfileName = profileName;
-                    _activeProfileColor = _dialogColor;
+                    if (editingActive)
+                    {
+                        _activeProfileName = profileName;
+                        _activeProfileColor = _dialogColor;
+                        SaveCurrentProfile();
+                    }
+                    else
+                    {
+                        File.WriteAllText(newPath, JsonSerializer.Serialize(existing, new JsonSerializerOptions { WriteIndented = true }));
+                    }
                 }
-                SaveCurrentProfile(); UpdateProfileButton(); CloseModal();
+                UpdateProfileButton(); CloseModal();
             }));
     }
 
