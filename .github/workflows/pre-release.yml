@@ -67,7 +67,7 @@ jobs:
         run: |
           $tag = $env:RELEASE_VERSION
           $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
-          $notes = "Veigar K643 Configurator v0.0.3. Adds three-layer keyboard visualization: RGB-spectrum key glow, keyboard artwork, and enlarged centered mouse hitboxes. Pressing a key in the app lights it while held. Physical keyboard event highlighting has been removed. Hardware HID communication and direct keyboard RGB control are not implemented yet."
+          $notes = "Veigar K643 Configurator v0.0.3. Hides mouse hitboxes, fixes the window size, and adds HID Feature Report RGB feedback for virtual key presses using the measured 126-slot LED map. Physical keyboard event highlighting remains disabled."
 
           $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) {
