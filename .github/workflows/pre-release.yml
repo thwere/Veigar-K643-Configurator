@@ -1,4 +1,4 @@
-name: Build portable pre-release
+name: Build portable pre-release # v0.0.3
 
 on:
   workflow_dispatch:
