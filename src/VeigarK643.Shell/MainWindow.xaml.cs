@@ -49,6 +49,8 @@ public partial class MainWindow : Window
     private Border? _colorPreview;
     private TextBlock? _colorHexText;
     private Button? _profileButton;
+    private StackPanel? _groupManagerContent;
+    private TextBlock? _colorHintText;
     private Slider? _saturationSlider;
     private double _selectedHue;
     private double _selectedValue = 1;
@@ -236,7 +238,10 @@ public partial class MainWindow : Window
         root.Children.Add(_colorPreview);
         _colorHexText = new TextBlock { Text = "#FF0000", Foreground = BrushFrom("#FF9299A7"), FontSize = 10, Margin = new Thickness(0,5,0,0), HorizontalAlignment = HorizontalAlignment.Center };
         root.Children.Add(_colorHexText);
-        root.Children.Add(new TextBlock { Text = "Выберите оттенок и яркость на палитре. Насыщенность регулируется ползунком справа.", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,14,0,0) });
+        _colorHintText = new TextBlock { Text = "Выберите оттенок и яркость на палитре. Насыщенность регулируется ползунком справа.", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,14,0,0) };
+        root.Children.Add(_colorHintText);
+        _groupManagerContent = new StackPanel { Visibility = Visibility.Collapsed };
+        root.Children.Add(_groupManagerContent);
         UpdateColorFromControls();
     }
 
@@ -277,6 +282,8 @@ public partial class MainWindow : Window
         if (_colorField?.Parent is Grid palette) palette.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
         if (_colorPreview is not null) _colorPreview.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
         if (_colorHexText is not null) _colorHexText.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
+        if (_colorHintText is not null) _colorHintText.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
+        if (_groupManagerContent is not null) _groupManagerContent.Visibility = Visibility.Collapsed;
         ToolStatusText.Text = tool switch
         {
             EditorTool.Brush => "Кисть: проведите по клавишам, чтобы назначить выбранный цвет.",
@@ -574,6 +581,7 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        if (ModalOverlay.Visibility == Visibility.Visible) return;
         if (Keyboard.Modifiers == ModifierKeys.None)
         {
             if (e.Key == Key.B) SetActiveTool(EditorTool.Brush);
@@ -692,34 +700,41 @@ public partial class MainWindow : Window
 
     private void ShowGroupsManager()
     {
-        StackPanel body = new() { Margin = new Thickness(0,8,0,0) };
+        if (_groupManagerContent is null) return;
+        if (_colorField?.Parent is Grid palette) palette.Visibility = Visibility.Collapsed;
+        if (_colorPreview is not null) _colorPreview.Visibility = Visibility.Collapsed;
+        if (_colorHexText is not null) _colorHexText.Visibility = Visibility.Collapsed;
+        if (_colorHintText is not null) _colorHintText.Visibility = Visibility.Collapsed;
+        _groupManagerContent.Visibility = Visibility.Visible;
+        _groupManagerContent.Children.Clear();
+        _groupManagerContent.Children.Add(new TextBlock { Text = "ГРУППЫ КЛАВИШ", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, Margin = new Thickness(0,12,0,10) });
         if (_groups.Count == 0)
-            body.Children.Add(new TextBlock { Text = "Групп пока нет. Выделите клавиши и создайте группу.", Foreground = BrushFrom("#FF9DA4B2"), Margin = new Thickness(0,0,0,12) });
+            _groupManagerContent.Children.Add(new TextBlock { Text = "Групп пока нет. Выделите клавиши и нажмите «Новая группа».", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,0,0,10) });
         foreach (EditorGroup group in _groups.ToArray())
         {
-            Grid row = new() { Margin = new Thickness(0,3,0,3) };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+            Grid row = new() { Margin = new Thickness(0,4,0,4) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(18) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            row.Children.Add(new Ellipse { Width = 12, Height = 12, Fill = BrushFrom(group.ColorHex), VerticalAlignment = VerticalAlignment.Center });
-            Button select = CreatePanelButton($"{group.Name} · {group.Keys.Count} клавиш · {group.State}");
-            select.HorizontalContentAlignment = HorizontalAlignment.Left;
-            select.Click += (_, _) => { _selectedKeys.Clear(); _selectedKeys.UnionWith(group.Keys); RenderSelection(); CloseModal(); };
+            row.Children.Add(new Ellipse { Width = 11, Height = 11, Fill = BrushFrom(group.ColorHex), VerticalAlignment = VerticalAlignment.Center });
+            Button select = CreatePanelButton($"{group.Name} · {group.Keys.Count}");
+            select.Height = 32; select.HorizontalContentAlignment = HorizontalAlignment.Left;
+            select.Click += (_, _) => { _selectedKeys.Clear(); _selectedKeys.UnionWith(group.Keys); RenderSelection(); SetActiveTool(EditorTool.Select); };
             Grid.SetColumn(select,1); row.Children.Add(select);
             StackPanel actions = new() { Orientation = Orientation.Horizontal };
-            Button edit = CreatePanelButton("Изменить"); edit.Width = 72; edit.Margin = new Thickness(6,0,0,0);
+            Button edit = CreatePanelButton("✎"); edit.Width = 30; edit.Margin = new Thickness(4,0,0,0); edit.ToolTip = "Настроить группу";
             edit.Click += (_, _) => ShowGroupEditor(group);
-            Button delete = CreatePanelButton("×"); delete.Width = 32; delete.Margin = new Thickness(4,0,0,0);
+            Button delete = CreatePanelButton("×"); delete.Width = 28; delete.Margin = new Thickness(3,0,0,0); delete.ToolTip = "Удалить группу";
             delete.Click += (_, _) => { _groups.Remove(group); RenderSelection(); ScheduleProfileSave(); ShowGroupsManager(); };
             actions.Children.Add(edit); actions.Children.Add(delete);
             Grid.SetColumn(actions,2); row.Children.Add(actions);
-            body.Children.Add(row);
+            _groupManagerContent.Children.Add(row);
         }
         Button add = CreatePanelButton("＋  Новая группа");
         add.Margin = new Thickness(0,12,0,0);
         add.Click += (_, _) => ShowGroupEditor(null);
-        body.Children.Add(add);
-        ShowModal("ГРУППЫ", new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, MaxHeight = 340 }, ("Закрыть", CloseModal));
+        _groupManagerContent.Children.Add(add);
+        if (!_toolsPanelIsOpen) SetToolsPanelOpen(true);
     }
 
     private void ShowGroupEditor(EditorGroup? existing)
@@ -749,7 +764,7 @@ public partial class MainWindow : Window
                 if (existing is null)
                     _groups.Add(new EditorGroup { Name = groupName, ColorHex = _dialogColor, State = state.SelectedItem?.ToString() ?? "Статичный", Keys = new HashSet<string>(_selectedKeys, StringComparer.Ordinal) });
                 else { existing.Name = groupName; existing.ColorHex = _dialogColor; existing.State = state.SelectedItem?.ToString() ?? "Статичный"; }
-                RenderSelection(); ScheduleProfileSave(); CloseModal();
+                RenderSelection(); ScheduleProfileSave(); CloseModal(); ShowGroupsManager();
             }),
             ("Отмена", ShowGroupsManager));
     }
