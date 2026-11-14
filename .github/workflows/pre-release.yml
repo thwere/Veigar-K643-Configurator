@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   build-and-release:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && ((github.ref_type == 'tag' && github.event.created == true) || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'chore(release): prepare v0.0.3')))
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref_type == 'tag' && github.event.created == true) || (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'chore(release): prepare v0.0.3'))
     runs-on: windows-latest
     steps:
       - name: Validate version
