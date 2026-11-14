@@ -4,9 +4,9 @@ A minimal WPF shell for the Redragon Veigar K643 keyboard.
 
 ## Current development state: `main`
 
-The app displays a three-layer keyboard: an RGB-spectrum glow layer, the keyboard artwork, and enlarged centered mouse hitboxes. Pressing a key with the mouse lights its glow while held. Physical keyboard input is not used for highlighting. HID communication and direct RGB control of the physical keyboard are not implemented.
+The app displays a three-layer keyboard: an RGB-spectrum glow layer, the keyboard artwork, and invisible mouse hitboxes. Pressing a key with the mouse lights its glow while held. Physical keyboard input is not used for highlighting. HID communication and direct RGB control of the physical keyboard are not implemented.
 
-The `v0.0.2` pre-release introduces mouse-driven on-screen key presses and the three-layer keyboard visual.
+The `v0.0.3` checkpoint hides hitboxes and uses a fixed-size, non-resizable window.
 
 The current application source is:
 

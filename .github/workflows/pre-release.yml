@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Pre-release version (for example v0.0.2)"
+        description: "Pre-release version (for example v0.0.3)"
         required: true
-        default: "v0.0.2"
+        default: "v0.0.3"
         type: string
   push:
     branches:
@@ -21,7 +21,7 @@ jobs:
   build-and-release:
     if: >-
       github.event_name != 'push' ||
-      (github.ref_type == 'branch' && github.event.head_commit.message == 'chore(release): prepare v0.0.2') ||
+      (github.ref_type == 'branch' && github.event.head_commit.message == 'chore(release): prepare v0.0.3') ||
       (github.ref_type == 'tag' && github.event.created == true)
     runs-on: windows-latest
     steps:
@@ -31,11 +31,11 @@ jobs:
           if ($env:GITHUB_REF_TYPE -eq "tag") {
             $version = $env:GITHUB_REF_NAME
           } elseif ($env:GITHUB_EVENT_NAME -eq "push") {
-            $version = "v0.0.2"
+            $version = "v0.0.3"
           } else {
             $version = "${{ inputs.version }}"
           }
-          if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "Version must use vMAJOR.MINOR.PATCH format, for example v0.0.2" }
+          if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "Version must use vMAJOR.MINOR.PATCH format, for example v0.0.3" }
           "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
 
       - name: Checkout release source
@@ -70,7 +70,7 @@ jobs:
         run: |
           $tag = $env:RELEASE_VERSION
           $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
-          $notes = "Veigar K643 Configurator v0.0.2. Adds three-layer keyboard visualization: RGB-spectrum key glow, keyboard artwork, and enlarged centered mouse hitboxes. Pressing a key in the app lights it while held. Physical keyboard event highlighting has been removed. Hardware HID communication and direct keyboard RGB control are not implemented yet."
+          $notes = "Veigar K643 Configurator v0.0.3. Adds three-layer keyboard visualization: RGB-spectrum key glow, keyboard artwork, and enlarged centered mouse hitboxes. Pressing a key in the app lights it while held. Physical keyboard event highlighting has been removed. Hardware HID communication and direct keyboard RGB control are not implemented yet."
 
           $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) {
