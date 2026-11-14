@@ -35,67 +35,30 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonBackground"
-                                Width="38"
-                                Height="30"
-                                Background="Transparent"
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
+                        <Border x:Name="ButtonBackground" Width="38" Height="30" Background="Transparent" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBackground"
-                                        Property="Background"
-                                        Value="#FF353942" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBackground"
-                                        Property="Background"
-                                        Value="#FF454A54" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.45" />
-                            </Trigger>
-                            <DataTrigger Binding="{Binding IsActive, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
-                                         Value="False">
-                                <Setter Property="Opacity" Value="0.65" />
-                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBackground" Property="Background" Value="#FF353942" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBackground" Property="Background" Value="#FF454A54" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45" /></Trigger>
+                            <DataTrigger Binding="{Binding IsActive, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" Value="False"><Setter Property="Opacity" Value="0.65" /></DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <Style x:Key="CloseCaptionButtonStyle"
-               TargetType="{x:Type Button}"
-               BasedOn="{StaticResource CaptionButtonStyle}">
+        <Style x:Key="CloseCaptionButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource CaptionButtonStyle}">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonBackground"
-                                Width="38"
-                                Height="30"
-                                Background="Transparent"
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
+                        <Border x:Name="ButtonBackground" Width="38" Height="30" Background="Transparent" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBackground"
-                                        Property="Background"
-                                        Value="#FFC42B1C" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBackground"
-                                        Property="Background"
-                                        Value="#FF9D2117" />
-                            </Trigger>
-                            <DataTrigger Binding="{Binding IsActive, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
-                                         Value="False">
-                                <Setter Property="Opacity" Value="0.65" />
-                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBackground" Property="Background" Value="#FFC42B1C" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBackground" Property="Background" Value="#FF9D2117" /></Trigger>
+                            <DataTrigger Binding="{Binding IsActive, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" Value="False"><Setter Property="Opacity" Value="0.65" /></DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -104,207 +67,57 @@
     </Window.Resources>
 
     <Grid Background="#FF191B22">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="42" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-
-        <Border Grid.Row="0"
-                Background="#FF242730"
-                BorderBrush="#FF3A3D47"
-                BorderThickness="0,0,0,1">
+        <Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <Border Grid.Row="0" Background="#FF242730" BorderBrush="#FF3A3D47" BorderThickness="0,0,0,1">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="140" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="98" />
-                </Grid.ColumnDefinitions>
-
-                <!-- Reserved PNG slot; replace the placeholder when the app icon is ready. -->
-                <Grid Grid.Column="0"
-                      Width="28"
-                      Height="28"
-                      HorizontalAlignment="Left"
-                      VerticalAlignment="Center"
-                      Margin="12,0,0,0">
-                    <Border Background="#FF353944"
-                            BorderBrush="#FF484D59"
-                            BorderThickness="1"
-                            CornerRadius="6">
-                        <TextBlock Text="PNG"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Foreground="#FF9298A6"
-                                   FontFamily="Segoe UI"
-                                   FontSize="8"
-                                   FontWeight="Bold" />
+                <Grid.ColumnDefinitions><ColumnDefinition Width="140" /><ColumnDefinition Width="*" /><ColumnDefinition Width="98" /></Grid.ColumnDefinitions>
+                <Grid Grid.Column="0" Width="28" Height="28" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <Border Background="#FF353944" BorderBrush="#FF484D59" BorderThickness="1" CornerRadius="6">
+                        <TextBlock Text="PNG" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF9298A6" FontFamily="Segoe UI" FontSize="8" FontWeight="Bold" />
                     </Border>
-                    <Image x:Name="AppIconImage"
-                           Width="28"
-                           Height="28"
-                           Stretch="Uniform"
-                           Visibility="Collapsed" />
+                    <Image x:Name="AppIconImage" Width="28" Height="28" Stretch="Uniform" Visibility="Collapsed" />
                 </Grid>
-
-                <TextBlock Grid.Column="1"
-                           Text="Veigar K643 Configurator"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Foreground="#FFE3E5EA"
-                           FontFamily="Segoe UI"
-                           FontSize="13"
-                           FontWeight="SemiBold" />
-
-                <StackPanel Grid.Column="2"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Top"
-                            Margin="0,2,3,0">
-                    <Button Style="{StaticResource CaptionButtonStyle}"
-                            Click="Minimize_Click">
-                        <TextBlock x:Name="MinimizeGlyph"
-                                   Text="&#xE921;"
-                                   FontFamily="Segoe Fluent Icons"
-                                   FontSize="10" />
-                    </Button>
-
-                    <Button Style="{StaticResource CloseCaptionButtonStyle}"
-                            Click="Close_Click">
-                        <TextBlock x:Name="CloseGlyph"
-                                   Text="&#xE8BB;"
-                                   FontFamily="Segoe Fluent Icons"
-                                   FontSize="10" />
-                    </Button>
+                <TextBlock Grid.Column="1" Text="Veigar K643 Configurator" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FFE3E5EA" FontFamily="Segoe UI" FontSize="13" FontWeight="SemiBold" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,3,0">
+                    <Button Style="{StaticResource CaptionButtonStyle}" Click="Minimize_Click"><TextBlock x:Name="MinimizeGlyph" Text="&#xE921;" FontFamily="Segoe Fluent Icons" FontSize="10" /></Button>
+                    <Button Style="{StaticResource CloseCaptionButtonStyle}" Click="Close_Click"><TextBlock x:Name="CloseGlyph" Text="&#xE8BB;" FontFamily="Segoe Fluent Icons" FontSize="10" /></Button>
                 </StackPanel>
             </Grid>
         </Border>
-
         <Grid Grid.Row="1" Background="#FF191B22">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="40" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-
-            <!-- Persistent toolbar host; tools will be added in later iterations. -->
-            <Border Grid.Row="0"
-                    Background="#FF20232B"
-                    BorderBrush="#FF353944"
-                    BorderThickness="0,0,0,1">
-                <Grid x:Name="ToolbarHost" />
-            </Border>
-
+            <Grid.RowDefinitions><RowDefinition Height="40" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <Border Grid.Row="0" Background="#FF20232B" BorderBrush="#FF353944" BorderThickness="0,0,0,1"><Grid x:Name="ToolbarHost" /></Border>
             <Grid Grid.Row="1" ClipToBounds="True">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="36" />
-                </Grid.ColumnDefinitions>
-
-                <Border Grid.Column="0"
-                        Height="260.9"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Center"
-                        Background="Transparent"
-                        BorderThickness="0">
-                    <Viewbox Stretch="Uniform">
-                        <Grid Width="599" Height="222">
-                            <Canvas x:Name="KeyGlowCanvas" Width="599" Height="222" IsHitTestVisible="False" />
-                            <Image Source="/assets/branding/key.png"
-                                   Width="599" Height="222" Stretch="Fill"
-                                   RenderOptions.BitmapScalingMode="HighQuality"
-                                   SnapsToDevicePixels="True" />
-                            <Canvas x:Name="KeyHitboxCanvas" Width="599" Height="222" Background="Transparent" />
-                        </Grid>
-                    </Viewbox>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="36" /></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Height="260.9" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent" BorderThickness="0">
+                    <Viewbox Stretch="Uniform"><Grid Width="599" Height="222">
+                        <Canvas x:Name="KeyGlowCanvas" Width="599" Height="222" IsHitTestVisible="False" />
+                        <Image Source="/assets/branding/key.png" Width="599" Height="222" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" />
+                        <Canvas x:Name="KeyHitboxCanvas" Width="599" Height="222" Background="Transparent" />
+                    </Grid></Viewbox>
                 </Border>
-
-                <!-- Empty drawer host. Its width is animated so the keyboard workspace
-                     gives it room instead of allowing the drawer to cover the keyboard. -->
-                <Border x:Name="ToolsPanel"
-                        Grid.Column="1"
-                        Width="0"
-                        Background="#FF22252E"
-                        BorderBrush="#FF383C47"
-                        BorderThickness="1,0,0,0"
-                        ClipToBounds="True">
-                    <Grid x:Name="ToolsPanelContent" />
-                </Border>
-
-                <Grid Grid.Column="2"
-                      Background="Transparent">
-                    <Border Width="7"
-                            HorizontalAlignment="Right"
-                            Background="#FF30343D" />
-                    <Button x:Name="ToolsPanelToggle"
-                            Width="34"
-                            Height="34"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Padding="0"
-                            Background="Transparent"
-                            Foreground="#FFE3E5EA"
-                            BorderThickness="0"
-                            Cursor="Hand"
-                            Focusable="False"
-                            Click="ToolsPanelToggle_Click"
-                            MouseEnter="ToolsPanelToggle_MouseEnter">
-                        <Button.Template>
-                            <ControlTemplate TargetType="{x:Type Button}">
-                                <Border x:Name="ToggleCircle"
-                                        Width="34"
-                                        Height="34"
-                                        CornerRadius="17"
-                                        Background="#FF30343D"
-                                        BorderBrush="#FF555B68"
-                                        BorderThickness="1">
-                                    <ContentPresenter HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Foreground" Value="#FF191B22" />
-                                        <Trigger.EnterActions>
-                                            <BeginStoryboard>
-                                                <Storyboard>
-                                                    <ColorAnimation Storyboard.TargetName="ToggleCircle"
-                                                                    Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                                    To="#FFFFFFFF"
-                                                                    Duration="0:0:0.16" />
-                                                    <ColorAnimation Storyboard.TargetName="ToggleCircle"
-                                                                    Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
-                                                                    To="#FFFFFFFF"
-                                                                    Duration="0:0:0.16" />
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </Trigger.EnterActions>
-                                        <Trigger.ExitActions>
-                                            <BeginStoryboard>
-                                                <Storyboard>
-                                                    <ColorAnimation Storyboard.TargetName="ToggleCircle"
-                                                                    Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                                    To="#FF30343D"
-                                                                    Duration="0:0:0.16" />
-                                                    <ColorAnimation Storyboard.TargetName="ToggleCircle"
-                                                                    Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
-                                                                    To="#FF555B68"
-                                                                    Duration="0:0:0.16" />
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </Trigger.ExitActions>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter TargetName="ToggleCircle" Property="Opacity" Value="0.82" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                        <TextBlock x:Name="ToolsPanelToggleGlyph"
-                                   Text="&lt;"
-                                   FontFamily="Segoe UI"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center" />
+                <Border x:Name="ToolsPanel" Grid.Column="1" Width="0" Background="#FF22252E" BorderBrush="#FF383C47" BorderThickness="1,0,0,0" ClipToBounds="True"><Grid x:Name="ToolsPanelContent" /></Border>
+                <Grid Grid.Column="2" Background="Transparent">
+                    <Border Width="7" HorizontalAlignment="Right" Background="#FF30343D" />
+                    <Button x:Name="ToolsPanelToggle" Width="34" Height="34" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0" Background="Transparent" Foreground="#FFE3E5EA" BorderThickness="0" Cursor="Hand" Focusable="False" Click="ToolsPanelToggle_Click">
+                        <Button.Template><ControlTemplate TargetType="{x:Type Button}">
+                            <Border x:Name="ToggleCircle" Width="34" Height="34" CornerRadius="17" Background="#FF30343D" BorderBrush="#FF555B68" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Foreground" Value="#FF191B22" />
+                                    <Trigger.EnterActions><BeginStoryboard><Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)" To="#FFFFFFFF" Duration="0:0:0.16" />
+                                        <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)" To="#FFFFFFFF" Duration="0:0:0.16" />
+                                    </Storyboard></BeginStoryboard></Trigger.EnterActions>
+                                    <Trigger.ExitActions><BeginStoryboard><Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)" To="#FF30343D" Duration="0:0:0.16" />
+                                        <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)" To="#FF555B68" Duration="0:0:0.16" />
+                                    </Storyboard></BeginStoryboard></Trigger.ExitActions>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True"><Setter TargetName="ToggleCircle" Property="Opacity" Value="0.82" /></Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate></Button.Template>
+                        <TextBlock x:Name="ToolsPanelToggleGlyph" Text="&lt;" FontFamily="Segoe UI" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Button>
                 </Grid>
             </Grid>
