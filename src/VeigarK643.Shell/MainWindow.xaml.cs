@@ -1077,7 +1077,7 @@ public partial class MainWindow : Window
     {
         FrameworkElementFactory border = new(typeof(Border));
         border.SetValue(Border.CornerRadiusProperty, new CornerRadius(radius));
-        border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = RelativeSource.TemplatedParent });
+        border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
         border.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding("BorderBrush") { RelativeSource = RelativeSource.TemplatedParent });
         border.SetBinding(Border.BorderThicknessProperty, new System.Windows.Data.Binding("BorderThickness") { RelativeSource = RelativeSource.TemplatedParent });
         FrameworkElementFactory content = new(typeof(ContentPresenter));
