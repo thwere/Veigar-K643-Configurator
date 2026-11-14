@@ -353,6 +353,8 @@ public partial class MainWindow : Window
             if (_isMarquee)
             {
                 Rect area = new(_dragStart, point);
+                if (area.Width < 1) area.Inflate(1, 0);
+                if (area.Height < 1) area.Inflate(0, 1);
                 if (!_shiftAtStart) _selectedKeys.Clear();
                 foreach (KeyValuePair<string, List<Rect>> entry in _keyBounds)
                     if (entry.Value.Any(bounds => area.IntersectsWith(bounds)))
