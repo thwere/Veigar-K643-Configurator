@@ -54,7 +54,6 @@ public partial class MainWindow : Window
     private TextBlock? _colorHexText;
     private Button? _profileButton;
     private Popup? _profilesPopup;
-    private Popup? _profileActionsPopup;
     private bool _strokeUndoPushed;
     private StackPanel? _groupManagerContent;
     private TextBlock? _colorHintText;
@@ -937,7 +936,8 @@ public partial class MainWindow : Window
             {
                 EditorProfileData? data = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(file));
                 if (data is null) continue;
-                Grid row = new() { Height = 38, Margin = new Thickness(0,2,0,2) };
+                StackPanel entry = new() { Margin = new Thickness(0,2,0,2) };
+                Grid row = new() { Height = 38 };
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 Button choose = new() { Height = 34, HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(10,0,8,0), Background = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase) ? BrushFrom("#FF3B4352") : Brushes.Transparent, BorderThickness = new Thickness(0), Cursor = Cursors.Hand, Focusable = false };
@@ -947,9 +947,34 @@ public partial class MainWindow : Window
                 choose.Content = label;
                 choose.Click += (_, _) => { SaveCurrentProfile(); LoadProfile(file); _profilesPopup!.IsOpen = false; _profilesPopup = null; };
                 row.Children.Add(choose);
+                StackPanel actions = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Visibility = Visibility.Collapsed, Margin = new Thickness(0,0,2,4) };
                 Button more = new() { Content = new TextBlock { Text = "⋯", FontSize = 18, Foreground = BrushFrom("#FFB8BEC9"), VerticalAlignment = VerticalAlignment.Center }, Width = 36, Height = 32, Margin = new Thickness(4,0,0,0), Padding = new Thickness(0), Background = Brushes.Transparent, BorderThickness = new Thickness(0), Cursor = Cursors.Hand, Focusable = false, ToolTip = "Действия с профилем" };
-                more.Click += (_, _) => ShowProfileActionsFlyout(data, file, more);
-                Grid.SetColumn(more,1); row.Children.Add(more); body.Children.Add(row);
+                more.Click += (_, _) => actions.Visibility = actions.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+                Grid.SetColumn(more,1); row.Children.Add(more);
+                Button configure = CreatePanelButton("Настроить"); configure.Width = 88; configure.Height = 30; configure.Margin = new Thickness(0,0,5,0);
+                configure.Click += (_, _) => { _profilesPopup!.IsOpen = false; _profilesPopup = null; ShowProfileEditor(data, file); };
+                Button remove = CreatePanelButton("Удалить"); remove.Width = 76; remove.Height = 30;
+                remove.Click += (_, _) =>
+                {
+                    int count = Directory.GetFiles(_profilesDirectory, "*.json").Length;
+                    if (count <= 1) { ToolStatusText.Text = "Последний профиль удалить нельзя."; return; }
+                    _profilesPopup!.IsOpen = false; _profilesPopup = null;
+                    bool deletingActive = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
+                    ShowModal("ПОДТВЕРДИТЕ УДАЛЕНИЕ", new TextBlock { Text = $"Удалить профиль «{data.Name}»? Это действие нельзя отменить.", Foreground = BrushFrom("#FFE3E5EA"), TextWrapping = TextWrapping.Wrap },
+                        ("Удалить", () =>
+                        {
+                            if (deletingActive)
+                            {
+                                string? next = Directory.GetFiles(_profilesDirectory, "*.json").FirstOrDefault(path => !string.Equals(IOPath.GetFullPath(path), IOPath.GetFullPath(file), StringComparison.OrdinalIgnoreCase));
+                                if (next is not null) LoadProfile(next);
+                            }
+                            File.Delete(file); CloseModal(); ToggleProfilesFlyout();
+                        }),
+                        ("Отмена", () => { CloseModal(); ToggleProfilesFlyout(); }));
+                };
+                actions.Children.Add(configure); actions.Children.Add(remove);
+                entry.Children.Add(row); entry.Children.Add(actions);
+                body.Children.Add(entry);
             }
             catch (Exception ex) { Debug.WriteLine("Profile list: " + ex.Message); }
         }
@@ -963,41 +988,8 @@ public partial class MainWindow : Window
         body.Children.Add(create);
         Border card = new() { Width = 290, MaxHeight = 420, Background = BrushFrom("#FF252832"), BorderBrush = BrushFrom("#FF4A505D"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Child = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
         _profilesPopup = new Popup { PlacementTarget = _profileButton, Placement = PlacementMode.Bottom, VerticalOffset = 6, HorizontalOffset = -90, AllowsTransparency = true, PopupAnimation = PopupAnimation.Slide, StaysOpen = false, Child = card };
-        _profilesPopup.Closed += (_, _) => { _profilesPopup = null; _profileActionsPopup = null; };
+        _profilesPopup.Closed += (_, _) => { _profilesPopup = null; };
         _profilesPopup.IsOpen = true;
-    }
-
-    private void ShowProfileActionsFlyout(EditorProfileData data, string file, FrameworkElement target)
-    {
-        if (_profileActionsPopup is not null) _profileActionsPopup.IsOpen = false;
-        StackPanel actions = new() { Margin = new Thickness(8) };
-        Button configure = CreatePanelButton("Настроить"); configure.Width = 112;
-        configure.Click += (_, _) => { if (_profilesPopup is not null) _profilesPopup.IsOpen = false; _profilesPopup = null; ShowProfileEditor(data, file); };
-        Button remove = CreatePanelButton("Удалить"); remove.Width = 112; remove.Margin = new Thickness(0,5,0,0);
-        remove.Click += (_, _) =>
-        {
-            int count = Directory.GetFiles(_profilesDirectory, "*.json").Length;
-            if (count <= 1) { ToolStatusText.Text = "Последний профиль удалить нельзя."; if (_profileActionsPopup is not null) _profileActionsPopup.IsOpen = false; return; }
-            if (_profileActionsPopup is not null) _profileActionsPopup.IsOpen = false;
-            if (_profilesPopup is not null) _profilesPopup.IsOpen = false;
-            _profileActionsPopup = null; _profilesPopup = null;
-            bool deletingActive = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
-            ShowModal("ПОДТВЕРДИТЕ УДАЛЕНИЕ", new TextBlock { Text = $"Удалить профиль «{data.Name}»? Это действие нельзя отменить.", Foreground = BrushFrom("#FFE3E5EA"), TextWrapping = TextWrapping.Wrap },
-                ("Удалить", () =>
-                {
-                    if (deletingActive)
-                    {
-                        string? next = Directory.GetFiles(_profilesDirectory, "*.json").FirstOrDefault(path => !string.Equals(IOPath.GetFullPath(path), IOPath.GetFullPath(file), StringComparison.OrdinalIgnoreCase));
-                        if (next is not null) LoadProfile(next);
-                    }
-                    File.Delete(file); CloseModal(); ToggleProfilesFlyout();
-                }),
-                ("Отмена", () => { CloseModal(); ToggleProfilesFlyout(); }));
-        };
-        actions.Children.Add(configure); actions.Children.Add(remove);
-        Border card = new() { Background = BrushFrom("#FF252832"), BorderBrush = BrushFrom("#FF4A505D"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(9), Child = actions };
-        _profileActionsPopup = new Popup { PlacementTarget = target, Placement = PlacementMode.Right, HorizontalOffset = 4, AllowsTransparency = true, PopupAnimation = PopupAnimation.Fade, StaysOpen = false, Child = card };
-        _profileActionsPopup.IsOpen = true;
     }
 
     private void ImportProfileFromFile()
