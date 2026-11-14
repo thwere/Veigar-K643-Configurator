@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,6 +20,8 @@ public partial class MainWindow : Window
     private const int DwmwcpDoNotRound = 1;
 
     private readonly Dictionary<string, List<Border>> _keyGlows = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Color> _keyColors = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _pressedKeys = new(StringComparer.Ordinal);
 
     public MainWindow()
     {
@@ -24,16 +29,13 @@ public partial class MainWindow : Window
 
         FontFamily captionFont = GetCaptionFontFamily();
         MinimizeGlyph.FontFamily = captionFont;
-        MaximizeGlyph.FontFamily = captionFont;
         CloseGlyph.FontFamily = captionFont;
 
         CreateKeyVisuals();
 
         SourceInitialized += (_, _) => DisableRoundedCorners();
-        StateChanged += (_, _) => UpdateMaximizeGlyph();
         Deactivated += (_, _) => ClearPressedKeys();
 
-        UpdateMaximizeGlyph();
     }
 
     private void CreateKeyVisuals()
@@ -59,6 +61,8 @@ public partial class MainWindow : Window
 
     private void AddKeyVisuals(string keyName, double left, double top, double width, double height)
     {
+        Color keyColor = GetSpectrumColor((left + width / 2) / 599.0 * 300.0);
+        _keyColors[keyName] = keyColor;
         Border glow = new()
         {
             Width = width,
@@ -90,9 +94,9 @@ public partial class MainWindow : Window
         {
             Width = hitboxWidth,
             Height = hitboxHeight,
-            Background = new SolidColorBrush(Color.FromArgb(18, 90, 155, 255)),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(48, 110, 175, 255)),
-            BorderThickness = new Thickness(0.6),
+            Background = Brushes.Transparent,
+            BorderBrush = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(4),
             Cursor = Cursors.Hand,
             Focusable = false
@@ -121,6 +125,15 @@ public partial class MainWindow : Window
 
         foreach (Border glow in glows)
             glow.Opacity = isPressed ? 1 : 0;
+        if (isPressed) _pressedKeys.Add(keyName); else _pressedKeys.Remove(keyName);
+        _ = SendHardwareFrameAsync();
+    }
+
+    private async Task SendHardwareFrameAsync()
+    {
+        string[] pressed = _pressedKeys.ToArray();
+        try { await VeigarK643HidController.SendPressedKeysAsync(pressed, _keyColors); }
+        catch (Exception ex) { Debug.WriteLine("Veigar K643 HID: " + ex.Message); }
     }
 
     private static Brush CreateRgbGlow(double centerX)
@@ -163,6 +176,8 @@ public partial class MainWindow : Window
         foreach (Border glow in glows)
             glow.Opacity = 0;
 
+        _pressedKeys.Clear();
+        _ = SendHardwareFrameAsync();
         Mouse.Capture(null);
     }
 
@@ -187,23 +202,9 @@ public partial class MainWindow : Window
         WindowState = WindowState.Minimized;
     }
 
-    private void MaximizeRestore_Click(object sender, RoutedEventArgs e)
-    {
-        WindowState = WindowState == WindowState.Maximized
-            ? WindowState.Normal
-            : WindowState.Maximized;
-    }
-
     private void Close_Click(object sender, RoutedEventArgs e)
     {
         Close();
-    }
-
-    private void UpdateMaximizeGlyph()
-    {
-        MaximizeGlyph.Text = WindowState == WindowState.Maximized
-            ? "\uE923"
-            : "\uE922";
     }
 
     private void DisableRoundedCorners()
