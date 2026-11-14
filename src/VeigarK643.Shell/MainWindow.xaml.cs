@@ -316,14 +316,14 @@ public partial class MainWindow : Window
         else
         {
             _isMarquee = false;
-            if (!_shiftAtStart)
+            if (!_shiftAtStart || key is null)
             {
                 _selectedKeys.Clear();
                 if (key is not null)
                 {
-                    HashSet<string>? group = _groups.FirstOrDefault(candidate => candidate.Contains(key));
+                    EditorGroup? group = _groups.FirstOrDefault(candidate => candidate.Keys.Contains(key));
                     if (group is null) _selectedKeys.Add(key);
-                    else _selectedKeys.UnionWith(group);
+                    else _selectedKeys.UnionWith(group.Keys);
                 }
                 RenderSelection();
             }
@@ -387,7 +387,7 @@ public partial class MainWindow : Window
                 if (key is not null && _shiftAtStart)
                 {
                     HashSet<string>? group = _groups.FirstOrDefault(candidate => candidate.Contains(key));
-                    IEnumerable<string> targets = group ?? new HashSet<string>(new[] { key }, StringComparer.Ordinal);
+                    IEnumerable<string> targets = group?.Keys ?? new HashSet<string>(new[] { key }, StringComparer.Ordinal);
                     bool remove = targets.All(_selectedKeys.Contains);
                     foreach (string target in targets)
                     {
@@ -414,6 +414,7 @@ public partial class MainWindow : Window
         _keyColors[key] = color;
         UpdateKeyVisual(key);
         ScheduleHardwareFrame();
+        ScheduleProfileSave();
     }
 
     private void EraseKey(string? key)
@@ -423,6 +424,7 @@ public partial class MainWindow : Window
         _keyColors.Remove(key);
         UpdateKeyVisual(key);
         ScheduleHardwareFrame();
+        ScheduleProfileSave();
     }
 
     private void UpdateKeyVisual(string key)
@@ -459,6 +461,7 @@ public partial class MainWindow : Window
             UpdateKeyVisual(key);
         }
         ScheduleHardwareFrame();
+        ScheduleProfileSave();
     }
 
     private void ScheduleHardwareFrame()
@@ -467,11 +470,11 @@ public partial class MainWindow : Window
         _hardwareUpdateTimer.Start();
     }
 
-    private async Task SendHardwareFrameAsync()
+    private async Task<bool> SendHardwareFrameAsync()
     {
         Dictionary<string, Color> frame = new(_keyColors, StringComparer.Ordinal);
-        try { await VeigarK643HidController.SendColorsAsync(frame); }
-        catch (Exception ex) { Debug.WriteLine("Veigar K643 HID: " + ex.Message); }
+        try { await VeigarK643HidController.SendColorsAsync(frame); return true; }
+        catch (Exception ex) { Debug.WriteLine("Veigar K643 HID: " + ex.Message); return false; }
     }
 
     private string? FindKeyAt(Point point)
@@ -484,8 +487,8 @@ public partial class MainWindow : Window
     private void RenderSelection()
     {
         SelectionOverlayCanvas.Children.Clear();
-        foreach (HashSet<string> group in _groups)
-            AddOutline(group, "#FFCCAA72", 1.4, 18);
+        foreach (EditorGroup group in _groups)
+            AddOutline(group.Keys, group.ColorHex, 1.4, 30);
         if (_selectedKeys.Count > 0)
             AddOutline(_selectedKeys, "#FF9DB7FF", 1.6, 24);
     }
@@ -517,15 +520,6 @@ public partial class MainWindow : Window
         SelectionOverlayCanvas.Children.Add(outline);
     }
 
-    private void CreateGroupFromSelection()
-    {
-        if (_selectedKeys.Count == 0) return;
-        HashSet<string> group = new(_selectedKeys, StringComparer.Ordinal);
-        _groups.RemoveAll(existing => existing.SetEquals(group));
-        _groups.Add(group);
-        RenderSelection();
-    }
-
     private void ColorField_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (_colorField is null) return;
@@ -547,33 +541,41 @@ public partial class MainWindow : Window
     private void UpdateColorFromPoint(Point point)
     {
         if (_colorField is null || _colorThumb is null) return;
-        _selectedHue = Math.Clamp(point.X / _colorField.Width, 0, 1) * 360;
-        _selectedValue = 1 - Math.Clamp(point.Y / _colorField.Height, 0, 1);
-        Canvas.SetLeft(_colorThumb, Math.Clamp(point.X - 6, 0, _colorField.Width - 12));
-        Canvas.SetTop(_colorThumb, Math.Clamp(point.Y - 6, 0, _colorField.Height - 12));
+        double x = Math.Clamp(point.X, 0, _colorField.Width);
+        double y = Math.Clamp(point.Y, 0, _colorField.Height);
+        _selectedHue = x / _colorField.Width * 360;
+        _selectedValue = 1 - y / _colorField.Height;
+        Canvas.SetLeft(_colorThumb, Math.Clamp(x - 6.5, 0, _colorField.Width - 13));
+        Canvas.SetTop(_colorThumb, Math.Clamp(y - 6.5, 0, _colorField.Height - 13));
         UpdateColorFromControls();
     }
 
     private void UpdateColorFromControls()
     {
-        if (_brightnessSlider is null || _saturationSlider is null) return;
-        double value = _selectedValue * _brightnessSlider.Value;
-        _currentColor = HsvToColor(_selectedHue, _saturationSlider.Value, value);
+        if (_saturationSlider is null) return;
+        _currentColor = HsvToColor(_selectedHue, _saturationSlider.Value, _selectedValue);
         if (_colorPreview is not null) _colorPreview.Background = new SolidColorBrush(_currentColor);
         if (_colorHexText is not null) _colorHexText.Text = $"#{_currentColor.R:X2}{_currentColor.G:X2}{_currentColor.B:X2}";
     }
 
     private static Color HsvToColor(double hue, double saturation, double value)
     {
+        hue = ((hue % 360) + 360) % 360;
+        saturation = Math.Clamp(saturation, 0, 1);
+        value = Math.Clamp(value, 0, 1);
         double chroma = value * saturation;
         double x = chroma * (1 - Math.Abs((hue / 60 % 2) - 1));
         double m = value - chroma;
         (double r, double g, double b) = hue switch
         {
-            < 60 => (chroma,x,0d), < 120 => (x,chroma,0d), < 180 => (0d,chroma,x),
-            < 240 => (0d,x,chroma), < 300 => (x,0d,chroma), _ => (chroma,0d,x)
+            < 60 => (chroma, x, 0d),
+            < 120 => (x, chroma, 0d),
+            < 180 => (0d, chroma, x),
+            < 240 => (0d, x, chroma),
+            < 300 => (x, 0d, chroma),
+            _ => (chroma, 0d, x)
         };
-        return Color.FromRgb((byte)Math.Round((r+m)*255),(byte)Math.Round((g+m)*255),(byte)Math.Round((b+m)*255));
+        return Color.FromRgb((byte)Math.Round((r + m) * 255), (byte)Math.Round((g + m) * 255), (byte)Math.Round((b + m) * 255));
     }
 
     private void ReleasePointer()
