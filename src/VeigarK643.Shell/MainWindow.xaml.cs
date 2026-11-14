@@ -43,6 +43,9 @@ public partial class MainWindow : Window
     private Ellipse? _colorThumb;
     private Border? _colorPreview;
     private TextBlock? _colorHexText;
+    private StackPanel? _colorControls;
+    private Button? _groupButton;
+    private Button? _fillButton;
     private Slider? _brightnessSlider;
     private Slider? _saturationSlider;
     private double _selectedHue;
@@ -174,8 +177,10 @@ public partial class MainWindow : Window
 
         TextBlock title = new() { Text = "ПАРАМЕТРЫ ИНСТРУМЕНТА", Foreground = BrushFrom("#FFE3E5EA"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,14) };
         root.Children.Add(title);
+        _colorControls = new StackPanel();
+        root.Children.Add(_colorControls);
         TextBlock colorLabel = new() { Text = "ЦВЕТ", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, Margin = new Thickness(0,0,0,8) };
-        root.Children.Add(colorLabel);
+        _colorControls.Children.Add(colorLabel);
 
         Grid fieldHost = new() { Width = 190, Height = 150, HorizontalAlignment = HorizontalAlignment.Left, ClipToBounds = false };
         _colorField = new Canvas { Width = 190, Height = 150, Background = Brushes.Transparent };
@@ -191,7 +196,7 @@ public partial class MainWindow : Window
         _colorField.MouseMove += ColorField_MouseMove;
         _colorField.MouseLeftButtonUp += ColorField_MouseUp;
         fieldHost.Children.Add(_colorField);
-        root.Children.Add(fieldHost);
+        _colorControls.Children.Add(fieldHost);
 
         StackPanel previewRow = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0,12,0,12), VerticalAlignment = VerticalAlignment.Center };
         _colorPreview = new Border { Width = 32, Height = 32, CornerRadius = new CornerRadius(6), Background = new SolidColorBrush(_currentColor), BorderBrush = BrushFrom("#FF697080"), BorderThickness = new Thickness(1), Margin = new Thickness(0,0,10,0) };
@@ -201,10 +206,10 @@ public partial class MainWindow : Window
          _colorHexText = new TextBlock { Text = "#FF0000", Foreground = BrushFrom("#FF9299A7"), FontSize = 10, Margin = new Thickness(0,3,0,0) };
         previewText.Children.Add(_colorHexText);
         previewRow.Children.Add(previewText);
-        root.Children.Add(previewRow);
+        _colorControls.Children.Add(previewRow);
 
-        AddSlider(root, "Яркость", out _brightnessSlider, 0, 1, 1);
-        AddSlider(root, "Насыщенность", out _saturationSlider, 0, 1, 1);
+        AddSlider(_colorControls, "Яркость", out _brightnessSlider, 0, 1, 1);
+        AddSlider(_colorControls, "Насыщенность", out _saturationSlider, 0, 1, 1);
         _brightnessSlider.ValueChanged += (_, _) => UpdateColorFromControls();
         _saturationSlider.ValueChanged += (_, _) => UpdateColorFromControls();
 
@@ -212,11 +217,12 @@ public partial class MainWindow : Window
         root.Children.Add(separator);
         Button groupButton = CreatePanelButton("Создать группу из выделения");
         groupButton.Click += (_, _) => CreateGroupFromSelection();
+        _groupButton = groupButton;
         root.Children.Add(groupButton);
-        Button fillButton = CreatePanelButton("Применить цвет");
-        fillButton.Margin = new Thickness(0,8,0,0);
-        fillButton.Click += (_, _) => ApplyFill();
-        root.Children.Add(fillButton);
+        _fillButton = CreatePanelButton("Применить цвет");
+        _fillButton.Margin = new Thickness(0,8,0,0);
+        _fillButton.Click += (_, _) => ApplyFill();
+        root.Children.Add(_fillButton);
         UpdateColorControls();
     }
 
@@ -259,7 +265,14 @@ public partial class MainWindow : Window
             button.Background = BrushFrom(active ? "#FF515A6B" : "#FF2A2E38");
             button.BorderBrush = BrushFrom(active ? "#FF818B9F" : "#FF3E4350");
         }
-        ToolsPanelContent.Visibility = tool == EditorTool.Select || tool == EditorTool.Brush ? Visibility.Visible : Visibility.Visible;
+        if (_colorControls is not null)
+            _colorControls.Visibility = tool == EditorTool.Brush || tool == EditorTool.Fill ? Visibility.Visible : Visibility.Collapsed;
+        if (_groupButton is not null) _groupButton.Visibility = tool == EditorTool.Select ? Visibility.Visible : Visibility.Collapsed;
+        if (_fillButton is not null) _fillButton.Visibility = tool == EditorTool.Fill ? Visibility.Visible : Visibility.Collapsed;
+        if (tool == EditorTool.Eraser && ToolsPanelContent.Children.Count > 0)
+            ToolsPanelContent.ToolTip = "Проведите курсором по клавишам, чтобы убрать их подсветку.";
+        else
+            ToolsPanelContent.ToolTip = null;
         if (!_toolsPanelIsOpen) SetToolsPanelOpen(true);
     }
 
