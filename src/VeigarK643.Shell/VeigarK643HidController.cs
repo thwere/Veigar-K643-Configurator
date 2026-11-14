@@ -34,16 +34,18 @@ internal static class VeigarK643HidController
         ["NumPad3"]=100, ["Decimal"]=101
     };
 
-    public static async Task SendPressedKeysAsync(string[] pressedKeys, IReadOnlyDictionary<string, Color> colors)
+    public static async Task SendColorsAsync(IReadOnlyDictionary<string, Color> colors)
     {
         byte[] report = new byte[ReportLength];
         report[0] = ReportId; report[1] = 0x0A; report[2] = 0x7A; report[3] = 0x01;
-        foreach (string key in pressedKeys)
+        foreach (KeyValuePair<string, Color> entry in colors)
         {
-            if (!Slots.TryGetValue(key, out int slot) || !colors.TryGetValue(key, out Color color))
+            if (!Slots.TryGetValue(entry.Key, out int slot))
                 continue;
             int offset = 4 + slot * 3;
-            report[offset] = color.R; report[offset + 1] = color.G; report[offset + 2] = color.B;
+            report[offset] = entry.Value.R;
+            report[offset + 1] = entry.Value.G;
+            report[offset + 2] = entry.Value.B;
         }
 
         await SendLock.WaitAsync().ConfigureAwait(false);
