@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using IOPath = System.IO.Path;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -28,7 +29,7 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _selectedKeys = new(StringComparer.Ordinal);
     private readonly List<EditorGroup> _groups = new();
     private readonly List<Button> _toolButtons = new();
-    private readonly string _profilesDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "VeigarConfig", "Profiles");
+    private readonly string _profilesDirectory = IOPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "VeigarConfig", "Profiles");
     private string _activeProfileName = "Основной";
     private string _activeProfileColor = "#FF6D8CFF";
     private string _dialogColor = "#FF6D8CFF";
@@ -47,7 +48,6 @@ public partial class MainWindow : Window
     private Ellipse? _colorThumb;
     private Border? _colorPreview;
     private TextBlock? _colorHexText;
-    private StackPanel? _colorControls;
     private Button? _profileButton;
     private Slider? _saturationSlider;
     private double _selectedHue;
@@ -642,7 +642,7 @@ public partial class MainWindow : Window
 
     private static string SafeFileName(string name)
     {
-        foreach (char c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
+        foreach (char c in IOPath.GetInvalidFileNameChars()) name = name.Replace(c, '_');
         return string.IsNullOrWhiteSpace(name) ? "Profile" : name.Trim();
     }
 
@@ -791,7 +791,7 @@ public partial class MainWindow : Window
                 Button edit = CreatePanelButton("Изменить"); edit.Width = 72; edit.Margin = new Thickness(5,0,0,0);
                 edit.Click += (_, _) => ShowProfileEditor(data, file);
                 Button delete = CreatePanelButton("×"); delete.Width = 32; delete.Margin = new Thickness(5,0,0,0);
-                delete.Click += (_, _) => { if (string.Equals(Path.GetFullPath(file), Path.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase)) return; File.Delete(file); ShowProfilesManager(); };
+                delete.Click += (_, _) => { if (string.Equals(IOPath.GetFullPath(file), Path.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase)) return; File.Delete(file); ShowProfilesManager(); };
                 actions.Children.Add(load); actions.Children.Add(edit); actions.Children.Add(delete);
                 Grid.SetColumn(actions,2); row.Children.Add(actions);
                 body.Children.Add(row);
