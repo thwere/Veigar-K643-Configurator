@@ -88,7 +88,7 @@ internal static class VeigarK643HidController
         finally { SetupDiDestroyDeviceInfoList(set); }
 
         if (path is null) throw new InvalidOperationException("Veigar K643 HID interface MI_01 / Col08 was not found.");
-        using SafeFileHandle handle = CreateFile(path, 0x40000000, 0x01 | 0x02, IntPtr.Zero, 3, 0, IntPtr.Zero);
+        using SafeFileHandle handle = CreateFile(path, 0x80000000 | 0x40000000, 0x01 | 0x02, IntPtr.Zero, 3, 0, IntPtr.Zero);
         if (handle.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error(), "Unable to open Veigar K643 HID interface.");
         if (HidD_SetFeature(handle, report, report.Length) == 0)
             throw new Win32Exception(Marshal.GetLastWin32Error(), "HidD_SetFeature failed.");
