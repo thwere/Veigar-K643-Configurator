@@ -578,6 +578,317 @@ public partial class MainWindow : Window
         return Color.FromRgb((byte)Math.Round((r + m) * 255), (byte)Math.Round((g + m) * 255), (byte)Math.Round((b + m) * 255));
     }
 
+    private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && ModalOverlay.Visibility != Visibility.Visible)
+        {
+            _selectedKeys.Clear();
+            RenderSelection();
+            e.Handled = true;
+            return;
+        }
+        if (Keyboard.Modifiers == ModifierKeys.None)
+        {
+            if (e.Key == Key.B) SetActiveTool(EditorTool.Brush);
+            else if (e.Key == Key.G) SetActiveTool(EditorTool.Fill);
+            else if (e.Key == Key.V) SetActiveTool(EditorTool.Select);
+            else if (e.Key == Key.E) SetActiveTool(EditorTool.Eraser);
+        }
+    }
+
+    private void MainWindow_SourceInitialized(object? sender, EventArgs e)
+    {
+        DisableRoundedCorners();
+        HwndSource? source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+        source?.AddHook(WindowMessageHook);
+        RegisterHidNotifications();
+    }
+
+    private IntPtr WindowMessageHook(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (message == 0x0219 && unchecked((int)wParam.ToInt64()) == 0x8000)
+        {
+            _reconnectAttempts = 0;
+            _reconnectTimer.Stop();
+            _reconnectTimer.Start();
+        }
+        return IntPtr.Zero;
+    }
+
+    private void RegisterHidNotifications()
+    {
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+        DeviceBroadcastInterface filter = new()
+        {
+            Size = Marshal.SizeOf<DeviceBroadcastInterface>(),
+            DeviceType = 5,
+            ClassGuid = new Guid("4D1E55B2-F16F-11CF-88CB-001111000030")
+        };
+        IntPtr memory = Marshal.AllocHGlobal(filter.Size);
+        try
+        {
+            Marshal.StructureToPtr(filter, memory, false);
+            _deviceNotification = RegisterDeviceNotification(hwnd, memory, 0);
+        }
+        finally { Marshal.FreeHGlobal(memory); }
+    }
+
+    private void ScheduleProfileSave()
+    {
+        _profileSaveTimer.Stop();
+        _profileSaveTimer.Start();
+    }
+
+    private void InitializeProfiles()
+    {
+        Directory.CreateDirectory(_profilesDirectory);
+        string[] files = Directory.GetFiles(_profilesDirectory, "*.json");
+        if (files.Length == 0)
+        {
+            SaveCurrentProfile();
+            return;
+        }
+        string preferred = ProfilePath(_activeProfileName);
+        LoadProfile(File.Exists(preferred) ? preferred : files[0]);
+    }
+
+    private static string SafeFileName(string name)
+    {
+        foreach (char c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
+        return string.IsNullOrWhiteSpace(name) ? "Profile" : name.Trim();
+    }
+
+    private string ProfilePath(string name) => Path.Combine(_profilesDirectory, SafeFileName(name) + ".json");
+
+    private void SaveCurrentProfile()
+    {
+        try
+        {
+            Directory.CreateDirectory(_profilesDirectory);
+            EditorProfileData data = new()
+            {
+                Name = _activeProfileName,
+                ColorHex = _activeProfileColor,
+                KeyColors = _keyColors.ToDictionary(pair => pair.Key, pair => $"#{pair.Value.R:X2}{pair.Value.G:X2}{pair.Value.B:X2}", StringComparer.Ordinal),
+                Groups = _groups.Select(group => new EditorGroupData { Name = group.Name, ColorHex = group.ColorHex, State = group.State, Keys = group.Keys.ToList() }).ToList()
+            };
+            File.WriteAllText(ProfilePath(_activeProfileName), JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex) { Debug.WriteLine("Profile save failed: " + ex.Message); }
+    }
+
+    private void LoadProfile(string path)
+    {
+        try
+        {
+            EditorProfileData? data = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (data is null) return;
+            _keyColors.Clear();
+            foreach (var pair in data.KeyColors)
+            {
+                object? parsed = ColorConverter.ConvertFromString(pair.Value);
+                if (parsed is Color color) _keyColors[pair.Key] = color;
+            }
+            foreach (string key in _keyGlows.Keys) UpdateKeyVisual(key);
+            _groups.Clear();
+            foreach (EditorGroupData group in data.Groups)
+                _groups.Add(new EditorGroup { Name = group.Name, ColorHex = group.ColorHex, State = group.State, Keys = new HashSet<string>(group.Keys, StringComparer.Ordinal) });
+            _activeProfileName = data.Name;
+            _activeProfileColor = data.ColorHex;
+            RenderSelection();
+            ScheduleHardwareFrame();
+            UpdateProfileButton();
+        }
+        catch (Exception ex) { Debug.WriteLine("Profile load failed: " + ex.Message); }
+    }
+
+    private void ShowGroupsManager()
+    {
+        StackPanel body = new() { Margin = new Thickness(0,8,0,0) };
+        if (_groups.Count == 0)
+            body.Children.Add(new TextBlock { Text = "Групп пока нет. Выделите клавиши и создайте группу.", Foreground = BrushFrom("#FF9DA4B2"), Margin = new Thickness(0,0,0,12) });
+        foreach (EditorGroup group in _groups.ToArray())
+        {
+            Grid row = new() { Margin = new Thickness(0,3,0,3) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.Children.Add(new Ellipse { Width = 12, Height = 12, Fill = BrushFrom(group.ColorHex), VerticalAlignment = VerticalAlignment.Center });
+            Button select = CreatePanelButton($"{group.Name} · {group.Keys.Count} клавиш · {group.State}");
+            select.HorizontalContentAlignment = HorizontalAlignment.Left;
+            select.Click += (_, _) => { _selectedKeys.Clear(); _selectedKeys.UnionWith(group.Keys); RenderSelection(); CloseModal(); };
+            Grid.SetColumn(select,1); row.Children.Add(select);
+            StackPanel actions = new() { Orientation = Orientation.Horizontal };
+            Button edit = CreatePanelButton("Изменить"); edit.Width = 72; edit.Margin = new Thickness(6,0,0,0);
+            edit.Click += (_, _) => ShowGroupEditor(group);
+            Button delete = CreatePanelButton("×"); delete.Width = 32; delete.Margin = new Thickness(4,0,0,0);
+            delete.Click += (_, _) => { _groups.Remove(group); RenderSelection(); ScheduleProfileSave(); ShowGroupsManager(); };
+            actions.Children.Add(edit); actions.Children.Add(delete);
+            Grid.SetColumn(actions,2); row.Children.Add(actions);
+            body.Children.Add(row);
+        }
+        Button add = CreatePanelButton("＋  Новая группа");
+        add.Margin = new Thickness(0,12,0,0);
+        add.Click += (_, _) => ShowGroupEditor(null);
+        body.Children.Add(add);
+        ShowModal("ГРУППЫ", body, ("Закрыть", CloseModal));
+    }
+
+    private void ShowGroupEditor(EditorGroup? existing)
+    {
+        if (existing is null && _selectedKeys.Count == 0)
+        {
+            ToolStatusText.Text = "Сначала выделите клавиши, которые нужно объединить в группу.";
+            return;
+        }
+        TextBox name = new() { Text = existing?.Name ?? "Новая группа", Height = 32, Padding = new Thickness(8,5,8,5), Background = BrushFrom("#FF191B22"), Foreground = BrushFrom("#FFE3E5EA"), BorderBrush = BrushFrom("#FF454A55") };
+        ComboBox state = new() { Height = 32, Margin = new Thickness(0,8,0,10), ItemsSource = new[] { "Статичный", "Анимация", "По сценарию" }, SelectedItem = existing?.State ?? "Статичный" };
+        _dialogColor = existing?.ColorHex ?? "#FF6D8CFF";
+        StackPanel colors = BuildColorSwatches(color => _dialogColor = color, _dialogColor);
+        StackPanel body = new();
+        body.Children.Add(new TextBlock { Text = "Название", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,0,0,5) });
+        body.Children.Add(name);
+        body.Children.Add(new TextBlock { Text = "Цвет группы", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,12,0,5) });
+        body.Children.Add(colors);
+        body.Children.Add(new TextBlock { Text = "Состояние", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,8,0,5) });
+        body.Children.Add(state);
+        body.Children.Add(new TextBlock { Text = existing is null ? $"В группу попадут выделенные клавиши: {_selectedKeys.Count}." : $"В группе клавиш: {existing.Keys.Count}.", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10 });
+        ShowModal(existing is null ? "СОЗДАТЬ ГРУППУ" : "НАСТРОЙКА ГРУППЫ", body,
+            ("Отмена", ShowGroupsManager),
+            (existing is null ? "Создать" : "Сохранить", () =>
+            {
+                string groupName = name.Text.Trim();
+                if (groupName.Length == 0) { ToolStatusText.Text = "Введите название группы."; return; }
+                if (existing is null)
+                    _groups.Add(new EditorGroup { Name = groupName, ColorHex = _dialogColor, State = state.SelectedItem?.ToString() ?? "Статичный", Keys = new HashSet<string>(_selectedKeys, StringComparer.Ordinal) });
+                else { existing.Name = groupName; existing.ColorHex = _dialogColor; existing.State = state.SelectedItem?.ToString() ?? "Статичный"; }
+                RenderSelection(); ScheduleProfileSave(); CloseModal();
+            }));
+    }
+
+    private StackPanel BuildColorSwatches(Action<string> choose, string selected)
+    {
+        string[] palette = { "#FFE85D5D", "#FFFFA94D", "#FFFFD166", "#FF65C18C", "#FF4DB6AC", "#FF5B9BFF", "#FF9B7BFF", "#FFE879B9", "#FFB8BEC9" };
+        StackPanel row = new() { Orientation = Orientation.Horizontal };
+        foreach (string color in palette)
+        {
+            Button swatch = new() { Width = 25, Height = 25, Margin = new Thickness(0,0,7,0), Padding = new Thickness(0), Background = BrushFrom(color), BorderBrush = BrushFrom(color == selected ? "#FFFFFFFF" : "#FF4A4F5B"), BorderThickness = new Thickness(color == selected ? 2 : 1), Cursor = Cursors.Hand, ToolTip = color };
+            swatch.Click += (_, _) => { choose(color); foreach (Button item in row.Children.OfType<Button>()) item.BorderThickness = new Thickness(1); swatch.BorderThickness = new Thickness(2); };
+            row.Children.Add(swatch);
+        }
+        return row;
+    }
+
+    private void ShowProfilesManager()
+    {
+        StackPanel body = new() { Margin = new Thickness(0,8,0,0) };
+        body.Children.Add(new TextBlock { Text = $"Активный профиль: {_activeProfileName}", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,0,0,10) });
+        string[] files = Directory.Exists(_profilesDirectory) ? Directory.GetFiles(_profilesDirectory, "*.json") : Array.Empty<string>();
+        foreach (string file in files)
+        {
+            try
+            {
+                EditorProfileData? data = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(file));
+                if (data is null) continue;
+                Grid row = new() { Margin = new Thickness(0,3,0,3) };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                row.Children.Add(new Ellipse { Width = 12, Height = 12, Fill = BrushFrom(data.ColorHex), VerticalAlignment = VerticalAlignment.Center });
+                TextBlock label = new() { Text = data.Name, Foreground = BrushFrom("#FFE3E5EA"), VerticalAlignment = VerticalAlignment.Center };
+                Grid.SetColumn(label,1); row.Children.Add(label);
+                StackPanel actions = new() { Orientation = Orientation.Horizontal };
+                Button load = CreatePanelButton("Открыть"); load.Width = 72;
+                load.Click += (_, _) => { SaveCurrentProfile(); LoadProfile(file); CloseModal(); };
+                Button edit = CreatePanelButton("Изменить"); edit.Width = 72; edit.Margin = new Thickness(5,0,0,0);
+                edit.Click += (_, _) => ShowProfileEditor(data, file);
+                Button delete = CreatePanelButton("×"); delete.Width = 32; delete.Margin = new Thickness(5,0,0,0);
+                delete.Click += (_, _) => { if (string.Equals(Path.GetFullPath(file), Path.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase)) return; File.Delete(file); ShowProfilesManager(); };
+                actions.Children.Add(load); actions.Children.Add(edit); actions.Children.Add(delete);
+                Grid.SetColumn(actions,2); row.Children.Add(actions);
+                body.Children.Add(row);
+            }
+            catch (Exception ex) { Debug.WriteLine(ex.Message); }
+        }
+        Button create = CreatePanelButton("＋  Создать профиль");
+        create.Margin = new Thickness(0,12,0,0);
+        create.Click += (_, _) => ShowProfileEditor(null, null);
+        body.Children.Add(create);
+        ShowModal("ЛОКАЛЬНЫЕ ПРОФИЛИ", body, ("Закрыть", CloseModal));
+    }
+
+    private void ShowProfileEditor(EditorProfileData? existing, string? oldPath)
+    {
+        TextBox name = new() { Text = existing?.Name ?? "Новый профиль", Height = 32, Padding = new Thickness(8,5,8,5), Background = BrushFrom("#FF191B22"), Foreground = BrushFrom("#FFE3E5EA"), BorderBrush = BrushFrom("#FF454A55") };
+        _dialogColor = existing?.ColorHex ?? "#FF6D8CFF";
+        StackPanel colors = BuildColorSwatches(color => _dialogColor = color, _dialogColor);
+        StackPanel body = new();
+        body.Children.Add(new TextBlock { Text = "Название профиля", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,0,0,5) });
+        body.Children.Add(name);
+        body.Children.Add(new TextBlock { Text = "Цвет профиля", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,12,0,5) });
+        body.Children.Add(colors);
+        ShowModal(existing is null ? "СОЗДАТЬ ПРОФИЛЬ" : "НАСТРОЙКА ПРОФИЛЯ", body,
+            ("Отмена", ShowProfilesManager),
+            (existing is null ? "Создать" : "Сохранить", () =>
+            {
+                string profileName = name.Text.Trim();
+                if (profileName.Length == 0) { ToolStatusText.Text = "Введите название профиля."; return; }
+                string newPath = ProfilePath(profileName);
+                if (existing is not null && oldPath is not null && !string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase) && File.Exists(newPath))
+                { ToolStatusText.Text = "Профиль с таким названием уже существует."; return; }
+                if (existing is null)
+                {
+                    _activeProfileName = profileName;
+                    _activeProfileColor = _dialogColor;
+                }
+                else
+                {
+                    if (oldPath is not null && !string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase) && File.Exists(oldPath)) File.Delete(oldPath);
+                    _activeProfileName = profileName;
+                    _activeProfileColor = _dialogColor;
+                }
+                SaveCurrentProfile(); UpdateProfileButton(); CloseModal();
+            }));
+    }
+
+    private void UpdateProfileButton()
+    {
+        if (_profileButton?.Content is TextBlock glyph) glyph.Foreground = BrushFrom(_activeProfileColor);
+        if (_profileButton is not null) _profileButton.ToolTip = $"Профили · {_activeProfileName}";
+    }
+
+    private void ShowModal(string title, UIElement body, params (string Text, Action Action)[] actions)
+    {
+        ModalOverlay.Children.Clear();
+        Grid cardGrid = new();
+        cardGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(48) });
+        cardGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        cardGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(54) });
+        Border card = new() { Width = 540, MaxHeight = 500, Background = BrushFrom("#FF252832"), BorderBrush = BrushFrom("#FF4A505D"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10), Padding = new Thickness(20), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Child = cardGrid };
+        cardGrid.Children.Add(new TextBlock { Text = title, Foreground = BrushFrom("#FFE5E8EF"), FontSize = 12, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        Border bodyBorder = new() { Child = body, Margin = new Thickness(0,8,0,8) };
+        Grid.SetRow(bodyBorder,1); cardGrid.Children.Add(bodyBorder);
+        StackPanel footer = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+        foreach (var action in actions)
+        {
+            Button button = CreatePanelButton(action.Text);
+            button.MinWidth = 90; button.Margin = new Thickness(6,0,0,0);
+            button.Click += (_, _) => action.Action();
+            footer.Children.Add(button);
+        }
+        Grid.SetRow(footer,2); cardGrid.Children.Add(footer);
+        ModalOverlay.Children.Add(card);
+        ModalOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void CloseModal()
+    {
+        ModalOverlay.Visibility = Visibility.Collapsed;
+        ModalOverlay.Children.Clear();
+        Focus();
+    }
+
     private void ReleasePointer()
     {
         _isPointerDown = false;
@@ -619,6 +930,21 @@ public partial class MainWindow : Window
         _ = DwmSetWindowAttribute(handle, DwmwaWindowCornerPreference, ref preference, sizeof(int));
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DeviceBroadcastInterface
+    {
+        public int Size;
+        public int DeviceType;
+        public int Reserved;
+        public Guid ClassGuid;
+        public char Name;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr RegisterDeviceNotification(IntPtr recipient, IntPtr notificationFilter, int flags);
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UnregisterDeviceNotification(IntPtr handle);
+
     [DllImport("dwmapi.dll", PreserveSig = true)]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int attributeValue, int attributeSize);
 }
@@ -626,3 +952,25 @@ public partial class MainWindow : Window
 internal sealed class KeyboardLayoutConfig { public List<KeyboardKeyConfig> Keys { get; set; } = new(); }
 internal sealed class KeyboardKeyConfig { public string Key { get; set; } = string.Empty; public List<KeyboardKeyArea> Areas { get; set; } = new(); }
 internal sealed class KeyboardKeyArea { public double X { get; set; } public double Y { get; set; } public double Width { get; set; } public double Height { get; set; } }
+
+internal sealed class EditorGroup
+{
+    public string Name { get; set; } = "Группа";
+    public string ColorHex { get; set; } = "#FF6D8CFF";
+    public string State { get; set; } = "Статичный";
+    public HashSet<string> Keys { get; set; } = new(StringComparer.Ordinal);
+}
+internal sealed class EditorGroupData
+{
+    public string Name { get; set; } = "Группа";
+    public string ColorHex { get; set; } = "#FF6D8CFF";
+    public string State { get; set; } = "Статичный";
+    public List<string> Keys { get; set; } = new();
+}
+internal sealed class EditorProfileData
+{
+    public string Name { get; set; } = "Основной";
+    public string ColorHex { get; set; } = "#FF6D8CFF";
+    public Dictionary<string, string> KeyColors { get; set; } = new(StringComparer.Ordinal);
+    public List<EditorGroupData> Groups { get; set; } = new();
+}
