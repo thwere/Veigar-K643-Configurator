@@ -77,6 +77,7 @@ public partial class MainWindow : Window
         Deactivated += (_, _) => ReleasePointer();
         InitializeProfiles();
         UpdateProfileButton();
+        _reconnectTimer.Start();
         _hardwareUpdateTimer.Tick += async (_, _) =>
         {
             _hardwareUpdateTimer.Stop();
@@ -779,7 +780,12 @@ public partial class MainWindow : Window
             Button edit = CreatePanelButton("✎"); edit.Width = 30; edit.Margin = new Thickness(4,0,0,0); edit.ToolTip = "Настроить группу";
             edit.Click += (_, _) => ShowGroupEditor(group);
             Button delete = CreatePanelButton("×"); delete.Width = 28; delete.Margin = new Thickness(3,0,0,0); delete.ToolTip = "Удалить группу";
-            delete.Click += (_, _) => { _groups.Remove(group); RenderSelection(); ScheduleProfileSave(); ShowGroupsManager(); };
+            delete.Click += (_, _) =>
+            {
+                ShowModal("УДАЛИТЬ ГРУППУ?", new TextBlock { Text = $"Удалить группу «{group.Name}»? Клавиши останутся с текущими цветами.", Foreground = BrushFrom("#FFE3E5EA"), TextWrapping = TextWrapping.Wrap },
+                    ("Удалить", () => { PushUndoSnapshot(); _groups.Remove(group); RenderSelection(); ScheduleProfileSave(); CloseModal(); ShowGroupsManager(); }),
+                    ("Отмена", CloseModal));
+            };
             actions.Children.Add(edit); actions.Children.Add(delete);
             Grid.SetColumn(actions,2); row.Children.Add(actions);
             _groupManagerContent.Children.Add(row);
@@ -871,13 +877,46 @@ public partial class MainWindow : Window
                 Button edit = CreatePanelButton("Изменить"); edit.Width = 72; edit.Margin = new Thickness(5,0,0,0);
                 edit.Click += (_, _) => ShowProfileEditor(data, file);
                 Button delete = CreatePanelButton("×"); delete.Width = 32; delete.Margin = new Thickness(5,0,0,0);
-                delete.Click += (_, _) => { if (string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase)) return; File.Delete(file); ShowProfilesManager(); };
+                delete.Click += (_, _) =>
+                {
+                    int profileCount = Directory.GetFiles(_profilesDirectory, "*.json").Length;
+                    bool isActive = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
+                    if (profileCount <= 1 || isActive) { ToolStatusText.Text = profileCount <= 1 ? "Последний профиль удалить нельзя." : "Сначала переключитесь на другой профиль."; return; }
+                    ShowModal("ПОДТВЕРДИТЕ УДАЛЕНИЕ", new TextBlock { Text = $"Удалить профиль «{data.Name}»? Это действие нельзя отменить.", Foreground = BrushFrom("#FFE3E5EA"), TextWrapping = TextWrapping.Wrap },
+                        ("Удалить", () => { File.Delete(file); CloseModal(); ShowProfilesManager(); }), ("Отмена", CloseModal));
+                };
                 actions.Children.Add(load); actions.Children.Add(edit); actions.Children.Add(delete);
                 Grid.SetColumn(actions,2); row.Children.Add(actions);
                 body.Children.Add(row);
             }
             catch (Exception ex) { Debug.WriteLine(ex.Message); }
         }
+        StackPanel transfer = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0,10,0,0) };
+        Button export = CreatePanelButton("Экспорт"); export.Margin = new Thickness(0,0,6,0);
+        export.Click += (_, _) =>
+        {
+            Microsoft.Win32.SaveFileDialog dialog = new() { Filter = "JSON profile (*.json)|*.json", FileName = SafeFileName(_activeProfileName) + ".json" };
+            if (dialog.ShowDialog(this) == true) { SaveCurrentProfile(); File.Copy(ProfilePath(_activeProfileName), dialog.FileName, true); }
+        };
+        Button import = CreatePanelButton("Импорт");
+        import.Click += (_, _) =>
+        {
+            Microsoft.Win32.OpenFileDialog dialog = new() { Filter = "JSON profile (*.json)|*.json" };
+            if (dialog.ShowDialog(this) == true)
+            {
+                try
+                {
+                    EditorProfileData? imported = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(dialog.FileName));
+                    if (imported is null || string.IsNullOrWhiteSpace(imported.Name)) throw new InvalidDataException("Invalid profile.");
+                    string target = ProfilePath(imported.Name);
+                    if (File.Exists(target)) { ToolStatusText.Text = "Профиль с таким названием уже существует."; return; }
+                    File.Copy(dialog.FileName, target);
+                    ShowProfilesManager();
+                }
+                catch (Exception ex) { ToolStatusText.Text = "Не удалось импортировать профиль: " + ex.Message; }
+            }
+        };
+        transfer.Children.Add(export); transfer.Children.Add(import); body.Children.Add(transfer);
         Button create = CreatePanelButton("＋  Создать профиль");
         create.Margin = new Thickness(0,12,0,0);
         create.Click += (_, _) => ShowProfileEditor(null, null);
@@ -936,8 +975,16 @@ public partial class MainWindow : Window
 
     private void UpdateProfileButton()
     {
-        if (_profileButton?.Content is TextBlock glyph) glyph.Foreground = BrushFrom(_activeProfileColor);
-        if (_profileButton is not null) _profileButton.ToolTip = $"Профили · {_activeProfileName}";
+        if (_profileButton is not null)
+        {
+            StackPanel content = new() { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8,0,8,0) };
+            content.Children.Add(new Ellipse { Width = 10, Height = 10, Fill = BrushFrom(_activeProfileColor), Margin = new Thickness(0,0,8,0), VerticalAlignment = VerticalAlignment.Center });
+            content.Children.Add(new TextBlock { Text = _activeProfileName, Foreground = BrushFrom("#FFE3E5EA"), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 120 });
+            content.Children.Add(new TextBlock { Text = "  ⋯", Foreground = BrushFrom("#FFB8BEC9"), VerticalAlignment = VerticalAlignment.Center });
+            _profileButton.Content = content;
+            _profileButton.ToolTip = "Профили и действия";
+            _profileButton.Width = 180;
+        }
     }
 
     private void ShowModal(string title, UIElement body, params (string Text, Action Action)[] actions)
