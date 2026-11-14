@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#191b22">
+  <title>Veigar K643 — Menu Prototype</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #191b22;
+      --panel: #22252e;
+      --rail: #191b22;
+      --rail-line: #30343d;
+      --circle: #30343d;
+      --circle-border: #555b68;
+      --text: #e3e5ea;
+      --panel-width: 240px;
+      --rail-width: 36px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      min-width: 320px;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--page);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    /* The page is only a neutral stage for the drawer component. */
+    .stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: var(--page);
+    }
+
+    .drawer {
+      position: absolute;
+      inset: 0 0 0 auto;
+      display: flex;
+      height: 100%;
+      width: var(--rail-width);
+      transition: width 220ms cubic-bezier(.4, 0, .2, 1);
+      will-change: width;
+    }
+
+    .drawer.is-open { width: calc(var(--panel-width) + var(--rail-width)); }
+
+    .drawer__content {
+      flex: 0 0 0;
+      min-width: 0;
+      overflow: hidden;
+      background: var(--panel);
+      border-left: 1px solid #383c47;
+      opacity: 0;
+      transition: flex-basis 220ms cubic-bezier(.4, 0, .2, 1), opacity 120ms ease;
+    }
+
+    .drawer.is-open .drawer__content {
+      flex-basis: var(--panel-width);
+      opacity: 1;
+    }
+
+    .drawer__rail {
+      position: relative;
+      flex: 0 0 var(--rail-width);
+      height: 100%;
+      background: var(--rail);
+    }
+
+    .drawer__rail-line {
+      position: absolute;
+      inset: 0 0 0 auto;
+      width: 7px;
+      background: var(--rail-line);
+    }
+
+    .drawer__toggle {
+      position: absolute;
+      z-index: 1;
+      top: 50%;
+      left: 50%;
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      transform: translate(-50%, -50%);
+      border: 1px solid var(--circle-border);
+      border-radius: 50%;
+      background: var(--circle);
+      color: var(--text);
+      cursor: pointer;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, opacity 100ms ease;
+    }
+
+    .drawer__toggle:hover {
+      background: #fff;
+      border-color: #fff;
+      color: var(--page);
+    }
+
+    .drawer__toggle:active { opacity: .82; }
+    .drawer__toggle:focus-visible { outline: 2px solid #aab2c2; outline-offset: 3px; }
+
+    .drawer__arrow {
+      display: block;
+      font-size: 16px;
+      line-height: 1;
+      font-weight: 600;
+      transform: translateY(-1px);
+      user-select: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .drawer, .drawer__content, .drawer__toggle { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage" aria-label="Предпросмотр выдвижного меню">
+    <aside class="drawer" id="drawer">
+      <section class="drawer__content" aria-hidden="true"></section>
+      <div class="drawer__rail">
+        <div class="drawer__rail-line" aria-hidden="true"></div>
+        <button class="drawer__toggle" id="drawerToggle" type="button"
+                aria-label="Открыть панель" aria-expanded="false" aria-controls="drawerContent">
+          <span class="drawer__arrow" id="drawerArrow" aria-hidden="true">&lt;</span>
+        </button>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const drawer = document.getElementById("drawer");
+    const toggle = document.getElementById("drawerToggle");
+    const arrow = document.getElementById("drawerArrow");
+    const content = drawer.querySelector(".drawer__content");
+
+    function setOpen(open) {
+      drawer.classList.toggle("is-open", open);
+      arrow.textContent = open ? ">" : "<";
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.setAttribute("aria-label", open ? "Закрыть панель" : "Открыть панель");
+      content.setAttribute("aria-hidden", String(!open));
+    }
+
+    toggle.addEventListener("click", () => {
+      setOpen(toggle.getAttribute("aria-expanded") !== "true");
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && toggle.getAttribute("aria-expanded") === "true") {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+  </script>
+</body>
+</html>
