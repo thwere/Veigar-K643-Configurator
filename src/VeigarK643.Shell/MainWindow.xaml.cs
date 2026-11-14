@@ -197,6 +197,27 @@ public partial class MainWindow : Window
         return new FontFamily("Segoe MDL2 Assets");
     }
 
+    private bool _toolsPanelIsOpen;
+
+    private void ToolsPanelToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _toolsPanelIsOpen = !_toolsPanelIsOpen;
+        double targetWidth = _toolsPanelIsOpen ? 240 : 0;
+
+        ToolsPanel.BeginAnimation(WidthProperty, new System.Windows.Media.Animation.DoubleAnimation
+        {
+            To = targetWidth,
+            Duration = TimeSpan.FromMilliseconds(220),
+            EasingFunction = new System.Windows.Media.Animation.CubicEase
+            {
+                EasingMode = System.Windows.Media.Animation.EasingMode.EaseInOut
+            }
+        });
+
+        ToolsPanelToggleGlyph.Text = _toolsPanelIsOpen ? "\uE76B" : "\uE76C";
+        ToolsPanelToggle.ToolTip = _toolsPanelIsOpen ? "Close tools panel" : "Open tools panel";
+    }
+
     private void Minimize_Click(object sender, RoutedEventArgs e)
     {
         WindowState = WindowState.Minimized;
