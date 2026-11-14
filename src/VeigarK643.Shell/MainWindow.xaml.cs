@@ -646,7 +646,7 @@ public partial class MainWindow : Window
         return string.IsNullOrWhiteSpace(name) ? "Profile" : name.Trim();
     }
 
-    private string ProfilePath(string name) => Path.Combine(_profilesDirectory, SafeFileName(name) + ".json");
+    private string ProfilePath(string name) => IOPath.Combine(_profilesDirectory, SafeFileName(name) + ".json");
 
     private void SaveCurrentProfile()
     {
@@ -792,7 +792,7 @@ public partial class MainWindow : Window
                 Button edit = CreatePanelButton("Изменить"); edit.Width = 72; edit.Margin = new Thickness(5,0,0,0);
                 edit.Click += (_, _) => ShowProfileEditor(data, file);
                 Button delete = CreatePanelButton("×"); delete.Width = 32; delete.Margin = new Thickness(5,0,0,0);
-                delete.Click += (_, _) => { if (string.Equals(IOPath.GetFullPath(file), Path.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase)) return; File.Delete(file); ShowProfilesManager(); };
+                delete.Click += (_, _) => { if (string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase)) return; File.Delete(file); ShowProfilesManager(); };
                 actions.Children.Add(load); actions.Children.Add(edit); actions.Children.Add(delete);
                 Grid.SetColumn(actions,2); row.Children.Add(actions);
                 body.Children.Add(row);
