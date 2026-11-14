@@ -1,12 +1,12 @@
-name: Build portable pre-release # v0.0.3
+name: Build portable pre-release
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Pre-release version (for example v0.0.3)"
+        description: "Pre-release version (for example v0.1.0)"
         required: true
-        default: "v0.0.3"
+        default: "v0.1.0"
         type: string
   push:
     branches:
@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   build-and-release:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.head_commit.message == 'release-v0.0.3') || (github.event_name == 'push' && github.ref_type == 'tag' && github.event.created == true)
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'release-v')) || (github.event_name == 'push' && github.ref_type == 'tag' && github.event.created == true)
     runs-on: windows-latest
     steps:
       - name: Validate version
@@ -28,11 +28,14 @@ jobs:
           if ($env:GITHUB_REF_TYPE -eq "tag") {
             $version = $env:GITHUB_REF_NAME
           } elseif ($env:GITHUB_EVENT_NAME -eq "push") {
-            $version = "v0.0.3"
+            $event = Get-Content $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
+            $message = $event.head_commit.message
+            if ($message -notmatch '^release-(v[0-9]+\.[0-9]+\.[0-9]+)$') { throw "Release commit message must be release-vMAJOR.MINOR.PATCH." }
+            $version = $Matches[1]
           } else {
             $version = "${{ inputs.version }}"
           }
-          if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "Version must use vMAJOR.MINOR.PATCH format, for example v0.0.3" }
+          if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "Version must use vMAJOR.MINOR.PATCH format, for example v0.1.0" }
           "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
 
       - name: Checkout release source
@@ -67,7 +70,7 @@ jobs:
         run: |
           $tag = $env:RELEASE_VERSION
           $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
-          $notes = "Veigar K643 Configurator v0.0.3. Hides mouse hitboxes, fixes the window size, and adds HID Feature Report RGB feedback for virtual key presses using the measured 126-slot LED map. Physical keyboard event highlighting remains disabled."
+          $notes = "Veigar K643 Configurator $tag. Adds the persistent top toolbar host and an animated collapsible right-side tools panel. The keyboard workspace resizes to make room for the panel. Tool functionality will be added incrementally."
 
           $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) {
@@ -81,4 +84,5 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Failed to update release metadata for $tag." }
           } else {
             gh release create $tag $archive --repo "${{ github.repository }}" --target main --title $tag --prerelease --notes $notes
+            if ($LASTEXITCODE -ne 0) { throw "Failed to create pre-release $tag." }
           }
