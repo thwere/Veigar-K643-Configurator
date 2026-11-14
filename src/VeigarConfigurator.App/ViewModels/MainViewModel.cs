@@ -1099,14 +1099,10 @@ namespace VeigarConfigurator.App.ViewModels
         {
             if (KeyboardKeys == null) return;
 
-            Brush pressedBrush = new SolidColorBrush(Color.FromArgb(235, 47, 190, 177));
+            Brush pressedBrush = new SolidColorBrush(Color.FromArgb(155, 47, 190, 177));
             Brush selectedBorder = new SolidColorBrush(Color.FromRgb(232, 87, 98));
-            Brush normalBorder = new SolidColorBrush(IsLightTheme
-                ? Color.FromRgb(117, 132, 148)
-                : Color.FromRgb(93, 107, 123));
-            Brush defaultKeyBrush = new SolidColorBrush(IsLightTheme
-                ? Color.FromRgb(248, 250, 252)
-                : Color.FromRgb(57, 67, 80));
+            Brush normalBorder = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+            Brush defaultKeyBrush = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
 
             foreach (KeyboardKeyViewModel key in KeyboardKeys)
             {
@@ -1122,7 +1118,7 @@ namespace VeigarConfigurator.App.ViewModels
                     if (PaintOnPhysicalPress)
                     {
                         key.Brush = new SolidColorBrush(Color.FromArgb(
-                            245, ToByte(RedValue), ToByte(GreenValue), ToByte(BlueValue)));
+                            160, ToByte(RedValue), ToByte(GreenValue), ToByte(BlueValue)));
                     }
                     else
                     {
@@ -1136,7 +1132,7 @@ namespace VeigarConfigurator.App.ViewModels
                     bool isOff = colour.R == 0 && colour.G == 0 && colour.B == 0;
                     key.Brush = isOff
                         ? defaultKeyBrush
-                        : new SolidColorBrush(Color.FromArgb(220, colour.R, colour.G, colour.B));
+                        : new SolidColorBrush(Color.FromArgb(150, colour.R, colour.G, colour.B));
                 }
                 else
                 {

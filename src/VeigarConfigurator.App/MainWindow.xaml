@@ -425,8 +425,8 @@
                     BorderThickness="{TemplateBinding BorderThickness}"
                     CornerRadius="5" Padding="1">
               <Border x:Name="KeyFace" Background="Transparent"
-                      BorderBrush="{DynamicResource KeyTopEdgeBrush}"
-                      BorderThickness="1,1,0,0" CornerRadius="4">
+                      BorderBrush="Transparent"
+                      BorderThickness="0" CornerRadius="4">
                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                                   RecognizesAccessKey="True"
                                   TextElement.Foreground="{TemplateBinding Foreground}"
@@ -560,10 +560,17 @@
                   <Border Background="{DynamicResource PanelSecondaryBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="13" Padding="14" MinWidth="1020">
                     <StackPanel>
                       <TextBlock Text="REDRAGON VEIGAR K643  ·  FULL KEY MAP" Foreground="{DynamicResource MutedBrush}" FontSize="9" FontWeight="Bold" Margin="3,0,0,12"/>
-                      <Grid Width="1000" Height="371" Background="{DynamicResource KeyboardCanvasBrush}">
-                        <ItemsControl ItemsSource="{Binding KeyboardKeys}" Width="1000" Height="371">
+                      <Grid Width="1000" Height="370.618">
+                        <Image Source="/assets/branding/key.png"
+                               Width="1000"
+                               Height="370.618"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               IsHitTestVisible="False"
+                               SnapsToDevicePixels="True"/>
+                        <ItemsControl ItemsSource="{Binding KeyboardKeys}" Width="1000" Height="370.618">
                           <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><Canvas Width="1000" Height="371"/></ItemsPanelTemplate>
+                            <ItemsPanelTemplate><Canvas Width="1000" Height="370.618"/></ItemsPanelTemplate>
                           </ItemsControl.ItemsPanel>
                           <ItemsControl.ItemContainerStyle>
                             <Style TargetType="{x:Type ContentPresenter}">
@@ -575,7 +582,8 @@
                             <DataTemplate>
                               <Button Style="{StaticResource KeyButtonStyle}"
                                       Width="{Binding Width}" Height="{Binding Height}"
-                                      Content="{Binding Label}"
+                                      Content=""
+                                      AutomationProperties.Name="{Binding Label}"
                                       Command="{Binding DataContext.SelectKeyboardKeyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                       CommandParameter="{Binding KeyId}"/>
                             </DataTemplate>

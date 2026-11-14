@@ -8,4 +8,7 @@
     <RootNamespace>VeigarK643.Shell</RootNamespace>
     <AssemblyName>Veigar K643 Configurator</AssemblyName>
   </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="..\..\assets\branding\key.png" Link="assets\branding\key.png" />
+  </ItemGroup>
 </Project>

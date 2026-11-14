@@ -57,6 +57,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="..\..\assets\branding\key.png">
+      <Link>assets\branding\key.png</Link>
+    </Resource>
     <ApplicationDefinition Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
