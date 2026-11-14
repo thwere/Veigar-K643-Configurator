@@ -39,6 +39,7 @@ public partial class MainWindow : Window
     private string _dialogColor = "#FF6D8CFF";
     private IntPtr _deviceNotification = IntPtr.Zero;
     private int _reconnectAttempts;
+    private string? _lastHardwareFrameSignature;
     private EditorTool _activeTool = EditorTool.Brush;
     private Color _currentColor = Colors.Red;
     private bool _toolsPanelIsOpen;
@@ -90,7 +91,7 @@ public partial class MainWindow : Window
         _reconnectTimer.Tick += async (_, _) =>
         {
             _reconnectTimer.Stop();
-            bool sent = await SendHardwareFrameAsync();
+            bool sent = await SendHardwareFrameAsync(force: true);
             if (!sent && ++_reconnectAttempts < 10) _reconnectTimer.Start();
         };
     }
@@ -583,10 +584,18 @@ public partial class MainWindow : Window
         _hardwareUpdateTimer.Start();
     }
 
-    private async Task<bool> SendHardwareFrameAsync()
+    private async Task<bool> SendHardwareFrameAsync(bool force = false)
     {
         Dictionary<string, Color> frame = new(_keyColors, StringComparer.Ordinal);
-        try { await VeigarK643HidController.SendColorsAsync(frame); return true; }
+        string signature = string.Join("|", frame.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => $"{pair.Key}:{pair.Value.R:X2}{pair.Value.G:X2}{pair.Value.B:X2}"));
+        if (!force && string.Equals(signature, _lastHardwareFrameSignature, StringComparison.Ordinal)) return true;
+        try
+        {
+            await VeigarK643HidController.SendColorsAsync(frame);
+            _lastHardwareFrameSignature = signature;
+            return true;
+        }
         catch (Exception ex)
         {
             Debug.WriteLine("Veigar K643 HID: " + ex.Message);
