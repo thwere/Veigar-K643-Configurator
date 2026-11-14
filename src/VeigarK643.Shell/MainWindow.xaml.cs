@@ -42,6 +42,7 @@ public partial class MainWindow : Window
     private Canvas? _colorField;
     private Ellipse? _colorThumb;
     private Border? _colorPreview;
+    private TextBlock? _colorHexText;
     private Slider? _brightnessSlider;
     private Slider? _saturationSlider;
     private double _selectedHue;
@@ -61,6 +62,7 @@ public partial class MainWindow : Window
         SetActiveTool(EditorTool.Brush);
         SourceInitialized += (_, _) => DisableRoundedCorners();
         Deactivated += (_, _) => ReleasePointer();
+        _ = SendHardwareFrameAsync();
     }
 
     private void CreateKeyVisuals()
@@ -196,7 +198,8 @@ public partial class MainWindow : Window
         previewRow.Children.Add(_colorPreview);
         StackPanel previewText = new();
         previewText.Children.Add(new TextBlock { Text = "Предпросмотр", Foreground = BrushFrom("#FFE0E3E9"), FontSize = 11 });
-        previewText.Children.Add(new TextBlock { Text = "#FF0000", Name = "ColorHexText", Foreground = BrushFrom("#FF9299A7"), FontSize = 10, Margin = new Thickness(0,3,0,0) });
+         _colorHexText = new TextBlock { Text = "#FF0000", Foreground = BrushFrom("#FF9299A7"), FontSize = 10, Margin = new Thickness(0,3,0,0) };
+        previewText.Children.Add(_colorHexText);
         previewRow.Children.Add(previewText);
         root.Children.Add(previewRow);
 
@@ -329,7 +332,11 @@ public partial class MainWindow : Window
                 Rect area = new(_dragStart, point);
                 if (!_shiftAtStart) _selectedKeys.Clear();
                 foreach (KeyValuePair<string, List<Rect>> entry in _keyBounds)
-                    if (entry.Value.Any(bounds => area.IntersectsWith(bounds))) _selectedKeys.Add(entry.Key);
+                    if (entry.Value.Any(bounds => area.IntersectsWith(bounds)))
+                    {
+                        if (_shiftAtStart && !_selectedKeys.Add(entry.Key)) _selectedKeys.Remove(entry.Key);
+                        else if (!_shiftAtStart) _selectedKeys.Add(entry.Key);
+                    }
             }
             else
             {
@@ -421,24 +428,34 @@ public partial class MainWindow : Window
     private void RenderSelection()
     {
         SelectionOverlayCanvas.Children.Clear();
-        if (_selectedKeys.Count == 0) return;
+        foreach (HashSet<string> group in _groups)
+            AddOutline(group, "#FFCCAA72", 1.4, 18);
+        if (_selectedKeys.Count > 0)
+            AddOutline(_selectedKeys, "#FF9DB7FF", 1.6, 24);
+    }
+
+    private void AddOutline(IEnumerable<string> keys, string stroke, double thickness, byte fillAlpha)
+    {
         Geometry? combined = null;
-        foreach (string key in _selectedKeys)
+        foreach (string key in keys)
         {
             if (!_keyBounds.TryGetValue(key, out List<Rect>? bounds)) continue;
             foreach (Rect rect in bounds)
             {
                 Rect expanded = rect;
-                expanded.Inflate(2.2,2.2);
+                expanded.Inflate(2.2, 2.2);
                 Geometry next = new RectangleGeometry(expanded, 4, 4);
                 combined = combined is null ? next : Geometry.Combine(combined, next, GeometryCombineMode.Union, null);
             }
         }
         if (combined is null) return;
-        Path outline = new()
+        Color outlineColor = (Color)ColorConverter.ConvertFromString(stroke)!;
+        System.Windows.Shapes.Path outline = new()
         {
-            Data = combined, Stroke = BrushFrom("#FF9DB7FF"), StrokeThickness = 1.5,
-            Fill = new SolidColorBrush(Color.FromArgb(22,125,165,255)),
+            Data = combined,
+            Stroke = new SolidColorBrush(outlineColor),
+            StrokeThickness = thickness,
+            Fill = new SolidColorBrush(Color.FromArgb(fillAlpha, outlineColor.R, outlineColor.G, outlineColor.B)),
             IsHitTestVisible = false
         };
         SelectionOverlayCanvas.Children.Add(outline);
@@ -488,7 +505,7 @@ public partial class MainWindow : Window
         double value = _selectedValue * _brightnessSlider.Value;
         _currentColor = HsvToColor(_selectedHue, _selectedSaturation, value);
         if (_colorPreview is not null) _colorPreview.Background = new SolidColorBrush(_currentColor);
-        if (ToolsPanelContent.FindName("ColorHexText") is TextBlock hex) hex.Text = $"#{_currentColor.R:X2}{_currentColor.G:X2}{_currentColor.B:X2}";
+        if (_colorHexText is not null) _colorHexText.Text = $"#{_currentColor.R:X2}{_currentColor.G:X2}{_currentColor.B:X2}";
     }
 
     private static Color HsvToColor(double hue, double saturation, double value)
