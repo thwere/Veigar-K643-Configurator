@@ -7,9 +7,9 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>VeigarK643.Shell</RootNamespace>
     <AssemblyName>Veigar K643 Configurator</AssemblyName>
-    <Version>0.1.1</Version>
-    <AssemblyVersion>0.1.1.0</AssemblyVersion>
-    <FileVersion>0.1.1.0</FileVersion>
+    <Version>0.2.0</Version>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <FileVersion>0.2.0.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="..\..\assets\branding\key.png" Link="assets\branding\key.png" />
