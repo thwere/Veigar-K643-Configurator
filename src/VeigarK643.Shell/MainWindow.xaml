@@ -3,11 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Veigar K643 Configurator"
-        Height="350"
-        Width="760"
+        Height="450"
+        Width="800"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         AllowsTransparency="False"
         Background="#FF191B22"
         SnapsToDevicePixels="True"
@@ -16,7 +16,7 @@
 
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="42"
-                            ResizeBorderThickness="0"
+                            ResizeBorderThickness="6"
                             CornerRadius="0"
                             GlassFrameThickness="0"
                             UseAeroCaptionButtons="False" />
@@ -117,7 +117,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="140" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="98" />
+                    <ColumnDefinition Width="138" />
                 </Grid.ColumnDefinitions>
 
                 <!-- Reserved PNG slot; replace the placeholder when the app icon is ready. -->
@@ -164,6 +164,14 @@
                             Click="Minimize_Click">
                         <TextBlock x:Name="MinimizeGlyph"
                                    Text="&#xE921;"
+                                   FontFamily="Segoe Fluent Icons"
+                                   FontSize="10" />
+                    </Button>
+
+                    <Button Style="{StaticResource CaptionButtonStyle}"
+                            Click="MaximizeRestore_Click">
+                        <TextBlock x:Name="MaximizeGlyph"
+                                   Text="&#xE922;"
                                    FontFamily="Segoe Fluent Icons"
                                    FontSize="10" />
                     </Button>
