@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -234,4 +236,24 @@ public partial class MainWindow : Window
         int attribute,
         ref int attributeValue,
         int attributeSize);
+}
+
+
+internal sealed class KeyboardLayoutConfig
+{
+    public List<KeyboardKeyConfig> Keys { get; set; } = new();
+}
+
+internal sealed class KeyboardKeyConfig
+{
+    public string Key { get; set; } = string.Empty;
+    public List<KeyboardKeyArea> Areas { get; set; } = new();
+}
+
+internal sealed class KeyboardKeyArea
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
 }
