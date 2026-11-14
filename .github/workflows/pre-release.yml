@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   build-and-release:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main') || (github.event_name == 'push' && github.ref_type == 'tag' && github.event.created == true)
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref_type == 'tag' && github.event.created == true)
     runs-on: windows-latest
     steps:
       - name: Validate version
@@ -28,8 +28,7 @@ jobs:
           if ($env:GITHUB_REF_TYPE -eq "tag") {
             $version = $env:GITHUB_REF_NAME
           } elseif ($env:GITHUB_EVENT_NAME -eq "push") {
-            [xml]$project = Get-Content "src/VeigarK643.Shell/VeigarK643.Shell.csproj"
-            $version = "v" + $project.Project.PropertyGroup[0].Version
+            $version = "v0.0.3"
           } else {
             $version = "${{ inputs.version }}"
           }
