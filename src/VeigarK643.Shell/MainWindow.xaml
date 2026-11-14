@@ -98,7 +98,12 @@
                 </Border>
                 <Border x:Name="ToolsPanel" Grid.Column="1" Width="0" Background="#FF22252E" BorderBrush="#FF383C47" BorderThickness="1,0,0,0" ClipToBounds="True"><Grid x:Name="ToolsPanelContent" /></Border>
                 <Grid Grid.Column="2" Background="Transparent">
-                    <Border x:Name="ToolsPanelHandleBar" Width="25" HorizontalAlignment="Right" Background="{StaticResource HandleBarBrush}" />
+                    <Grid.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ToolsPanelHandleBar" Property="Background" Value="#FF3A3E47" />
+                        </Trigger>
+                    </Grid.Triggers>
+                    <Border x:Name="ToolsPanelHandleBar" Width="25" HorizontalAlignment="Right" Background="#FF30343D" />
                     <Button x:Name="ToolsPanelToggle" Width="34" Height="34" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0" Background="Transparent" Foreground="#FFADB2BC" BorderThickness="0" Cursor="Hand" Focusable="False" Click="ToolsPanelToggle_Click">
                         <Button.Template><ControlTemplate TargetType="{x:Type Button}">
                             <Border x:Name="ToggleCircle" Width="34" Height="34" CornerRadius="17" Background="#FF30343D" BorderBrush="#FF555B68" BorderThickness="1,0,0,0"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
@@ -108,19 +113,14 @@
                                     <Trigger.EnterActions><BeginStoryboard><Storyboard>
                                         <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)" To="#FF3A3E47" Duration="0:0:0.18" />
                                         <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)" To="#FF626875" Duration="0:0:0.18" />
-                                        <ColorAnimation Storyboard.TargetName="HandleBarBrush" Storyboard.TargetProperty="Color" To="#FF3A3E47" Duration="0:0:0.18" />
                                     </Storyboard></BeginStoryboard></Trigger.EnterActions>
                                     <Trigger.ExitActions><BeginStoryboard><Storyboard>
                                         <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)" To="#FF30343D" Duration="0:0:0.18" />
                                         <ColorAnimation Storyboard.TargetName="ToggleCircle" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)" To="#FF555B68" Duration="0:0:0.18" />
-                                        <ColorAnimation Storyboard.TargetName="HandleBarBrush" Storyboard.TargetProperty="Color" To="#FF30343D" Duration="0:0:0.18" />
                                     </Storyboard></BeginStoryboard></Trigger.ExitActions>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True"><Setter TargetName="ToggleCircle" Property="Opacity" Value="0.82" /></Trigger>
                             </ControlTemplate.Triggers>
-                            <ControlTemplate.Resources>
-                                <SolidColorBrush x:Key="HandleBarBrush" Color="#FF30343D" />
-                            </ControlTemplate.Resources>
                         </ControlTemplate></Button.Template>
                         <TextBlock x:Name="ToolsPanelToggleGlyph" Text="&lt;" FontFamily="Segoe UI" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Button>
