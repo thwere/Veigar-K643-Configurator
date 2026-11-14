@@ -386,6 +386,7 @@ public partial class MainWindow : Window
     private void Keyboard_MouseMove(object sender, MouseEventArgs e)
     {
         if (!_isPointerDown) return;
+        if (_isGroupRemapping || _isEyedropper) return;
         Point point = e.GetPosition(KeyHitboxCanvas);
         if (_activeTool == EditorTool.Brush)
         {
