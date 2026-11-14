@@ -163,9 +163,9 @@ public partial class MainWindow : Window
         AddToolButton(tools, "\uE8A7", "Выделение (V)", EditorTool.Select);
         AddToolButton(tools, "\uE75C", "Ластик (E)", EditorTool.Eraser);
         tools.Children.Add(new Border { Width = 1, Height = 24, Background = BrushFrom("#FF454A55"), Margin = new Thickness(8,0,8,0) });
-        tools.Children.Add(CreateToolbarButton("\uE902", "Группы", ShowGroupsManager));
         _profileButton = CreateToolbarButton("\uE77B", "Профили", ShowProfilesManager);
         tools.Children.Add(_profileButton);
+        tools.Children.Add(CreateToolbarButton("\uE902", "Группы", ShowGroupsManager));
         ToolbarHost.Children.Add(tools);
     }
 
