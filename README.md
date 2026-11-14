@@ -4,9 +4,9 @@ A minimal WPF shell for the Redragon Veigar K643 keyboard.
 
 ## Current development state: `main`
 
-The app displays the keyboard artwork and highlights pressed keys while the application window is active. This preview uses normal WPF keyboard events: it does not capture input globally and does not use Raw Input. HID communication and RGB control are not implemented.
+The app displays a three-layer keyboard: an RGB-spectrum glow layer, the keyboard artwork, and enlarged centered mouse hitboxes. Pressing a key with the mouse lights its glow while held. Physical keyboard input is not used for highlighting. HID communication and direct RGB control of the physical keyboard are not implemented.
 
-The existing `v0.0.1` pre-release is rebuilt from the current `main` source and includes this key-press preview.
+The `v0.0.2` pre-release introduces mouse-driven on-screen key presses and the three-layer keyboard visual.
 
 The current application source is:
 

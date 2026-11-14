@@ -16,7 +16,7 @@ public partial class MainWindow : Window
     private const int DwmwaWindowCornerPreference = 33;
     private const int DwmwcpDoNotRound = 1;
 
-    private readonly Dictionary<Key, List<Border>> _keyHighlights = new();
+    private readonly Dictionary<string, List<Border>> _keyGlows = new(StringComparer.Ordinal);
 
     public MainWindow()
     {
@@ -27,151 +27,143 @@ public partial class MainWindow : Window
         MaximizeGlyph.FontFamily = captionFont;
         CloseGlyph.FontFamily = captionFont;
 
-        CreateKeyHighlights();
+        CreateKeyVisuals();
 
         SourceInitialized += (_, _) => DisableRoundedCorners();
         StateChanged += (_, _) => UpdateMaximizeGlyph();
-        Loaded += (_, _) => Keyboard.Focus(this);
         Deactivated += (_, _) => ClearPressedKeys();
-        PreviewMouseDown += (_, _) => Keyboard.Focus(this);
-        PreviewKeyDown += MainWindow_PreviewKeyDown;
-        PreviewKeyUp += MainWindow_PreviewKeyUp;
 
         UpdateMaximizeGlyph();
     }
 
-    private void CreateKeyHighlights()
+    private void CreateKeyVisuals()
     {
         Uri layoutUri = new("pack://application:,,,/assets/layout/veigar-k643-layout.json", UriKind.Absolute);
         var resource = Application.GetResourceStream(layoutUri);
         if (resource is null)
-        {
             throw new InvalidOperationException("Keyboard layout resource was not found.");
-        }
 
         using Stream stream = resource.Stream;
         KeyboardLayoutConfig? layout = JsonSerializer.Deserialize<KeyboardLayoutConfig>(
-            stream,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
+            stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         if (layout is null)
-        {
             throw new InvalidOperationException("Keyboard layout resource is empty or invalid.");
-        }
 
         foreach (KeyboardKeyConfig keyConfig in layout.Keys)
+        foreach (KeyboardKeyArea area in keyConfig.Areas)
         {
-            if (!TryMapKey(keyConfig.Key, out Key key))
-            {
-                continue;
-            }
-
-            foreach (KeyboardKeyArea area in keyConfig.Areas)
-            {
-                if (area.Width <= 0 || area.Height <= 0)
-                {
-                    continue;
-                }
-
-                AddKeyHighlight(key, area.X, area.Y, area.Width, area.Height);
-            }
+            if (area.Width > 0 && area.Height > 0)
+                AddKeyVisuals(keyConfig.Key, area.X, area.Y, area.Width, area.Height);
         }
     }
 
-    private static bool TryMapKey(string keyName, out Key key)
+    private void AddKeyVisuals(string keyName, double left, double top, double width, double height)
     {
-        switch (keyName)
-        {
-            case "PrtSc":
-                key = Key.PrintScreen;
-                return true;
-            case "Capital":
-                key = Key.CapsLock;
-                return true;
-            case "Oem3":
-                key = Key.OemTilde;
-                return true;
-            case "Oem5":
-                key = Key.OemPipe;
-                return true;
-            case "Oem6":
-                key = Key.OemCloseBrackets;
-                return true;
-            case "Fn":
-                // The region is retained in the layout, but Windows/WPF does not
-                // normally expose the keyboard's firmware-level Fn key as an event.
-                key = Key.None;
-                return true;
-            default:
-                return Enum.TryParse(keyName, true, out key);
-        }
-    }
-
-    private void AddKeyHighlight(Key key, double left, double top, double width, double height)
-    {
-        Border highlight = new()
+        Border glow = new()
         {
             Width = width,
             Height = height,
-            Background = new SolidColorBrush(Color.FromArgb(125, 73, 133, 255)),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(235, 145, 190, 255)),
-            BorderThickness = new Thickness(1.2),
-            CornerRadius = new CornerRadius(4),
+            Background = CreateRgbGlow(left + width / 2),
+            CornerRadius = new CornerRadius(5),
             Opacity = 0,
             IsHitTestVisible = false
         };
+        Canvas.SetLeft(glow, left);
+        Canvas.SetTop(glow, top);
+        KeyGlowCanvas.Children.Add(glow);
 
-        Canvas.SetLeft(highlight, left);
-        Canvas.SetTop(highlight, top);
-        KeyOverlayCanvas.Children.Add(highlight);
-
-        if (!_keyHighlights.TryGetValue(key, out List<Border>? highlights))
+        if (!_keyGlows.TryGetValue(keyName, out List<Border>? glows))
         {
-            highlights = new List<Border>();
-            _keyHighlights.Add(key, highlights);
+            glows = new List<Border>();
+            _keyGlows.Add(keyName, glows);
         }
+        glows.Add(glow);
 
-        highlights.Add(highlight);
+        // Expand symmetrically around the JSON rectangle's center.
+        const double hitboxScale = 1.08;
+        double hitboxWidth = width * hitboxScale;
+        double hitboxHeight = height * hitboxScale;
+        double hitboxLeft = left - (hitboxWidth - width) / 2;
+        double hitboxTop = top - (hitboxHeight - height) / 2;
+
+        Border hitbox = new()
+        {
+            Width = hitboxWidth,
+            Height = hitboxHeight,
+            Background = new SolidColorBrush(Color.FromArgb(18, 90, 155, 255)),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(48, 110, 175, 255)),
+            BorderThickness = new Thickness(0.6),
+            CornerRadius = new CornerRadius(4),
+            Cursor = Cursors.Hand,
+            Focusable = false
+        };
+        Canvas.SetLeft(hitbox, hitboxLeft);
+        Canvas.SetTop(hitbox, hitboxTop);
+        hitbox.MouseLeftButtonDown += (_, e) =>
+        {
+            SetKeyPressed(keyName, true);
+            _ = Mouse.Capture(hitbox, CaptureMode.Element);
+            e.Handled = true;
+        };
+        hitbox.MouseLeftButtonUp += (_, e) =>
+        {
+            SetKeyPressed(keyName, false);
+            Mouse.Capture(null);
+            e.Handled = true;
+        };
+        KeyHitboxCanvas.Children.Add(hitbox);
     }
 
-    private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+    private void SetKeyPressed(string keyName, bool isPressed)
     {
-        Key key = GetKeyboardKey(e);
-        if (_keyHighlights.TryGetValue(key, out List<Border>? highlights))
-        {
-            foreach (Border highlight in highlights)
-            {
-                highlight.Opacity = 1;
-            }
-        }
+        if (!_keyGlows.TryGetValue(keyName, out List<Border>? glows))
+            return;
+
+        foreach (Border glow in glows)
+            glow.Opacity = isPressed ? 1 : 0;
     }
 
-    private void MainWindow_PreviewKeyUp(object sender, KeyEventArgs e)
+    private static Brush CreateRgbGlow(double centerX)
     {
-        Key key = GetKeyboardKey(e);
-        if (_keyHighlights.TryGetValue(key, out List<Border>? highlights))
+        Color color = GetSpectrumColor(centerX / 599.0 * 300.0);
+        RadialGradientBrush brush = new()
         {
-            foreach (Border highlight in highlights)
-            {
-                highlight.Opacity = 0;
-            }
-        }
+            Center = new Point(0.5, 0.5),
+            GradientOrigin = new Point(0.5, 0.5),
+            RadiusX = 0.78,
+            RadiusY = 0.78
+        };
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(220, color.R, color.G, color.B), 0.0));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(120, color.R, color.G, color.B), 0.42));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0, color.R, color.G, color.B), 1.0));
+        brush.Freeze();
+        return brush;
     }
 
-    private static Key GetKeyboardKey(KeyEventArgs e)
+    private static Color GetSpectrumColor(double hue)
     {
-        return e.Key == Key.System ? e.SystemKey : e.Key;
+        hue = Math.Max(0, Math.Min(300, hue));
+        int sector = (int)(hue / 60);
+        double fraction = hue / 60 - sector;
+        double descending = 1 - fraction;
+        return sector switch
+        {
+            0 => Color.FromRgb(255, (byte)(fraction * 255), 0),
+            1 => Color.FromRgb((byte)(descending * 255), 255, 0),
+            2 => Color.FromRgb(0, 255, (byte)(fraction * 255)),
+            3 => Color.FromRgb(0, (byte)(descending * 255), 255),
+            4 => Color.FromRgb((byte)(fraction * 255), 0, 255),
+            _ => Color.FromRgb(255, 0, (byte)(descending * 255))
+        };
     }
 
     private void ClearPressedKeys()
     {
-        foreach (List<Border> highlights in _keyHighlights.Values)
-        {
-            foreach (Border highlight in highlights)
-            {
-                highlight.Opacity = 0;
-            }
-        }
+        foreach (List<Border> glows in _keyGlows.Values)
+        foreach (Border glow in glows)
+            glow.Opacity = 0;
+
+        Mouse.Capture(null);
     }
 
     private static FontFamily GetCaptionFontFamily()

@@ -196,16 +196,12 @@
                     BorderThickness="0">
                 <Viewbox Stretch="Uniform">
                     <Grid Width="599" Height="222">
+                        <Canvas x:Name="KeyGlowCanvas" Width="599" Height="222" IsHitTestVisible="False" />
                         <Image Source="/assets/branding/key.png"
-                               Width="599"
-                               Height="222"
-                               Stretch="Fill"
+                               Width="599" Height="222" Stretch="Fill"
                                RenderOptions.BitmapScalingMode="HighQuality"
                                SnapsToDevicePixels="True" />
-                        <Canvas x:Name="KeyOverlayCanvas"
-                                Width="599"
-                                Height="222"
-                                IsHitTestVisible="False" />
+                        <Canvas x:Name="KeyHitboxCanvas" Width="599" Height="222" Background="Transparent" />
                     </Grid>
                 </Viewbox>
             </Border>
