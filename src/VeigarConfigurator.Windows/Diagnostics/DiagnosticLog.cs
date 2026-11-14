@@ -17,7 +17,7 @@ namespace VeigarConfigurator.Windows.Diagnostics
         private static readonly object SyncRoot = new object();
         private static bool _initialized;
         private static bool _traceEnabled;
-        private static TextWriter _consoleWriter;
+        private static StreamWriter _consoleWriter;
         private static StreamWriter _fileWriter;
 
         public static string LogFilePath { get; private set; }
