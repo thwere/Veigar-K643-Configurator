@@ -674,7 +674,7 @@ public partial class MainWindow : Window
             _keyColors.Clear();
             foreach (var pair in data.KeyColors)
             {
-                object? parsed = new ColorConverter().ConvertFromString(pair.Value);
+                object? parsed = ColorConverter.ConvertFromString(pair.Value);
                 if (parsed is Color color) _keyColors[pair.Key] = color;
             }
             foreach (string key in _keyGlows.Keys) UpdateKeyVisual(key);
