@@ -199,12 +199,6 @@ public partial class MainWindow : Window
 
     private bool _toolsPanelIsOpen;
 
-    private void ToolsPanelToggle_MouseEnter(object sender, MouseEventArgs e)
-    {
-        if (!_toolsPanelIsOpen)
-            SetToolsPanelOpen(true);
-    }
-
     private void ToolsPanelToggle_Click(object sender, RoutedEventArgs e)
     {
         SetToolsPanelOpen(!_toolsPanelIsOpen);
