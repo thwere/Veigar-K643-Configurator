@@ -43,6 +43,7 @@ public partial class MainWindow : Window
     private StackPanel? _colorControls;
     private Button? _groupButton;
     private Button? _fillButton;
+    private TextBlock? _toolHelpText;
     private Slider? _brightnessSlider;
     private Slider? _saturationSlider;
     private double _selectedHue;
@@ -66,7 +67,6 @@ public partial class MainWindow : Window
             _hardwareUpdateTimer.Stop();
             await SendHardwareFrameAsync();
         };
-        ScheduleHardwareFrame();
     }
 
     private void CreateKeyVisuals()
@@ -178,6 +178,8 @@ public partial class MainWindow : Window
 
         TextBlock title = new() { Text = "ПАРАМЕТРЫ ИНСТРУМЕНТА", Foreground = BrushFrom("#FFE3E5EA"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,14) };
         root.Children.Add(title);
+        _toolHelpText = new TextBlock { Foreground = BrushFrom("#FFB8BEC9"), FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,0,0,12), Visibility = Visibility.Collapsed };
+        root.Children.Add(_toolHelpText);
         _colorControls = new StackPanel();
         root.Children.Add(_colorControls);
         TextBlock colorLabel = new() { Text = "ЦВЕТ", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, Margin = new Thickness(0,0,0,8) };
@@ -270,10 +272,13 @@ public partial class MainWindow : Window
             _colorControls.Visibility = tool == EditorTool.Brush || tool == EditorTool.Fill ? Visibility.Visible : Visibility.Collapsed;
         if (_groupButton is not null) _groupButton.Visibility = tool == EditorTool.Select ? Visibility.Visible : Visibility.Collapsed;
         if (_fillButton is not null) _fillButton.Visibility = tool == EditorTool.Fill ? Visibility.Visible : Visibility.Collapsed;
-        if (tool == EditorTool.Eraser && ToolsPanelContent.Children.Count > 0)
-            ToolsPanelContent.ToolTip = "Проведите курсором по клавишам, чтобы убрать их подсветку.";
-        else
-            ToolsPanelContent.ToolTip = null;
+        if (_toolHelpText is not null)
+        {
+            _toolHelpText.Visibility = tool == EditorTool.Eraser || tool == EditorTool.Select ? Visibility.Visible : Visibility.Collapsed;
+            _toolHelpText.Text = tool == EditorTool.Eraser
+                ? "Проведите курсором по клавишам, чтобы убрать их подсветку."
+                : "Клик — выбрать. Shift — добавить или снять. Перетащите курсор — выделить рамкой.";
+        }
         if (!_toolsPanelIsOpen) SetToolsPanelOpen(true);
     }
 
