@@ -12,7 +12,10 @@ A WPF editor for the Redragon Veigar K643 keyboard.
 - Color picker: standard red-to-red hue field with black value gradient, a vertical saturation slider, and live preview.
 - Hardware output: editor changes are sent to the keyboard through its HID Feature Report interface; current colors are resent after a detected USB reconnect.
 - Local profiles: save key colors and groups as JSON files in `%USERPROFILE%\Documents\VeigarConfig\Profiles`.
-- Interface: icon-only tools, contextual hints in the bottom status bar, larger resizable window, and keyboard shortcuts (B/G/V/E, Esc).
+- Interface: fixed-size editor window, revised tool icons, a wider parameter panel, and contextual hints in the bottom status bar.
+- Profiles: profile color/name selector, per-profile settings and deletion confirmation, protected final profile, JSON import/export.
+- History: Ctrl+Z / Ctrl+Y with a 250-operation undo/redo history, including key painting, erasing, filling, and group edits.
+- Groups: edit group membership by adding or removing individual keys.
 
 The keyboard layout is loaded from `assets/layout/veigar-k643-layout.json` in the 599×222 artwork coordinate space.
 
