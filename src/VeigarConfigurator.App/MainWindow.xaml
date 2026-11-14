@@ -450,6 +450,21 @@
         </Setter.Value>
       </Setter>
     </Style>
+    <Style x:Key="PhysicalPressGlowStyle" TargetType="{x:Type Border}">
+      <Setter Property="Visibility" Value="Collapsed"/>
+      <Setter Property="Background" Value="#FF2FBEB1"/>
+      <Setter Property="CornerRadius" Value="9"/>
+      <Setter Property="Effect">
+        <Setter.Value>
+          <DropShadowEffect Color="#2FBEB1" BlurRadius="18" ShadowDepth="0" Opacity="0.95"/>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsPhysicallyPressed}" Value="True">
+          <Setter Property="Visibility" Value="Visible"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
   </Window.Resources>
 
   <Grid Margin="18">
@@ -561,6 +576,29 @@
                     <StackPanel>
                       <TextBlock Text="REDRAGON VEIGAR K643  ·  FULL KEY MAP" Foreground="{DynamicResource MutedBrush}" FontSize="9" FontWeight="Bold" Margin="3,0,0,12"/>
                       <Grid Width="1000" Height="370.618">
+                        <!-- Physical-key glow sits behind the artwork so the PNG remains crisp. -->
+                        <ItemsControl ItemsSource="{Binding KeyboardKeys}"
+                                      Width="1000"
+                                      Height="370.618"
+                                      IsHitTestVisible="False">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><Canvas Width="1000" Height="370.618"/></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="{x:Type ContentPresenter}">
+                              <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                              <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                            </Style>
+                          </ItemsControl.ItemContainerStyle>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <Border Style="{StaticResource PhysicalPressGlowStyle}"
+                                      Width="{Binding Width}"
+                                      Height="{Binding Height}"
+                                      IsHitTestVisible="False"/>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                         <Image Source="/assets/branding/key.png"
                                Width="1000"
                                Height="370.618"

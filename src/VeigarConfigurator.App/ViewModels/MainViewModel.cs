@@ -1099,7 +1099,6 @@ namespace VeigarConfigurator.App.ViewModels
         {
             if (KeyboardKeys == null) return;
 
-            Brush pressedBrush = new SolidColorBrush(Color.FromArgb(155, 47, 190, 177));
             Brush selectedBorder = new SolidColorBrush(Color.FromRgb(232, 87, 98));
             Brush normalBorder = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
             Brush defaultKeyBrush = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
@@ -1113,19 +1112,7 @@ namespace VeigarConfigurator.App.ViewModels
                 key.IsSelected = key.KeyId == SelectedKeyboardKey;
                 key.IsPhysicallyPressed = _pressedKeyboardKeys.Contains(key.KeyId);
 
-                if (key.IsPhysicallyPressed)
-                {
-                    if (PaintOnPhysicalPress)
-                    {
-                        key.Brush = new SolidColorBrush(Color.FromArgb(
-                            160, ToByte(RedValue), ToByte(GreenValue), ToByte(BlueValue)));
-                    }
-                    else
-                    {
-                        key.Brush = pressedBrush;
-                    }
-                }
-                else if (mapping != null && mapping.SlotIndex >= 0 && mapping.SlotIndex < LedSlots.Count)
+                if (mapping != null && mapping.SlotIndex >= 0 && mapping.SlotIndex < LedSlots.Count)
                 {
                     SolidColorBrush slotBrush = LedSlots[mapping.SlotIndex].Brush as SolidColorBrush;
                     Color colour = slotBrush == null ? Colors.Black : slotBrush.Color;
