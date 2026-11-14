@@ -1,0 +1,100 @@
+<Window x:Class="VeigarK643.LayoutEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Veigar K643 — Layout Editor"
+        Width="1280" Height="820" MinWidth="980" MinHeight="680"
+        WindowStartupLocation="CenterScreen"
+        Background="#FF171A20" Foreground="#FFE8EBF1"
+        FontFamily="Segoe UI" PreviewKeyDown="Window_PreviewKeyDown">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                <Button Content="Открыть JSON" Click="Import_Click" Padding="14,8" Margin="6,0"/>
+                <Button Content="Экспорт JSON" Click="Export_Click" Padding="14,8" Margin="6,0" Background="#FF315D91" Foreground="White"/>
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="Veigar K643 · Редактор раскладки" FontSize="22" FontWeight="SemiBold"/>
+                <TextBlock Text="Настройка регистрации клавиш и точных областей подсветки" Foreground="#FF9CA6B5" Margin="0,3,0,0"/>
+            </StackPanel>
+        </DockPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="310"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,14,0">
+                <StackPanel>
+                    <Border Background="#FF222731" CornerRadius="10" Padding="14" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="1. Регистрация клавиш" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                            <CheckBox x:Name="RegistrationEnabledCheck" Content="Включить регистрацию нажатий" IsChecked="True" Margin="0,0,0,7"/>
+                            <CheckBox x:Name="KeyDownCheck" Content="Записывать KeyDown" IsChecked="True" Margin="0,0,0,7"/>
+                            <CheckBox x:Name="KeyUpCheck" Content="Записывать KeyUp" IsChecked="True" Margin="0,0,0,7"/>
+                            <CheckBox x:Name="IgnoreRepeatCheck" Content="Игнорировать автоповтор" IsChecked="True" Margin="0,0,0,12"/>
+                            <TextBlock Text="Добавить клавишу" Foreground="#FFADB7C6" Margin="0,0,0,5"/>
+                            <DockPanel>
+                                <Button x:Name="CaptureButton" Content="Нажми клавишу…" Click="Capture_Click" Padding="10,7" DockPanel.Dock="Right" Margin="8,0,0,0"/>
+                                <TextBox x:Name="KeyNameBox" VerticalContentAlignment="Center" Padding="8,6" Text="A"/>
+                            </DockPanel>
+                            <Button Content="Добавить / выбрать" Click="AddKey_Click" Margin="0,8,0,0" Padding="8,7"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#FF222731" CornerRadius="10" Padding="14" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="2. Клавиши в конфигурации" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <ListBox x:Name="KeysList" Height="160" Background="#FF171A20" Foreground="#FFE8EBF1"
+                                     BorderBrush="#FF3B424F" SelectionChanged="KeysList_SelectionChanged"/>
+                            <Button Content="Удалить выбранную клавишу" Click="RemoveKey_Click" Margin="0,8,0,0" Padding="8,7"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#FF222731" CornerRadius="10" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="3. Области подсветки" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                            <TextBlock Text="Выбери клавишу и протяни мышью по её области на изображении." TextWrapping="Wrap" Foreground="#FFADB7C6" Margin="0,0,0,9"/>
+                            <ListBox x:Name="AreasList" Height="112" Background="#FF171A20" Foreground="#FFE8EBF1"
+                                     BorderBrush="#FF3B424F" SelectionChanged="AreasList_SelectionChanged"/>
+                            <UniformGrid Columns="2" Margin="0,9,0,0">
+                                <StackPanel Margin="0,0,5,5"><TextBlock Text="X" Foreground="#FFADB7C6"/><TextBox x:Name="XBox" Text="0"/></StackPanel>
+                                <StackPanel Margin="5,0,0,5"><TextBlock Text="Y" Foreground="#FFADB7C6"/><TextBox x:Name="YBox" Text="0"/></StackPanel>
+                                <StackPanel Margin="0,0,5,0"><TextBlock Text="Ширина" Foreground="#FFADB7C6"/><TextBox x:Name="WidthBox" Text="30"/></StackPanel>
+                                <StackPanel Margin="5,0,0,0"><TextBlock Text="Высота" Foreground="#FFADB7C6"/><TextBox x:Name="HeightBox" Text="30"/></StackPanel>
+                            </UniformGrid>
+                            <Button Content="Применить координаты" Click="ApplyArea_Click" Margin="0,9,0,0" Padding="8,7"/>
+                            <Button Content="Удалить область" Click="RemoveArea_Click" Margin="0,6,0,0" Padding="8,7"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Column="1" Background="#FF222731" CornerRadius="12" Padding="18">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <DockPanel Grid.Row="0" Margin="0,0,0,14">
+                        <TextBlock Text="Полотно клавиатуры" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="599 × 222 px · исходные координаты" Foreground="#FF9CA6B5" HorizontalAlignment="Right"/>
+                    </DockPanel>
+                    <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="Both">
+                        <Canvas x:Name="KeyboardCanvas" Width="599" Height="222"
+                                Background="#FF111318"
+                                MouseLeftButtonDown="KeyboardCanvas_MouseLeftButtonDown"
+                                MouseMove="KeyboardCanvas_MouseMove"
+                                MouseLeftButtonUp="KeyboardCanvas_MouseLeftButtonUp">
+                            <Image Source="/assets/branding/key.png" Width="599" Height="222" Stretch="Fill" IsHitTestVisible="False"/>
+                        </Canvas>
+                    </Viewbox>
+                    <TextBlock Grid.Row="2" Text="Синие рамки — сохранённые области. Новую область можно нарисовать поверх изображения." Foreground="#FF9CA6B5" Margin="0,14,0,0" TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
+        </Grid>
+        <TextBlock x:Name="StatusText" Grid.Row="2" Text="Готово. Выбери клавишу, затем нарисуй её область." Foreground="#FF9CA6B5" Margin="2,12,0,0"/>
+    </Grid>
+</Window>

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>VeigarK643.LayoutEditor</RootNamespace>
+    <AssemblyName>Veigar K643 Layout Editor</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="..\\..\\assets\\branding\\key.png" Link="assets\\branding\\key.png" />
+  </ItemGroup>
+</Project>

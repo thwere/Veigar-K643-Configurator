@@ -1,0 +1,9 @@
+<Application x:Class="VeigarK643.LayoutEditor.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <SolidColorBrush x:Key="PanelBrush" Color="#FF20242D"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF6EA8FE"/>
+    </Application.Resources>
+</Application>
