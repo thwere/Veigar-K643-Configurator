@@ -226,7 +226,7 @@ public partial class MainWindow : Window
         _fillButton.Margin = new Thickness(0,8,0,0);
         _fillButton.Click += (_, _) => ApplyFill();
         root.Children.Add(_fillButton);
-        UpdateColorControls();
+        UpdateColorFromControls();
     }
 
     private void AddSlider(Panel host, string label, out Slider slider, double min, double max, double value)
@@ -248,7 +248,7 @@ public partial class MainWindow : Window
 
     private static LinearGradientBrush CreateHueBrush()
     {
-        LinearGradientBrush brush = new(0);
+        LinearGradientBrush brush = new() { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5) };
         brush.GradientStops.Add(new GradientStop(Colors.Red, 0));
         brush.GradientStops.Add(new GradientStop(Colors.Magenta, 0.17));
         brush.GradientStops.Add(new GradientStop(Colors.Blue, 0.34));
@@ -552,8 +552,8 @@ public partial class MainWindow : Window
         double m = value - chroma;
         (double r, double g, double b) = hue switch
         {
-            < 60 => (chroma,x,0), < 120 => (x,chroma,0), < 180 => (0,chroma,x),
-            < 240 => (0,x,chroma), < 300 => (x,0,chroma), _ => (chroma,0,x)
+            < 60 => (chroma,x,0d), < 120 => (x,chroma,0d), < 180 => (0d,chroma,x),
+            < 240 => (0d,x,chroma), < 300 => (x,0d,chroma), _ => (chroma,0d,x)
         };
         return Color.FromRgb((byte)Math.Round((r+m)*255),(byte)Math.Round((g+m)*255),(byte)Math.Round((b+m)*255));
     }
