@@ -9,7 +9,7 @@
         MinWidth="900"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
-        ResizeMode="CanResize"
+        ResizeMode="NoResize"
         AllowsTransparency="False"
         Background="#FF191B22"
         SnapsToDevicePixels="True"
