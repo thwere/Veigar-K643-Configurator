@@ -296,7 +296,12 @@ public partial class MainWindow : Window
             if (!_shiftAtStart)
             {
                 _selectedKeys.Clear();
-                if (key is not null) _selectedKeys.Add(key);
+                if (key is not null)
+                {
+                    HashSet<string>? group = _groups.FirstOrDefault(candidate => candidate.Contains(key));
+                    if (group is null) _selectedKeys.Add(key);
+                    else _selectedKeys.UnionWith(group);
+                }
                 RenderSelection();
             }
         }
@@ -356,7 +361,14 @@ public partial class MainWindow : Window
                 string? key = FindKeyAt(_dragStart);
                 if (key is not null && _shiftAtStart)
                 {
-                    if (!_selectedKeys.Add(key)) _selectedKeys.Remove(key);
+                    HashSet<string>? group = _groups.FirstOrDefault(candidate => candidate.Contains(key));
+                    IEnumerable<string> targets = group ?? new HashSet<string>(new[] { key }, StringComparer.Ordinal);
+                    bool remove = targets.All(_selectedKeys.Contains);
+                    foreach (string target in targets)
+                    {
+                        if (remove) _selectedKeys.Remove(target);
+                        else _selectedKeys.Add(target);
+                    }
                 }
             }
             RenderSelection();
