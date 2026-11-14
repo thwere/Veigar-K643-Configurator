@@ -199,9 +199,20 @@ public partial class MainWindow : Window
 
     private bool _toolsPanelIsOpen;
 
+    private void ToolsPanelToggle_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (!_toolsPanelIsOpen)
+            SetToolsPanelOpen(true);
+    }
+
     private void ToolsPanelToggle_Click(object sender, RoutedEventArgs e)
     {
-        _toolsPanelIsOpen = !_toolsPanelIsOpen;
+        SetToolsPanelOpen(!_toolsPanelIsOpen);
+    }
+
+    private void SetToolsPanelOpen(bool isOpen)
+    {
+        _toolsPanelIsOpen = isOpen;
         double targetWidth = _toolsPanelIsOpen ? 240 : 0;
 
         ToolsPanel.BeginAnimation(WidthProperty, new System.Windows.Media.Animation.DoubleAnimation
@@ -214,8 +225,7 @@ public partial class MainWindow : Window
             }
         });
 
-        ToolsPanelToggleGlyph.Text = _toolsPanelIsOpen ? "\uE76B" : "\uE76C";
-        ToolsPanelToggle.ToolTip = _toolsPanelIsOpen ? "Close tools panel" : "Open tools panel";
+        ToolsPanelToggleGlyph.Text = _toolsPanelIsOpen ? ">" : "<";
     }
 
     private void Minimize_Click(object sender, RoutedEventArgs e)
