@@ -70,7 +70,7 @@ jobs:
         run: |
           $tag = $env:RELEASE_VERSION
           $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
-          $notes = "Veigar K643 Configurator $tag. Adds the persistent top toolbar host and an animated collapsible right-side tools panel. The keyboard workspace resizes to make room for the panel. Tool functionality will be added incrementally."
+          $notes = "Veigar K643 Configurator $tag. Adds persistent per-key RGB editing, brush and eraser drag painting, selection and marquee selection, grouped key selection, fill, and live HID updates from the editor."
 
           $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) {
