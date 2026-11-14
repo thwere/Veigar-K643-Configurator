@@ -742,7 +742,6 @@ public partial class MainWindow : Window
         body.Children.Add(state);
         body.Children.Add(new TextBlock { Text = existing is null ? $"В группу попадут выделенные клавиши: {_selectedKeys.Count}." : $"В группе клавиш: {existing.Keys.Count}.", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10 });
         ShowModal(existing is null ? "СОЗДАТЬ ГРУППУ" : "НАСТРОЙКА ГРУППЫ", body,
-            ("Отмена", ShowGroupsManager),
             (existing is null ? "Создать" : "Сохранить", () =>
             {
                 string groupName = name.Text.Trim();
@@ -751,7 +750,8 @@ public partial class MainWindow : Window
                     _groups.Add(new EditorGroup { Name = groupName, ColorHex = _dialogColor, State = state.SelectedItem?.ToString() ?? "Статичный", Keys = new HashSet<string>(_selectedKeys, StringComparer.Ordinal) });
                 else { existing.Name = groupName; existing.ColorHex = _dialogColor; existing.State = state.SelectedItem?.ToString() ?? "Статичный"; }
                 RenderSelection(); ScheduleProfileSave(); CloseModal();
-            }));
+            }),
+            ("Отмена", ShowGroupsManager));
     }
 
     private StackPanel BuildColorSwatches(Action<string> choose, string selected)
@@ -817,12 +817,13 @@ public partial class MainWindow : Window
         body.Children.Add(new TextBlock { Text = "Цвет профиля", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,12,0,5) });
         body.Children.Add(colors);
         ShowModal(existing is null ? "СОЗДАТЬ ПРОФИЛЬ" : "НАСТРОЙКА ПРОФИЛЯ", body,
-            ("Отмена", ShowProfilesManager),
             (existing is null ? "Создать" : "Сохранить", () =>
             {
                 string profileName = name.Text.Trim();
                 if (profileName.Length == 0) { ToolStatusText.Text = "Введите название профиля."; return; }
                 string newPath = ProfilePath(profileName);
+                if (existing is null && File.Exists(newPath))
+                { ToolStatusText.Text = "Профиль с таким названием уже существует."; return; }
                 if (existing is not null && oldPath is not null && !string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase) && File.Exists(newPath))
                 { ToolStatusText.Text = "Профиль с таким названием уже существует."; return; }
                 if (existing is null)
@@ -850,7 +851,8 @@ public partial class MainWindow : Window
                     }
                 }
                 UpdateProfileButton(); CloseModal();
-            }));
+            }),
+            ("Отмена", ShowProfilesManager));
     }
 
     private void UpdateProfileButton()
