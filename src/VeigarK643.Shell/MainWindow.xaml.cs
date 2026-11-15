@@ -34,6 +34,8 @@ public partial class MainWindow : Window
     private const int HistoryLimit = 250;
     private readonly List<Button> _toolButtons = new();
     private readonly string _profilesDirectory = IOPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "VeigarConfig", "Profiles");
+    private readonly string _uiSettingsPath = IOPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "VeigarConfig", "ui-settings.json");
+    private UiSettingsData _uiSettings = new();
     private string _activeProfileName = "Основной";
     private string _activeProfileColor = "#FF6D8CFF";
     private string _dialogColor = "#FF6D8CFF";
@@ -77,9 +79,12 @@ public partial class MainWindow : Window
         MinimizeGlyph.FontFamily = captionFont;
         CloseGlyph.FontFamily = captionFont;
         CreateKeyVisuals();
+        LoadUiSettings();
         BuildToolbar();
         BuildToolsPanel();
         SetActiveTool(EditorTool.Brush);
+        ShowGroupsManager();
+        ApplyUiSettings();
         SourceInitialized += MainWindow_SourceInitialized;
         PreviewKeyDown += MainWindow_PreviewKeyDown;
         Closed += (_, _) => { SaveCurrentProfile(); if (_deviceNotification != IntPtr.Zero) UnregisterDeviceNotification(_deviceNotification); };
@@ -195,21 +200,10 @@ public partial class MainWindow : Window
         _profileButton.BorderBrush = BrushFrom("#FF515866");
         _profileButton.Template = RoundedToolbarButtonTemplate(17);
         right.Children.Add(_profileButton);
-        Button groups = CreateToolbarButton("▦", "Группы клавиш", ShowGroupsManager);
-        groups.Content = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Children =
-            {
-                new TextBlock { Text = "▦", FontFamily = new FontFamily("Segoe UI Symbol"), FontSize = 15, Margin = new Thickness(0,0,7,0) },
-                new TextBlock { Text = "Группы клавиш", FontSize = 11, VerticalAlignment = VerticalAlignment.Center }
-            }
-        };
-        groups.Width = 142;
-        groups.Margin = new Thickness(6,0,0,0);
-        right.Children.Add(groups);
+        Button settings = CreateToolbarButton("", "", ShowUiSettings);
+        settings.Width = 36;
+        settings.Margin = new Thickness(6,0,0,0);
+        right.Children.Add(settings);
         Grid.SetColumn(right, 1);
         layout.Children.Add(right);
         ToolbarHost.Children.Add(layout);
@@ -222,7 +216,7 @@ public partial class MainWindow : Window
         {
             Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe UI Symbol"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             Tag = tool, Width = 42, Height = 34, Margin = new Thickness(2,0,2,0),
-            Padding = new Thickness(0), ToolTip = tooltip, Foreground = BrushFrom("#FFDCE0E8"),
+            Padding = new Thickness(0), ToolTip = null, Foreground = BrushFrom("#FFDCE0E8"),
             Background = BrushFrom("#FF2A2E38"), BorderBrush = BrushFrom("#FF3E4350"),
             BorderThickness = new Thickness(0), Template = RoundedToolbarButtonTemplate(6), Cursor = Cursors.Hand, Focusable = false
         };
@@ -236,7 +230,7 @@ public partial class MainWindow : Window
         Button button = new()
         {
             Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
-            Width = 42, Height = 34, Margin = new Thickness(2,0,2,0), ToolTip = tooltip,
+            Width = 42, Height = 34, Margin = new Thickness(2,0,2,0), ToolTip = null,
             Foreground = BrushFrom("#FFDCE0E8"), Background = BrushFrom("#FF2A2E38"),
             BorderThickness = new Thickness(0), Template = RoundedToolbarButtonTemplate(8),
             Cursor = Cursors.Hand, Focusable = false
@@ -332,7 +326,7 @@ public partial class MainWindow : Window
         if (_colorPreview is not null) _colorPreview.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
         if (_colorHexText is not null) _colorHexText.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
         if (_colorHintText is not null) _colorHintText.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
-        if (_groupManagerContent is not null) _groupManagerContent.Visibility = Visibility.Collapsed;
+        if (_groupManagerContent is not null) _groupManagerContent.Visibility = Visibility.Visible;
         ToolStatusText.Text = tool switch
         {
             EditorTool.Brush => "Кисть: проведите по клавишам, чтобы назначить выбранный цвет.",
@@ -537,6 +531,7 @@ public partial class MainWindow : Window
         string[] targetArray = targets.Distinct(StringComparer.Ordinal).ToArray();
         if (targetArray.Length == 0 || targetArray.All(key => _keyColors.TryGetValue(key, out Color existing) && existing == _currentColor)) return;
         PushUndoSnapshot();
+        AddRecentColor(_currentColor);
         foreach (string key in targetArray)
         {
             _keyColors[key] = _currentColor;
@@ -712,7 +707,6 @@ public partial class MainWindow : Window
         if(_saturationSlider is not null)_saturationSlider.Value=ColorToSaturation(color);
         if(_colorPreview is not null)_colorPreview.Background=new SolidColorBrush(color);
         if(_colorHexText is not null)_colorHexText.Text=$"#{color.R:X2}{color.G:X2}{color.B:X2}";
-        AddRecentColor(color);
     }
     private static double ColorToHue(Color c)
     {
@@ -872,6 +866,7 @@ public partial class MainWindow : Window
             RenderSelection();
             ScheduleHardwareFrame();
             UpdateProfileButton();
+            if (_groupManagerContent is not null) ShowGroupsManager();
         }
         catch (Exception ex) { Debug.WriteLine("Profile load failed: " + ex.Message); }
     }
