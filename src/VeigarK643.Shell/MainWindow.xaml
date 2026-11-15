@@ -18,7 +18,7 @@
 
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="42"
-                            ResizeBorderThickness="6"
+                            ResizeBorderThickness="0"
                             CornerRadius="0"
                             GlassFrameThickness="0"
                             UseAeroCaptionButtons="False" />
@@ -79,10 +79,10 @@
                     </Border>
                     <Image x:Name="AppIconImage" Width="28" Height="28" Stretch="Uniform" Visibility="Collapsed" />
                 </Grid>
-                <TextBlock Grid.Column="1" Text="Veigar K643 Configurator" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FFE3E5EA" FontFamily="Segoe UI" FontSize="13" FontWeight="SemiBold" />
+                <TextBlock Grid.Column="1" Text="Veigar K643 Configurator" Tag="Title" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FFE3E5EA" FontFamily="Dungeon" FontSize="15" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,3,0">
-                    <Button Style="{StaticResource CaptionButtonStyle}" Click="Minimize_Click"><TextBlock x:Name="MinimizeGlyph" Text="&#xE921;" FontFamily="Segoe Fluent Icons" FontSize="10" /></Button>
-                    <Button Style="{StaticResource CloseCaptionButtonStyle}" Click="Close_Click"><TextBlock x:Name="CloseGlyph" Text="&#xE8BB;" FontFamily="Segoe Fluent Icons" FontSize="10" /></Button>
+                    <Button Style="{StaticResource CaptionButtonStyle}" Click="Minimize_Click"><TextBlock x:Name="MinimizeGlyph" Text="&#x2014;" FontFamily="Segoe UI" FontSize="13" /></Button>
+                    <Button Style="{StaticResource CloseCaptionButtonStyle}" Click="Close_Click"><TextBlock x:Name="CloseGlyph" Text="&#x2715;" FontFamily="Segoe UI" FontSize="11" /></Button>
                 </StackPanel>
             </Grid>
         </Border>
