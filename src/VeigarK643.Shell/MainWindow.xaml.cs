@@ -1187,6 +1187,7 @@ public partial class MainWindow : Window
 
     private void ApplyUiSettings()
     {
+        ToolStatusText.Tag = "Status";
         foreach (TextBlock text in FindVisualChildren<TextBlock>(this))
         {
             string role = text.Tag as string ?? "Standard";
@@ -1203,7 +1204,6 @@ public partial class MainWindow : Window
             button.FontSize = _uiSettings.Fonts["Button"].Size;
             try { button.FontFamily = new FontFamily(_uiSettings.Fonts["Button"].Family); } catch { button.FontFamily = new FontFamily("Segoe UI"); }
         }
-        ToolStatusText.Tag = "Status";
     }
 
     private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
@@ -1223,15 +1223,15 @@ public partial class MainWindow : Window
         string[] roleNames = { "Стандартный текст", "Заголовки", "Подписи и метки", "Текст кнопок", "Строка состояния" };
         string[] iconKeys = { "Brush", "Fill", "Select", "Eraser", "Eyedropper", "Settings" };
         string[] iconNames = { "Кисть", "Заливка", "Выделение", "Ластик", "Пипетка", "Настройки" };
-        (string Name,string Glyph)[] icons =
+        IconOption[] icons =
         {
-            ("Карандаш","\uE70F"),("Кисть","\uE2A1"),("Перо","\uE76D"),("Маркер","\uE2A2"),("Заливка","\uE2A6"),
-            ("Ведро","\uE1F6"),("Выделение","\uEF20"),("Рамка","\uE8A7"),("Лассо","\uEF20"),("Ластик","\uE75C"),
-            ("Удалить","\uE74D"),("Пипетка","\uE8F1"),("Цвет","\uEColor"),("Палитра","\uE2B1"),
-            ("Настройки","\uE713"),("Шестерёнка","\uE7AD"),("Слои","\uE8FD"),("Группа","\uE902"),
-            ("Плюс","\uE710"),("Минус","\uE738"),("Сохранить","\uE74E"),("Открыть","\uE8E5"),
-            ("Копировать","\uE8C8"),("Вставить","\uE77F"),("Отмена","\uE7A7"),("Повтор","\uE7A6"),
-            ("Глаз","\uE7B3"),("Ключ","\uE72E"),("Молния","\uE945"),("Звезда","\uE734")
+            new("Карандаш","\uE70F"),new("Кисть","\uE2A1"),new("Перо","\uE76D"),new("Маркер","\uE2A2"),new("Заливка","\uE2A6"),
+            new("Ведро","\uE1F6"),new("Выделение","\uEF20"),new("Рамка","\uE8A7"),new("Лассо","\uEF20"),new("Ластик","\uE75C"),
+            new("Удалить","\uE74D"),new("Пипетка","\uE8F1"),new("Цвет","\uE790"),new("Палитра","\uE2B1"),
+            new("Настройки","\uE713"),new("Шестерёнка","\uE7AD"),new("Слои","\uE8FD"),new("Группа","\uE902"),
+            new("Плюс","\uE710"),new("Минус","\uE738"),new("Сохранить","\uE74E"),new("Открыть","\uE8E5"),
+            new("Копировать","\uE8C8"),new("Вставить","\uE77F"),new("Отмена","\uE7A7"),new("Повтор","\uE7A6"),
+            new("Глаз","\uE7B3"),new("Ключ","\uE72E"),new("Молния","\uE945"),new("Звезда","\uE734")
         };
         StackPanel body = new() { Margin=new Thickness(4) };
         ScrollViewer scroll = new() { MaxHeight=510, VerticalScrollBarVisibility=ScrollBarVisibility.Auto, Content=body };
@@ -1279,7 +1279,7 @@ public partial class MainWindow : Window
                     _uiSettings.Fonts[role]=new FontSetting{Family=pair.Font.SelectedItem?.ToString()??"Segoe UI",Size=pair.Size.SelectedItem is double value?value:11};
                 }
                 foreach(string key in iconKeys)
-                    if(iconControls[key].SelectedItem is ValueTuple<string,string> selected)_uiSettings.Icons[key]=selected.Item2;
+                    if(iconControls[key].SelectedItem is IconOption selected)_uiSettings.Icons[key]=selected.Glyph;
                 SaveUiSettings();BuildToolbar();ApplyUiSettings();CloseModal();ToolStatusText.Text="Настройки интерфейса сохранены.";
             }),
             ("Экспорт конфига",()=>{
@@ -1473,4 +1473,11 @@ internal sealed class FontSetting
 {
     public string Family { get; set; } = "Segoe UI";
     public double Size { get; set; } = 11;
+}
+
+internal sealed class IconOption
+{
+    public string Name { get; }
+    public string Glyph { get; }
+    public IconOption(string name,string glyph){Name=name;Glyph=glyph;}
 }
