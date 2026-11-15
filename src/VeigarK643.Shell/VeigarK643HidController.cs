@@ -107,5 +107,5 @@ internal static class VeigarK643HidController
     [DllImport("setupapi.dll", SetLastError=true)] private static extern bool SetupDiEnumDeviceInterfaces(IntPtr set, IntPtr deviceInfo, ref Guid guid, uint index, ref SpDeviceInterfaceData data);
     [DllImport("setupapi.dll", SetLastError=true, CharSet=CharSet.Unicode)] private static extern bool SetupDiGetDeviceInterfaceDetail(IntPtr set, ref SpDeviceInterfaceData data, IntPtr detail, uint size, out uint required, IntPtr deviceInfo);
     [DllImport("setupapi.dll", SetLastError=true)] private static extern bool SetupDiDestroyDeviceInfoList(IntPtr set);
-    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, ExactSpelling=true, SetLastError=true)] private static extern SafeFileHandle CreateFile([MarshalAs(UnmanagedType.LPWStr)] string name, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
+    [DllImport("kernel32.dll", EntryPoint="CreateFileW", CharSet=CharSet.Unicode, ExactSpelling=true, SetLastError=true)] private static extern SafeFileHandle CreateFile([MarshalAs(UnmanagedType.LPWStr)] string name, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
 }
