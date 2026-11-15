@@ -964,7 +964,7 @@ public partial class MainWindow : Window
         itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.Transparent));
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(14,8,28,8)));
         itemStyle.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(0)));
-        itemStyle.Setters.Add(new Setter(FrameworkElement.HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch));
+        itemStyle.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch));
         ControlTemplate itemTemplate = new(typeof(MenuItem));
         FrameworkElementFactory surface = new(typeof(Border));
         surface.Name="MenuSurface";
