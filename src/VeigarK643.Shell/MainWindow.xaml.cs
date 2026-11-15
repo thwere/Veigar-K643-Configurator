@@ -879,41 +879,37 @@ public partial class MainWindow : Window
     private void ShowGroupsManager()
     {
         if (_groupManagerContent is null) return;
-        _groupManagerContent.Visibility = Visibility.Visible;
+        _groupManagerContent.Visibility=Visibility.Visible;
         _groupManagerContent.Children.Clear();
-        _groupManagerContent.Children.Add(new TextBlock { Text = "ГРУППЫ КЛАВИШ", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, Margin = new Thickness(0,12,0,10) });
-        if (_groups.Count == 0)
-            _groupManagerContent.Children.Add(new TextBlock { Text = "Групп пока нет. Выделите клавиши и нажмите «Новая группа».", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,0,0,10) });
-        foreach (EditorGroup group in _groups.ToArray())
+        Border frame=new(){BorderBrush=BrushFrom("#FF414752"),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(9),Padding=new Thickness(9),Margin=new Thickness(0,12,0,0)};
+        StackPanel content=new();
+        content.Children.Add(new TextBlock{Text="ГРУППЫ КЛАВИШ",Foreground=BrushFrom("#FF9DA4B2"),FontSize=10,Margin=new Thickness(0,0,0,8)});
+        if(_groups.Count==0)content.Children.Add(new TextBlock{Text="Групп пока нет. Выделите клавиши и нажмите «Новая группа».",Foreground=BrushFrom("#FF9DA4B2"),FontSize=10,TextWrapping=TextWrapping.Wrap});
+        foreach(EditorGroup group in _groups.ToArray())
         {
-            Grid row = new() { Margin = new Thickness(0,4,0,4) };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(18) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            row.Children.Add(new Ellipse { Width = 11, Height = 11, Fill = BrushFrom(group.ColorHex), VerticalAlignment = VerticalAlignment.Center });
-            Button select = CreatePanelButton($"{group.Name} · {group.Keys.Count}");
-            select.Height = 32; select.HorizontalContentAlignment = HorizontalAlignment.Left;
-            select.Click += (_, _) => { _isGroupRemapping=false; _remappingGroup=null; _selectedKeys.Clear(); _selectedKeys.UnionWith(group.Keys); RenderSelection(); ToolStatusText.Text = $"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш)."; };
-            Grid.SetColumn(select,1); row.Children.Add(select);
-            StackPanel actions = new() { Orientation = Orientation.Horizontal };
-            Button edit = CreatePanelButton("✎"); edit.Width = 30; edit.Margin = new Thickness(4,0,0,0); edit.ToolTip = "Настроить группу";
-            edit.Click += (_, _) => ShowInlineGroupEditor(group);
-            Button delete = CreatePanelButton("×"); delete.Width = 28; delete.Margin = new Thickness(3,0,0,0); delete.ToolTip = "Удалить группу";
-            delete.Click += (_, _) =>
-            {
-                ShowModal("УДАЛИТЬ ГРУППУ?", new TextBlock { Text = $"Удалить группу «{group.Name}»? Клавиши останутся с текущими цветами.", Foreground = BrushFrom("#FFE3E5EA"), TextWrapping = TextWrapping.Wrap },
-                    ("Удалить", () => { PushUndoSnapshot(); _groups.Remove(group); RenderSelection(); ScheduleProfileSave(); CloseModal(); ShowGroupsManager(); }),
-                    ("Отмена", CloseModal));
-            };
-            actions.Children.Add(edit); actions.Children.Add(delete);
-            Grid.SetColumn(actions,2); row.Children.Add(actions);
-            _groupManagerContent.Children.Add(row);
+            Grid row=new(){Height=38,Margin=new Thickness(0,2,0,2),Background=BrushFrom("#FF2A2E38")};
+            row.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
+            row.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(34)});
+            Border shell=new(){CornerRadius=new CornerRadius(10),Child=row};
+            Button select=new(){Background=Brushes.Transparent,BorderThickness=new Thickness(0),HorizontalContentAlignment=HorizontalAlignment.Left,Padding=new Thickness(10,0,4,0),Template=RoundedToolbarButtonTemplate(10),Cursor=Cursors.Hand};
+            StackPanel label=new(){Orientation=Orientation.Horizontal,VerticalAlignment=VerticalAlignment.Center};
+            label.Children.Add(new Ellipse{Width=10,Height=10,Fill=BrushFrom(group.ColorHex),Margin=new Thickness(0,0,8,0)});
+            label.Children.Add(new TextBlock{Text=group.Name,Foreground=BrushFrom("#FFE3E5EA"),VerticalAlignment=VerticalAlignment.Center});
+            label.Children.Add(new TextBlock{Text=$"  {group.Keys.Count}",Foreground=BrushFrom("#FF9DA4B2"),VerticalAlignment=VerticalAlignment.Center});
+            select.Content=label;
+            select.Click+=(_,_)=>{_isGroupRemapping=false;_remappingGroup=null;_selectedKeys.Clear();_selectedKeys.UnionWith(group.Keys);RenderSelection();ToolStatusText.Text=$"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш).";};
+            row.Children.Add(select);
+            Button more=new(){Content="⋯",Foreground=BrushFrom("#FFB8BEC9"),Background=Brushes.Transparent,BorderThickness=new Thickness(0),Template=RoundedToolbarButtonTemplate(17),Cursor=Cursors.Hand};
+            Grid.SetColumn(more,1);row.Children.Add(more);
+            ContextMenu menu=new(){Placement=PlacementMode.Bottom,PlacementTarget=more};
+            MenuItem edit=new(){Header="Настроить"};edit.Click+=(_,_)=>ShowInlineGroupEditor(group);
+            MenuItem delete=new(){Header="Удалить"};delete.Click+=(_,_)=>ShowModal("УДАЛИТЬ ГРУППУ?",new TextBlock{Text=$"Удалить группу «{group.Name}»? Клавиши останутся с текущими цветами.",Foreground=BrushFrom("#FFE3E5EA"),TextWrapping=TextWrapping.Wrap,TextAlignment=TextAlignment.Center},("Удалить",()=>{PushUndoSnapshot();_groups.Remove(group);RenderSelection();ScheduleProfileSave();CloseModal();ShowGroupsManager();}),("Отмена",CloseModal));
+            menu.Items.Add(edit);menu.Items.Add(delete);more.Click+=(_,_)=>menu.IsOpen=true;
+            content.Children.Add(shell);
         }
-        Button add = CreatePanelButton("＋  Новая группа");
-        add.Margin = new Thickness(0,12,0,0);
-        add.Click += (_, _) => ShowGroupEditor(null);
-        _groupManagerContent.Children.Add(add);
-        if (!_toolsPanelIsOpen) SetToolsPanelOpen(true);
+        Button add=CreatePanelButton("＋  Новая группа");add.Margin=new Thickness(0,10,0,0);add.Click+=(_,_)=>ShowGroupEditor(null);content.Children.Add(add);
+        frame.Child=content;_groupManagerContent.Children.Add(frame);
+        if(!_toolsPanelIsOpen)SetToolsPanelOpen(true);
     }
 
     private void ShowGroupEditor(EditorGroup? existing)
