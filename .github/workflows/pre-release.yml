@@ -6,7 +6,7 @@ on:
       version:
         description: "Pre-release version (for example v0.1.0)"
         required: true
-        default: "v0.2.1"
+        default: "v0.2.2"
         type: string
   push:
     branches:
@@ -74,7 +74,7 @@ jobs:
         run: |
           $tag = $env:RELEASE_VERSION
           $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
-          $notes = "Veigar K643 Configurator $tag. Refines the rounded interface, promotes the eyedropper to the toolbar, redesigns profile and keyboard-group rows with contextual actions, adds subtle hover feedback, and improves profile dialog validation and alignment."
+          $notes = "Veigar K643 Configurator $tag. Keeps keyboard groups visible alongside every tool and refreshes groups on profile changes; unifies profile/group row hover surfaces with separate circular overflow controls; records recent colors only after applying them; adds a bottom keyboard-shortcut legend; uses a dark custom context menu; and adds configurable Windows fonts, font sizes and MDL2 icon selection with JSON settings save/export."
 
           $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) {
