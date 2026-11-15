@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32.SafeHandles;
@@ -13,7 +12,9 @@ namespace VeigarK643.Shell;
 internal static class VeigarK643HidController
 {
     private const int ReportId = 0x08;
-    private const int ReportLength = 382;
+    private const int LedSlotCount = 126;
+    private const int ReportHeaderLength = 4;
+    private const int ReportLength = ReportHeaderLength + LedSlotCount * 3;
     private static readonly SemaphoreSlim SendLock = new(1, 1);
     private static readonly Dictionary<string, int> Slots = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -71,17 +72,18 @@ internal static class VeigarK643HidController
                     throw new Win32Exception(error, "HID interface enumeration failed.");
                 }
                 SetupDiGetDeviceInterfaceDetail(set, ref data, IntPtr.Zero, 0, out uint required, IntPtr.Zero);
-                if (required < 6) continue;
+                // A Windows device-interface path is far smaller than this bound; reject malformed sizes before allocating unmanaged memory.
+                if (required < 6 || required > 64 * 1024) continue;
                 IntPtr buffer = Marshal.AllocHGlobal((int)required);
                 try
                 {
                     Marshal.WriteInt32(buffer, IntPtr.Size == 8 ? 8 : 6);
                     if (!SetupDiGetDeviceInterfaceDetail(set, ref data, buffer, required, out _, IntPtr.Zero)) continue;
                     string candidate = Marshal.PtrToStringUni(IntPtr.Add(buffer, 4)) ?? "";
-                    if (!Regex.IsMatch(candidate, @"VID_258A", RegexOptions.IgnoreCase) ||
-                        !Regex.IsMatch(candidate, @"PID_0049", RegexOptions.IgnoreCase) ||
-                        !Regex.IsMatch(candidate, @"MI_01", RegexOptions.IgnoreCase) ||
-                        !Regex.IsMatch(candidate, @"COL08", RegexOptions.IgnoreCase)) continue;
+                    if (!candidate.Contains("VID_258A", StringComparison.OrdinalIgnoreCase) ||
+                        !candidate.Contains("PID_0049", StringComparison.OrdinalIgnoreCase) ||
+                        !candidate.Contains("MI_01", StringComparison.OrdinalIgnoreCase) ||
+                        !candidate.Contains("COL08", StringComparison.OrdinalIgnoreCase)) continue;
                     path = candidate; break;
                 }
                 finally { Marshal.FreeHGlobal(buffer); }
