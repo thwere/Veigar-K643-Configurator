@@ -1153,6 +1153,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             Debug.WriteLine("Profile save failed: " + ex.Message);
+            ToolStatusText.Text = "Не удалось сохранить профиль. Переключение профиля отменено.";
             return false;
         }
     }
@@ -1629,7 +1630,13 @@ public partial class MainWindow : Window
                 label.Children.Add(new Ellipse { Width=10, Height=10, Fill=BrushFrom(data.ColorHex), Margin=new Thickness(0,0,9,0) });
                 label.Children.Add(new TextBlock { Text=data.Name, Foreground=BrushFrom("#FFE3E5EA"), VerticalAlignment=VerticalAlignment.Center });
                 choose.Content=label;
-                choose.Click += (_,_) => { SaveCurrentProfile(); LoadProfile(file); _profilesPopup!.IsOpen=false; _profilesPopup=null; };
+                choose.Click += (_,_) =>
+                {
+                    if (!SaveCurrentProfile()) return;
+                    LoadProfile(file);
+                    _profilesPopup!.IsOpen = false;
+                    _profilesPopup = null;
+                };
                 row.Children.Add(choose);
                 TextBlock dragHandle = new() { Text="⠿", FontFamily=new FontFamily("Segoe UI Symbol"), FontSize=17, Foreground=BrushFrom("#FF818A99"), Background=Brushes.Transparent, Width=20, TextAlignment=TextAlignment.Center, VerticalAlignment=VerticalAlignment.Center, HorizontalAlignment=HorizontalAlignment.Left, Margin=new Thickness(5,0,0,0), Cursor=Cursors.SizeAll, ToolTip="Перетащить для изменения порядка запуска" };
                 Panel.SetZIndex(dragHandle,3); row.Children.Add(dragHandle);
