@@ -1038,19 +1038,29 @@ public partial class MainWindow : Window
                 EditorProfileData? data = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(file));
                 if (data is null) continue;
                 bool active = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
-                Grid row = new() { Height = 40, Margin = new Thickness(0,2,0,2), Background = active ? BrushFrom("#FF3A414F") : Brushes.Transparent };
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1,GridUnitType.Star) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(34) });
-                Button choose = new() { Background=Brushes.Transparent, BorderThickness=new Thickness(0), HorizontalContentAlignment=HorizontalAlignment.Left, Padding=new Thickness(12,0,4,0), Cursor=Cursors.Hand, Template=RoundedToolbarButtonTemplate(18) };
+                Grid row = new() { Height=40, Margin=new Thickness(0,2,0,2) };
+                Button choose = new()
+                {
+                    Background=Brushes.Transparent, BorderThickness=new Thickness(0),
+                    HorizontalContentAlignment=HorizontalAlignment.Left, Padding=new Thickness(12,0,42,0),
+                    Cursor=Cursors.Hand, Template=RoundedToolbarButtonTemplate(18),
+                    HorizontalAlignment=HorizontalAlignment.Stretch
+                };
                 StackPanel label = new() { Orientation=Orientation.Horizontal, VerticalAlignment=VerticalAlignment.Center };
                 label.Children.Add(new Ellipse { Width=10, Height=10, Fill=BrushFrom(data.ColorHex), Margin=new Thickness(0,0,9,0) });
                 label.Children.Add(new TextBlock { Text=data.Name, Foreground=BrushFrom("#FFE3E5EA"), VerticalAlignment=VerticalAlignment.Center });
                 choose.Content=label;
                 choose.Click += (_,_) => { SaveCurrentProfile(); LoadProfile(file); _profilesPopup!.IsOpen=false; _profilesPopup=null; };
                 row.Children.Add(choose);
-                Button more = new() { Content="⋯", Foreground=BrushFrom("#FFB8BEC9"), Background=Brushes.Transparent, BorderThickness=new Thickness(0), Template=RoundedToolbarButtonTemplate(17), Cursor=Cursors.Hand };
-                Grid.SetColumn(more,1); row.Children.Add(more);
-                ContextMenu menu = new() { Placement=PlacementMode.Bottom, PlacementTarget=more };
+                Button more = new()
+                {
+                    Content="⋯", Foreground=BrushFrom("#FFB8BEC9"), Background=Brushes.Transparent,
+                    BorderThickness=new Thickness(0), Template=RoundedToolbarButtonTemplate(14),
+                    Cursor=Cursors.Hand, Width=28, Height=28, HorizontalAlignment=HorizontalAlignment.Right,
+                    VerticalAlignment=VerticalAlignment.Center, Margin=new Thickness(0,0,6,0)
+                };
+                Panel.SetZIndex(more,2); row.Children.Add(more);
+                ContextMenu menu = CreateDarkContextMenu(more);
                 MenuItem configure = new() { Header="Настроить" };
                 configure.Click += (_,_) => { _profilesPopup!.IsOpen=false; _profilesPopup=null; ShowProfileEditor(data,file); };
                 MenuItem remove = new() { Header="Удалить" };
@@ -1186,7 +1196,7 @@ public partial class MainWindow : Window
             content.Children.Add(new TextBlock { Text = _activeProfileName, Foreground = BrushFrom("#FFE3E5EA"), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 120 });
             content.Children.Add(new Border { Width=26, Height=26, CornerRadius=new CornerRadius(13), Background=Brushes.Transparent, Child=new TextBlock { Text="⋯", Foreground=BrushFrom("#FFB8BEC9"), FontSize=17, HorizontalAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center } });
             _profileButton.Content = content;
-            _profileButton.ToolTip = "Профили и действия";
+            _profileButton.ToolTip = null;
             _profileButton.Width = 196;
         }
     }
