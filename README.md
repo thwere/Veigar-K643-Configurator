@@ -1,30 +1,30 @@
 # Veigar K643 Configurator
 
-A WPF editor for the Redragon Veigar K643 keyboard.
+A Windows WPF editor for the Redragon Veigar K643 keyboard.
 
-## Current editor capabilities
+## Current capabilities
 
-- Brush: paint multiple keys by dragging across the virtual keyboard.
-- Fill: target the group or selection under the clicked key; clicking outside them fills the ungrouped, unselected keys.
-- Selection: click, Shift-toggle, and marquee-select keys.
-- Groups: global group manager with names, colors, editable key membership, and stored state (static, animation, or scenario). Clicking a group selects it without sending a lighting update to the keyboard.
-- Eraser: remove lighting by dragging across keys.
-- Color picker: standard red-to-red hue field with black value gradient, a vertical saturation slider, and live preview.
-- Hardware output: editor changes are sent through the HID Feature Report interface; startup and USB reconnects trigger up to 10 resend attempts, with HID errors shown in the status bar.
-- Local profiles: save key colors and groups as JSON files in `%USERPROFILE%\Documents\VeigarConfig\Profiles`.
-- Interface: fixed-size editor window, revised tool icons, a wider parameter panel, and contextual hints in the bottom status bar.
-- Profiles: profile color/name selector, per-profile settings and deletion confirmation, protected final profile, JSON import/export.
-- History: Ctrl+Z / Ctrl+Y with a 250-operation undo/redo history; a continuous brush or eraser drag is one history action.
-- Groups: edit group membership by adding or removing individual keys.
+- Brush, fill, eyedropper, selection, and eraser tools for the virtual keyboard.
+- HSV-style color palette, HEX input, and recently used colors.
+- Named keyboard groups with editable key membership and drag-and-drop priority ordering. Higher groups take precedence when group memberships overlap.
+- Independent local profiles with names, colors, drag-and-drop startup priority, JSON import, and export.
+- Undo/redo history for editor operations.
+- HID Feature Report output to the supported Veigar K643 interface, including reconnect handling.
+- A separate layout editor utility for adjusting keyboard hitbox geometry.
 
-The keyboard layout is loaded from `assets/layout/veigar-k643-layout.json` in the 599×222 artwork coordinate space.
+The keyboard layout is embedded from `assets/layout/veigar-k643-layout.json`. Its coordinates use the 599×222 artwork space. The current HID mapping is maintained in `src/VeigarK643.Shell/VeigarK643HidController.cs`.
+
+## Version status
+
+The current development line is **v0.3.0 (pre-release)**. Versions below 1.0.0 are intended for testing and iterative development.
 
 ## Build
 
 Requirements: Windows and the .NET 10 SDK with WPF support.
 
 ```powershell
-dotnet build src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Release
+dotnet restore src/VeigarK643.Shell/VeigarK643.Shell.csproj
+dotnet build src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Release --no-restore
 ```
 
 ## Portable Windows x64 build
@@ -33,7 +33,7 @@ dotnet build src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Releas
 dotnet publish src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true --output publish/win-x64
 ```
 
-GitHub Actions builds the application on pushes to `main`. Pre-releases are updated by commits whose message begins with `release-v`.
+GitHub Actions builds the projects on pushes and pull requests. A push to `main` builds and refreshes the pre-release using the version declared in the active shell project file.
 
 ## License
 
