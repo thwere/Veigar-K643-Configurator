@@ -16,7 +16,11 @@ The keyboard layout is embedded from `assets/layout/veigar-k643-layout.json`. It
 
 ## Version status
 
-The current development line is **v0.3.0 (pre-release)**. Versions below 1.0.0 are intended for testing and iterative development.
+The current development line is **v0.4.0 (pre-release)**. Versions below 1.0.0 are intended for testing and iterative development.
+
+## Source structure
+
+The active WPF window is split into partial-class files by responsibility: editor interaction, color editing, groups, profile storage, profile UI, and window chrome. Shared data models are in `EditorModels.cs`. This is a source-organization refactor; runtime behavior, HID communication, and the existing profile JSON format are retained.
 
 ## Build
 

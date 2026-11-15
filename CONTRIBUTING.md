@@ -2,6 +2,8 @@
 
 The active application is the WPF editor in `src/VeigarK643.Shell/`. The separate layout utility is in `tools/VeigarK643.LayoutEditor/`.
 
+The main window is split across partial-class files by responsibility. Preserve existing UI behavior and profile JSON compatibility when moving code. Keep refactors small and validate them with a successful build and regression checks.
+
 ## Requirements
 
 - Windows
@@ -30,4 +32,6 @@ The GitHub Actions build also publishes the layout editor as a portable artifact
 
 ## Architecture
 
-The active shell currently has a large WPF window class that coordinates UI state, profile storage, and HID output. Refactoring these responsibilities into separate services is a planned engineering task; it should be done incrementally with regression tests rather than as a broad rewrite.
+The WPF window is split across `MainWindow.Editor.cs`, `MainWindow.ColorEditor.cs`, `MainWindow.Groups.cs`, `MainWindow.ProfileStorage.cs`, `MainWindow.Profiles.cs`, and `MainWindow.WindowChrome.cs`. Shared snapshots and profile/layout models are in `EditorModels.cs`. These files are partial declarations of the same window class, so private state and XAML event wiring remain unchanged while the code is easier to navigate.
+
+Further extraction into independent services (for example, profile storage and group state) should be incremental and supported by automated regression tests. Avoid broad rewrites of the HID protocol or profile JSON schema.

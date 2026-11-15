@@ -7,9 +7,9 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>VeigarK643.Shell</RootNamespace>
     <AssemblyName>Veigar K643 Configurator</AssemblyName>
-    <Version>0.3.0</Version>
-    <AssemblyVersion>0.3.0.0</AssemblyVersion>
-    <FileVersion>0.3.0.0</FileVersion>
+    <Version>0.4.0</Version>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
+    <FileVersion>0.4.0.0</FileVersion>
     <AnalysisLevel>10.0-recommended</AnalysisLevel>
   </PropertyGroup>
   <ItemGroup>
