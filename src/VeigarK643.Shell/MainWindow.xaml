@@ -30,8 +30,18 @@
             <Setter Property="FontSize" Value="10" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Heading">
-                    <Setter Property="FontFamily" Value="Inky Pixels(RUS BY LYAJKA)" />
+                    <Setter Property="FontFamily" Value="Segoe UI" />
                     <Setter Property="FontSize" Value="14" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="FontStretch" Value="SemiExpanded" />
+                    <Setter Property="SnapsToDevicePixels" Value="True" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="MainHeading">
+                    <Setter Property="FontFamily" Value="Segoe UI" />
+                    <Setter Property="FontSize" Value="15" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="FontStretch" Value="SemiExpanded" />
+                    <Setter Property="SnapsToDevicePixels" Value="True" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Status">
                     <Setter Property="FontFamily" Value="True Lies" />
