@@ -1715,14 +1715,104 @@ public partial class MainWindow : Window
         _dialogColor=existing?.ColorHex??"#FF6D8CFF";StackPanel colors=BuildColorSwatches(value=>_dialogColor=value,_dialogColor);
         StackPanel body=new();body.Children.Add(new TextBlock{Text="Название профиля",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,0,0,5)});body.Children.Add(name);body.Children.Add(warning);
         body.Children.Add(new TextBlock{Text="Цвет профиля",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,12,0,5)});colors.HorizontalAlignment=HorizontalAlignment.Center;body.Children.Add(colors);
-        ShowModal(existing is null?"СОЗДАТЬ ПРОФИЛЬ":"НАСТРОЙКА ПРОФИЛЯ",body,(existing is null?"Создать":"Сохранить",()=>{
-            string profileName=name.Text.Trim();if(profileName.Length==0)profileName="Новый профиль";string newPath=ProfilePath(profileName);
-            if(existing is null&&File.Exists(newPath)){ToolStatusText.Text="Профиль с таким названием уже существует.";return;}
-            if(existing is not null&&oldPath is not null&&!string.Equals(oldPath,newPath,StringComparison.OrdinalIgnoreCase)&&File.Exists(newPath)){ToolStatusText.Text="Профиль с таким названием уже существует.";return;}
-            if(existing is null){_profileSaveTimer.Stop();SaveCurrentProfile();_keyColors.Clear();_groups.Clear();_selectedKeys.Clear();foreach(string key in _keyGlows.Keys)UpdateKeyVisual(key);_activeProfileName=profileName;_activeProfileColor=_dialogColor;_lastHardwareFrameSignature=null;RenderSelection();ScheduleHardwareFrame();SaveCurrentProfile();RenameProfileOrderEntry(null,newPath);ShowGroupsManager();}
-            else{bool active=oldPath is not null&&string.Equals(IOPath.GetFullPath(oldPath),IOPath.GetFullPath(ProfilePath(_activeProfileName)),StringComparison.OrdinalIgnoreCase);existing.Name=profileName;existing.ColorHex=_dialogColor;if(oldPath is not null&&!string.Equals(oldPath,newPath,StringComparison.OrdinalIgnoreCase)&&File.Exists(oldPath))File.Delete(oldPath);RenameProfileOrderEntry(oldPath,newPath);if(active){_activeProfileName=profileName;_activeProfileColor=_dialogColor;SaveCurrentProfile();}else File.WriteAllText(newPath,JsonSerializer.Serialize(existing,new JsonSerializerOptions{WriteIndented=true}));}
-            UpdateProfileButton();CloseModal();ToggleProfilesFlyout();
-        }),("Отмена",()=>{CloseModal();ToggleProfilesFlyout();}));
+        ShowModal(existing is null ? "СОЗДАТЬ ПРОФИЛЬ" : "НАСТРОЙКА ПРОФИЛЯ", body,
+            (existing is null ? "Создать" : "Сохранить", () =>
+            {
+                string profileName = name.Text.Trim();
+                if (profileName.Length == 0) profileName = "Новый профиль";
+                string newPath = ProfilePath(profileName);
+
+                if (existing is null && File.Exists(newPath))
+                {
+                    ToolStatusText.Text = "Профиль с таким названием уже существует.";
+                    return;
+                }
+                if (existing is not null && oldPath is not null &&
+                    !string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase) && File.Exists(newPath))
+                {
+                    ToolStatusText.Text = "Профиль с таким названием уже существует.";
+                    return;
+                }
+
+                try
+                {
+                    if (existing is null)
+                    {
+                        _profileSaveTimer.Stop();
+                        if (!SaveCurrentProfile())
+                        {
+                            ToolStatusText.Text = "Не удалось сохранить текущий профиль.";
+                            return;
+                        }
+
+                        EditorProfileData newProfile = new()
+                        {
+                            Name = profileName,
+                            ColorHex = _dialogColor,
+                            KeyColors = new Dictionary<string, string>(StringComparer.Ordinal),
+                            Groups = new List<EditorGroupData>()
+                        };
+                        WriteAllTextAtomically(newPath, JsonSerializer.Serialize(newProfile, ProfileJsonOptions));
+
+                        _keyColors.Clear();
+                        _groups.Clear();
+                        _selectedKeys.Clear();
+                        foreach (string key in _keyGlows.Keys) UpdateKeyVisual(key);
+                        _activeProfileName = profileName;
+                        _activeProfileColor = _dialogColor;
+                        _lastHardwareFrameSignature = null;
+                        RenderSelection();
+                        ScheduleHardwareFrame();
+                        RenameProfileOrderEntry(null, newPath);
+                        ShowGroupsManager();
+                    }
+                    else
+                    {
+                        bool active = oldPath is not null &&
+                            string.Equals(IOPath.GetFullPath(oldPath), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
+                        string previousActiveName = _activeProfileName;
+                        string previousActiveColor = _activeProfileColor;
+
+                        existing.Name = profileName;
+                        existing.ColorHex = _dialogColor;
+
+                        if (active)
+                        {
+                            _activeProfileName = profileName;
+                            _activeProfileColor = _dialogColor;
+                            if (!SaveCurrentProfile())
+                            {
+                                _activeProfileName = previousActiveName;
+                                _activeProfileColor = previousActiveColor;
+                                ToolStatusText.Text = "Не удалось сохранить изменения профиля.";
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            WriteAllTextAtomically(newPath, JsonSerializer.Serialize(existing, ProfileJsonOptions));
+                        }
+
+                        if (oldPath is not null &&
+                            !string.Equals(IOPath.GetFullPath(oldPath), IOPath.GetFullPath(newPath), StringComparison.OrdinalIgnoreCase) &&
+                            File.Exists(oldPath))
+                            File.Delete(oldPath);
+
+                        RenameProfileOrderEntry(oldPath, newPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Profile create or update failed: " + ex.Message);
+                    ToolStatusText.Text = "Не удалось сохранить профиль.";
+                    return;
+                }
+
+                UpdateProfileButton();
+                CloseModal();
+                ToggleProfilesFlyout();
+            }),
+            ("Отмена", () => { CloseModal(); ToggleProfilesFlyout(); }));
     }
 
     private static ControlTemplate RoundedToolbarButtonTemplate(double radius)
