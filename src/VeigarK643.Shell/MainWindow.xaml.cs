@@ -1554,7 +1554,7 @@ public partial class MainWindow : Window
         FrameworkElementFactory host=new(typeof(ScrollViewer));host.Name="PART_ContentHost";host.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty,ScrollBarVisibility.Disabled);host.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty,ScrollBarVisibility.Hidden);host.SetValue(FrameworkElement.MarginProperty,new Thickness(0));border.AppendChild(host);template.VisualTree=border;box.Template=template;return box;
     }
 
-    private TextBox CreatePlaceholderTextBox(string placeholder,string value="")
+    private static TextBox CreatePlaceholderTextBox(string placeholder,string value="")
     {
         TextBox box=CreateRoundedTextBox(value);box.Tag=placeholder;
         ControlTemplate template=new(typeof(TextBox));FrameworkElementFactory grid=new(typeof(Grid));
