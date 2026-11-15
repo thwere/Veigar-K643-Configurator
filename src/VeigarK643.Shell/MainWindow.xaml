@@ -139,7 +139,11 @@
                 </Grid>
             </Grid>
             <Border Grid.Row="2" Background="#FF20232B" BorderBrush="#FF353944" BorderThickness="0,1,0,0" Padding="12,0">
-                <TextBlock x:Name="ToolStatusText" Text="Готово" Foreground="#FF9DA4B2" FontSize="10" VerticalAlignment="Center" />
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock x:Name="ToolStatusText" Text="Готово" Foreground="#FF9DA4B2" FontSize="10" VerticalAlignment="Center" />
+                    <TextBlock x:Name="ShortcutHintsText" Grid.Column="1" Text="B  Кисть    G  Заливка    V  Выделение    E  Ластик    Ctrl+Z  Отменить    Ctrl+Y  Повторить    Esc  Снять выделение" Foreground="#FF747C8B" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                </Grid>
             </Border>
             <Grid x:Name="ModalOverlay" Grid.RowSpan="3" Panel.ZIndex="100" Background="#B8000000" Visibility="Collapsed" />
         </Grid>
