@@ -6,6 +6,7 @@ using IOPath = System.IO.Path;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -33,6 +34,13 @@ public partial class MainWindow : Window
     private readonly Stack<EditorSnapshot> _undoHistory = new();
     private readonly Stack<EditorSnapshot> _redoHistory = new();
     private const int HistoryLimit = 250;
+    private const long MaxProfileFileBytes = 1024 * 1024;
+    private static readonly JsonSerializerOptions ProfileJsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true,
+        MaxDepth = 16
+    };
     private const int MaxGroupsPerProfile = 15;
     private readonly List<Button> _toolButtons = new();
     private readonly string _profilesDirectory = IOPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "VeigarConfig", "Profiles");
@@ -94,7 +102,14 @@ public partial class MainWindow : Window
         ShowGroupsManager();
         SourceInitialized += MainWindow_SourceInitialized;
         PreviewKeyDown += MainWindow_PreviewKeyDown;
-        Closed += (_, _) => { SaveCurrentProfile(); if (_deviceNotification != IntPtr.Zero) UnregisterDeviceNotification(_deviceNotification); };
+        Closed += (_, _) =>
+        {
+            _profileSaveTimer.Stop();
+            _hardwareUpdateTimer.Stop();
+            _reconnectTimer.Stop();
+            SaveCurrentProfile();
+            if (_deviceNotification != IntPtr.Zero) UnregisterDeviceNotification(_deviceNotification);
+        };
         Deactivated += (_, _) => ReleasePointer();
         InitializeProfiles();
         UpdateProfileButton();
@@ -921,7 +936,13 @@ public partial class MainWindow : Window
         try
         {
             if (File.Exists(_profileOrderPath))
-                _profileOrder.AddRange(JsonSerializer.Deserialize<List<string>>(File.ReadAllText(_profileOrderPath)) ?? new List<string>());
+            {
+                if (new FileInfo(_profileOrderPath).Length > MaxProfileFileBytes)
+                    throw new InvalidDataException("Profile order file is too large.");
+                List<string>? loadedOrder = JsonSerializer.Deserialize<List<string>>(File.ReadAllText(_profileOrderPath), ProfileJsonOptions);
+                if (loadedOrder is not null)
+                    _profileOrder.AddRange(loadedOrder.Where(name => !string.IsNullOrWhiteSpace(name)));
+            }
         }
         catch (Exception ex)
         {
@@ -937,7 +958,7 @@ public partial class MainWindow : Window
             _profileOrder.Add(SafeFileName(_activeProfileName));
 
         List<string> normalized = _profileOrder
-            .Where(name => existing.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .Where(name => !string.IsNullOrWhiteSpace(name) && existing.Contains(name, StringComparer.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -953,13 +974,12 @@ public partial class MainWindow : Window
     private string[] GetOrderedProfileFiles()
     {
         if (!Directory.Exists(_profilesDirectory)) return Array.Empty<string>();
+        Dictionary<string, int> orderByName = new(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < _profileOrder.Count; i++)
+            orderByName.TryAdd(_profileOrder[i], i);
+
         return Directory.GetFiles(_profilesDirectory, "*.json")
-            .OrderBy(path =>
-            {
-                string name = IOPath.GetFileNameWithoutExtension(path);
-                int index = _profileOrder.FindIndex(item => string.Equals(item, name, StringComparison.OrdinalIgnoreCase));
-                return index < 0 ? int.MaxValue : index;
-            })
+            .OrderBy(path => orderByName.TryGetValue(IOPath.GetFileNameWithoutExtension(path), out int index) ? index : int.MaxValue)
             .ThenBy(path => IOPath.GetFileName(path), StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
@@ -969,7 +989,7 @@ public partial class MainWindow : Window
         try
         {
             Directory.CreateDirectory(_profilesDirectory);
-            File.WriteAllText(_profileOrderPath, JsonSerializer.Serialize(_profileOrder, new JsonSerializerOptions { WriteIndented = true }));
+            WriteAllTextAtomically(_profileOrderPath, JsonSerializer.Serialize(_profileOrder, ProfileJsonOptions));
         }
         catch (Exception ex) { Debug.WriteLine("Profile order save failed: " + ex.Message); }
     }
@@ -1011,12 +1031,107 @@ public partial class MainWindow : Window
     private static string SafeFileName(string name)
     {
         foreach (char c in IOPath.GetInvalidFileNameChars()) name = name.Replace(c, '_');
-        return string.IsNullOrWhiteSpace(name) ? "Profile" : name.Trim();
+        name = name.Trim().TrimEnd('.', ' ');
+        if (string.IsNullOrWhiteSpace(name)) return "Profile";
+
+        string deviceName = name.Split('.')[0];
+        if (deviceName.Equals("CON", StringComparison.OrdinalIgnoreCase) ||
+            deviceName.Equals("PRN", StringComparison.OrdinalIgnoreCase) ||
+            deviceName.Equals("AUX", StringComparison.OrdinalIgnoreCase) ||
+            deviceName.Equals("NUL", StringComparison.OrdinalIgnoreCase) ||
+            (deviceName.Length == 4 &&
+             (deviceName.StartsWith("COM", StringComparison.OrdinalIgnoreCase) || deviceName.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)) &&
+             deviceName[3] is >= '1' and <= '9'))
+            name = "_" + name;
+
+        return name;
     }
 
     private string ProfilePath(string name) => IOPath.Combine(_profilesDirectory, SafeFileName(name) + ".json");
 
-    private void SaveCurrentProfile()
+    private static void WriteAllTextAtomically(string path, string content)
+    {
+        string directory = IOPath.GetDirectoryName(path) ?? throw new InvalidOperationException("A target directory is required.");
+        Directory.CreateDirectory(directory);
+        string temporaryPath = IOPath.Combine(directory, $".{IOPath.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            File.WriteAllText(temporaryPath, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            File.Move(temporaryPath, path, overwrite: true);
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
+            }
+            catch (Exception cleanupError)
+            {
+                Debug.WriteLine("Temporary profile cleanup failed: " + cleanupError.Message);
+            }
+        }
+    }
+
+    private static bool TryParseProfileColor(string? value, out Color color)
+    {
+        try
+        {
+            if (ColorConverter.ConvertFromString(value) is Color parsed)
+            {
+                color = parsed;
+                return true;
+            }
+        }
+        catch (Exception ex) when (ex is FormatException or ArgumentException or NotSupportedException)
+        {
+            // Invalid profile color values are rejected during profile normalization.
+        }
+
+        color = Colors.Transparent;
+        return false;
+    }
+
+    private EditorProfileData ReadProfileFile(string path, bool requireName = false)
+    {
+        FileInfo file = new(path);
+        if (file.Length > MaxProfileFileBytes)
+            throw new InvalidDataException("Profile file exceeds the 1 MiB safety limit.");
+
+        EditorProfileData? data = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(path), ProfileJsonOptions);
+        if (data is null) throw new InvalidDataException("Profile file is empty or invalid.");
+        if (requireName && string.IsNullOrWhiteSpace(data.Name))
+            throw new InvalidDataException("Profile name is required.");
+
+        data.Name = string.IsNullOrWhiteSpace(data.Name) ? IOPath.GetFileNameWithoutExtension(path) : data.Name.Trim();
+        if (!TryParseProfileColor(data.ColorHex, out _)) data.ColorHex = "#FF6D8CFF";
+
+        Dictionary<string, string> keyColors = new(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, string> entry in data.KeyColors ?? new Dictionary<string, string>())
+            if (!string.IsNullOrWhiteSpace(entry.Key) && TryParseProfileColor(entry.Value, out _))
+                keyColors[entry.Key] = entry.Value;
+        if (keyColors.Count > 512) throw new InvalidDataException("Profile contains too many key color entries.");
+        data.KeyColors = keyColors;
+
+        List<EditorGroupData> groups = new();
+        foreach (EditorGroupData? group in data.Groups ?? new List<EditorGroupData>())
+        {
+            if (group is null) continue;
+            group.Name = string.IsNullOrWhiteSpace(group.Name) ? "Группа" : group.Name.Trim();
+            if (!TryParseProfileColor(group.ColorHex, out _)) group.ColorHex = "#FF6D8CFF";
+            group.State = string.IsNullOrWhiteSpace(group.State) ? "Статичный" : group.State;
+            group.Keys = (group.Keys ?? new List<string>())
+                .Where(key => !string.IsNullOrWhiteSpace(key))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            if (group.Keys.Count > 512) throw new InvalidDataException("A group contains too many keys.");
+            groups.Add(group);
+        }
+        if (groups.Count > 128) throw new InvalidDataException("Profile contains too many groups.");
+        data.Groups = groups;
+        return data;
+    }
+
+    private bool SaveCurrentProfile()
     {
         try
         {
@@ -1028,28 +1143,43 @@ public partial class MainWindow : Window
                 KeyColors = _keyColors.ToDictionary(pair => pair.Key, pair => $"#{pair.Value.R:X2}{pair.Value.G:X2}{pair.Value.B:X2}", StringComparer.Ordinal),
                 Groups = _groups.Select(group => new EditorGroupData { Name = group.Name, ColorHex = group.ColorHex, State = group.State, Keys = group.Keys.ToList() }).ToList()
             };
-            File.WriteAllText(ProfilePath(_activeProfileName), JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+            WriteAllTextAtomically(ProfilePath(_activeProfileName), JsonSerializer.Serialize(data, ProfileJsonOptions));
+            return true;
         }
-        catch (Exception ex) { Debug.WriteLine("Profile save failed: " + ex.Message); }
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Profile save failed: " + ex.Message);
+            return false;
+        }
     }
 
     private void LoadProfile(string path)
     {
         try
         {
-            EditorProfileData? data = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (data is null) return;
+            EditorProfileData data = ReadProfileFile(path);
+            Dictionary<string, Color> loadedColors = new(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, string> pair in data.KeyColors)
+                if (TryParseProfileColor(pair.Value, out Color color))
+                    loadedColors[pair.Key] = color;
+
+            List<EditorGroup> loadedGroups = data.Groups
+                .Select(group => new EditorGroup
+                {
+                    Name = group.Name,
+                    ColorHex = group.ColorHex,
+                    State = group.State,
+                    Keys = new HashSet<string>(group.Keys, StringComparer.Ordinal)
+                })
+                .ToList();
+
+            // Parse and validate the entire profile before changing the active editor state.
             _profileSaveTimer.Stop();
             _keyColors.Clear();
-            foreach (var pair in data.KeyColors)
-            {
-                object? parsed = ColorConverter.ConvertFromString(pair.Value);
-                if (parsed is Color color) _keyColors[pair.Key] = color;
-            }
+            foreach (KeyValuePair<string, Color> pair in loadedColors) _keyColors[pair.Key] = pair.Value;
             foreach (string key in _keyGlows.Keys) UpdateKeyVisual(key);
             _groups.Clear();
-            foreach (EditorGroupData group in data.Groups)
-                _groups.Add(new EditorGroup { Name = group.Name, ColorHex = group.ColorHex, State = group.State, Keys = new HashSet<string>(group.Keys, StringComparer.Ordinal) });
+            _groups.AddRange(loadedGroups);
             _selectedKeys.Clear();
             _activeProfileName = data.Name;
             _activeProfileColor = data.ColorHex;
@@ -1058,7 +1188,11 @@ public partial class MainWindow : Window
             UpdateProfileButton();
             if (_groupManagerContent is not null) ShowGroupsManager();
         }
-        catch (Exception ex) { Debug.WriteLine("Profile load failed: " + ex.Message); }
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Profile load failed: " + ex.Message);
+            ToolStatusText.Text = "Не удалось загрузить профиль. Проверьте файл профиля.";
+        }
     }
 
     private void CommitGroupOrder(int sourceIndex, int targetIndex)
@@ -1476,8 +1610,7 @@ public partial class MainWindow : Window
         {
             try
             {
-                EditorProfileData? data = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(file));
-                if (data is null) continue;
+                EditorProfileData data = ReadProfileFile(file);
                 bool active = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
                 string profileOrderName = IOPath.GetFileNameWithoutExtension(file);
                 Grid row = new() { Height=40, Margin=new Thickness(0,2,0,2), Tag=profileOrderName };
@@ -1539,11 +1672,10 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) != true) return;
         try
         {
-            EditorProfileData? imported = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(dialog.FileName));
-            if (imported is null || string.IsNullOrWhiteSpace(imported.Name)) throw new InvalidDataException("Некорректный файл профиля.");
+            EditorProfileData imported = ReadProfileFile(dialog.FileName, requireName: true);
             string target = ProfilePath(imported.Name);
             if (File.Exists(target)) { ToolStatusText.Text = "Профиль с таким названием уже существует."; return; }
-            File.Copy(dialog.FileName, target);
+            WriteAllTextAtomically(target, JsonSerializer.Serialize(imported, ProfileJsonOptions));
             string importedName = IOPath.GetFileNameWithoutExtension(target);
             if (!_profileOrder.Contains(importedName, StringComparer.OrdinalIgnoreCase)) _profileOrder.Add(importedName);
             SaveProfileOrder();
@@ -1556,7 +1688,24 @@ public partial class MainWindow : Window
     private void ExportActiveProfile()
     {
         Microsoft.Win32.SaveFileDialog dialog = new() { Filter = "JSON profile (*.json)|*.json", FileName = SafeFileName(_activeProfileName) + ".json" };
-        if (dialog.ShowDialog(this) == true) { SaveCurrentProfile(); File.Copy(ProfilePath(_activeProfileName), dialog.FileName, true); }
+        if (dialog.ShowDialog(this) == true)
+        {
+            try
+            {
+                if (!SaveCurrentProfile())
+                {
+                    ToolStatusText.Text = "Не удалось сохранить профиль перед экспортом.";
+                    return;
+                }
+                WriteAllTextAtomically(dialog.FileName, File.ReadAllText(ProfilePath(_activeProfileName)));
+                ToolStatusText.Text = "Профиль экспортирован.";
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Profile export failed: " + ex.Message);
+                ToolStatusText.Text = "Не удалось экспортировать профиль.";
+            }
+        }
     }
 
     private void ShowProfileEditor(EditorProfileData? existing,string? oldPath)
