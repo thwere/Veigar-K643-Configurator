@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -23,6 +24,8 @@ public partial class MainWindow : Window
 {
     private const int DwmwaWindowCornerPreference = 33;
     private const int DwmwcpDoNotRound = 1;
+    private static readonly DependencyProperty HeadingSpacingAppliedProperty =
+        DependencyProperty.RegisterAttached("HeadingSpacingApplied", typeof(bool), typeof(MainWindow), new PropertyMetadata(false));
 
     private enum EditorTool { Brush, Fill, Select, Eraser, Eyedropper }
     private readonly Dictionary<string, List<Border>> _keyGlows = new(StringComparer.Ordinal);
@@ -36,6 +39,8 @@ public partial class MainWindow : Window
     private const int MaxGroupsPerProfile = 15;
     private readonly List<Button> _toolButtons = new();
     private readonly string _profilesDirectory = IOPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "VeigarConfig", "Profiles");
+    private readonly string _profileOrderPath = IOPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "VeigarConfig", "Profiles", "profiles.order");
+    private readonly List<string> _profileOrder = new();
     private string _activeProfileName = "Основной";
     private string _activeProfileColor = "#FF6D8CFF";
     private string _dialogColor = "#FF6D8CFF";
@@ -75,10 +80,15 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _reconnectTimer = new() { Interval = TimeSpan.FromMilliseconds(900) };
     private readonly DispatcherTimer _hardwareUpdateTimer = new() { Interval = TimeSpan.FromMilliseconds(45) };
 
+    static MainWindow()
+    {
+        EventManager.RegisterClassHandler(typeof(TextBlock), FrameworkElement.LoadedEvent,
+            new RoutedEventHandler(ApplyHeadingLetterSpacing), true);
+    }
+
     public MainWindow()
     {
         InitializeComponent();
-        AddHandler(FrameworkElement.LoadedEvent, new RoutedEventHandler(ApplyHeadingLetterSpacing), true);
         MinimizeGlyph.FontFamily = new FontFamily("Segoe UI");
         CloseGlyph.FontFamily = new FontFamily("Segoe UI");
         CreateKeyVisuals();
@@ -109,7 +119,12 @@ public partial class MainWindow : Window
 
     private static void ApplyHeadingLetterSpacing(object sender, RoutedEventArgs e)
     {
-        if (e.OriginalSource is not TextBlock text) return;
+        if (sender is not TextBlock text) return;
+        ApplyTextBlockPresentation(text);
+    }
+
+    private static void ApplyTextBlockPresentation(TextBlock text)
+    {
         string role = text.Tag as string ?? "Standard";
         if (role == "Icon") return;
         string family = role switch
@@ -121,11 +136,38 @@ public partial class MainWindow : Window
         };
         text.FontFamily = new FontFamily(family);
         text.FontSize = role switch { "Title" => 15, "Heading" => 14, "Button" => 11, _ => 10 };
-        if (role == "Heading" && text.Text.Length > 1)
+        if (role == "Heading") ApplyPhysicalLetterSpacing(text);
+    }
+
+    private static void ApplyPhysicalLetterSpacing(TextBlock text)
+    {
+        if ((bool)text.GetValue(HeadingSpacingAppliedProperty)) return;
+        string original = text.Text;
+        if (original.Length < 2) return;
+
+        text.Inlines.Clear();
+        for (int i = 0; i < original.Length; i++)
         {
-            string plain = text.Text.Replace("\u2009", "").Replace("\u200A", "").Replace("\u2002", "").Replace("\u2004", "");
-            text.Text = string.Join("\u2002", plain.ToCharArray());
+            text.Inlines.Add(new Run(original[i].ToString()));
+            if (i < original.Length - 1 && !char.IsWhiteSpace(original[i]) && !char.IsWhiteSpace(original[i + 1]))
+            {
+                text.Inlines.Add(new Run("\u00A0")
+                {
+                    FontFamily = new FontFamily("Segoe UI"),
+                    FontSize = Math.Max(6, text.FontSize * 0.72)
+                });
+            }
         }
+        text.SetValue(HeadingSpacingAppliedProperty, true);
+    }
+
+    private static void SetHeadingText(TextBlock? text, string value)
+    {
+        if (text is null) return;
+        text.Inlines.Clear();
+        text.SetValue(HeadingSpacingAppliedProperty, false);
+        text.Text = value;
+        ApplyTextBlockPresentation(text);
     }
 
     private void CreateKeyVisuals()
@@ -342,9 +384,14 @@ public partial class MainWindow : Window
             button.Background = BrushFrom(active ? "#FF515A6B" : "#FF2A2E38");
             button.BorderBrush = BrushFrom(active ? "#FF818B9F" : "#FF3E4350");
         }
-        bool colorTool = tool == EditorTool.Brush || tool == EditorTool.Fill;
+        bool colorTool = tool == EditorTool.Brush || tool == EditorTool.Fill || tool == EditorTool.Eyedropper;
         if (_colorSettingsSection is not null) _colorSettingsSection.Visibility = colorTool ? Visibility.Visible : Visibility.Collapsed;
-        if (_colorToolHeading is not null) _colorToolHeading.Text = tool == EditorTool.Fill ? "ЦВЕТ ЗАЛИВКИ" : "ЦВЕТ КИСТИ";
+        SetHeadingText(_colorToolHeading, tool switch
+        {
+            EditorTool.Fill => "ЦВЕТ ЗАЛИВКИ",
+            EditorTool.Eyedropper => "КОПИРОВАНИЕ ЦВЕТА",
+            _ => "ЦВЕТ КИСТИ"
+        });
         if (_groupManagerContent is not null) _groupManagerContent.Visibility = Visibility.Visible;
         ToolStatusText.Text = tool switch
         {
@@ -650,11 +697,15 @@ public partial class MainWindow : Window
     private void RenderSelection()
     {
         SelectionOverlayCanvas.Children.Clear();
-        foreach (EditorGroup group in _groups)
-            AddOutline(group.Keys, group.ColorHex, 1.4, 30);
+        // Draw lower-priority groups first so the highest-priority group remains visible on overlaps.
+        for (int i = _groups.Count - 1; i >= 0; i--)
+            AddOutline(_groups[i].Keys, _groups[i].ColorHex, 1.4, 30);
         if (_selectedKeys.Count > 0)
             AddOutline(_selectedKeys, "#FF9DB7FF", 1.6, 24);
     }
+
+    private EditorGroup? GetPriorityGroupForKey(string key) =>
+        _groups.FirstOrDefault(group => group.Keys.Contains(key));
 
     private void AddOutline(IEnumerable<string> keys, string stroke, double thickness, byte fillAlpha)
     {
@@ -840,14 +891,147 @@ public partial class MainWindow : Window
     private void InitializeProfiles()
     {
         Directory.CreateDirectory(_profilesDirectory);
-        string[] files = Directory.GetFiles(_profilesDirectory, "*.json");
+        LoadProfileOrder();
+        string[] files = GetOrderedProfileFiles();
         if (files.Length == 0)
         {
+            if (!_profileOrder.Contains(SafeFileName(_activeProfileName), StringComparer.OrdinalIgnoreCase))
+                _profileOrder.Insert(0, SafeFileName(_activeProfileName));
+            SaveProfileOrder();
             SaveCurrentProfile();
             return;
         }
-        string preferred = ProfilePath(_activeProfileName);
-        LoadProfile(File.Exists(preferred) ? preferred : files[0]);
+
+        // The first profile in the saved order is the profile loaded when the application starts.
+        LoadProfile(files[0]);
+    }
+
+    private void LoadProfileOrder()
+    {
+        try
+        {
+            if (File.Exists(_profileOrderPath))
+                _profileOrder.AddRange(JsonSerializer.Deserialize<List<string>>(File.ReadAllText(_profileOrderPath)) ?? new List<string>());
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Profile order load failed: " + ex.Message);
+            _profileOrder.Clear();
+        }
+
+        string[] existing = Directory.GetFiles(_profilesDirectory, "*.json")
+            .Select(path => IOPath.GetFileNameWithoutExtension(path))
+            .ToArray();
+
+        if (_profileOrder.Count == 0 && existing.Contains(SafeFileName(_activeProfileName), StringComparer.OrdinalIgnoreCase))
+            _profileOrder.Add(SafeFileName(_activeProfileName));
+
+        List<string> normalized = _profileOrder
+            .Where(name => existing.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (string name in existing.OrderBy(name => name, StringComparer.OrdinalIgnoreCase))
+            if (!normalized.Contains(name, StringComparer.OrdinalIgnoreCase))
+                normalized.Add(name);
+
+        _profileOrder.Clear();
+        _profileOrder.AddRange(normalized);
+        SaveProfileOrder();
+    }
+
+    private string[] GetOrderedProfileFiles()
+    {
+        if (!Directory.Exists(_profilesDirectory)) return Array.Empty<string>();
+        return Directory.GetFiles(_profilesDirectory, "*.json")
+            .OrderBy(path =>
+            {
+                string name = IOPath.GetFileNameWithoutExtension(path);
+                int index = _profileOrder.FindIndex(item => string.Equals(item, name, StringComparison.OrdinalIgnoreCase));
+                return index < 0 ? int.MaxValue : index;
+            })
+            .ThenBy(path => IOPath.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private void SaveProfileOrder()
+    {
+        try
+        {
+            Directory.CreateDirectory(_profilesDirectory);
+            File.WriteAllText(_profileOrderPath, JsonSerializer.Serialize(_profileOrder, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex) { Debug.WriteLine("Profile order save failed: " + ex.Message); }
+    }
+
+    private void RenameProfileOrderEntry(string? oldPath, string newPath)
+    {
+        string newName = IOPath.GetFileNameWithoutExtension(newPath);
+        if (oldPath is not null)
+        {
+            string oldName = IOPath.GetFileNameWithoutExtension(oldPath);
+            int index = _profileOrder.FindIndex(name => string.Equals(name, oldName, StringComparison.OrdinalIgnoreCase));
+            if (index >= 0) _profileOrder[index] = newName;
+        }
+        if (!_profileOrder.Contains(newName, StringComparer.OrdinalIgnoreCase))
+            _profileOrder.Add(newName);
+        SaveProfileOrder();
+    }
+
+    private void ReorderProfiles(string draggedName, string targetName, bool after, StackPanel body)
+    {
+        int sourceIndex = _profileOrder.FindIndex(name => string.Equals(name, draggedName, StringComparison.OrdinalIgnoreCase));
+        int targetIndex = _profileOrder.FindIndex(name => string.Equals(name, targetName, StringComparison.OrdinalIgnoreCase));
+        if (sourceIndex < 0 || targetIndex < 0) return;
+
+        int insertIndex = targetIndex + (after ? 1 : 0);
+        string item = _profileOrder[sourceIndex];
+        _profileOrder.RemoveAt(sourceIndex);
+        if (sourceIndex < insertIndex) insertIndex--;
+        insertIndex = Math.Clamp(insertIndex, 0, _profileOrder.Count);
+        _profileOrder.Insert(insertIndex, item);
+        SaveProfileOrder();
+
+        Grid[] rows = body.Children.OfType<Grid>()
+            .Where(row => row.Tag is string)
+            .OrderBy(row => _profileOrder.FindIndex(name => string.Equals(name, (string)row.Tag, StringComparison.OrdinalIgnoreCase)))
+            .ToArray();
+        foreach (Grid row in rows) body.Children.Remove(row);
+        for (int i = 0; i < rows.Length; i++) body.Children.Insert(i, rows[i]);
+        ToolStatusText.Text = $"Приоритет профилей обновлён. «{draggedName}» — позиция {_profileOrder.FindIndex(name => string.Equals(name, draggedName, StringComparison.OrdinalIgnoreCase)) + 1}.";
+    }
+
+    private void AttachProfileDragDrop(Grid row, TextBlock handle, string profileName, StackPanel body)
+    {
+        Point dragStart = default;
+        bool dragStarted = false;
+        handle.PreviewMouseLeftButtonDown += (_, e) => { dragStart = e.GetPosition(row); dragStarted = false; };
+        handle.PreviewMouseMove += (_, e) =>
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || dragStarted) return;
+            Point current = e.GetPosition(row);
+            if (Math.Abs(current.X - dragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(current.Y - dragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            dragStarted = true;
+            DataObject data = new("Veigar.ProfileOrder", profileName);
+            DragDrop.DoDragDrop(handle, data, DragDropEffects.Move);
+        };
+
+        row.AllowDrop = true;
+        row.DragOver += (_, e) =>
+        {
+            if (!e.Data.GetDataPresent("Veigar.ProfileOrder")) return;
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+        };
+        row.Drop += (_, e) =>
+        {
+            if (!e.Data.GetDataPresent("Veigar.ProfileOrder")) return;
+            string? draggedName = e.Data.GetData("Veigar.ProfileOrder") as string;
+            if (draggedName is null) return;
+            ReorderProfiles(draggedName, profileName, e.GetPosition(row).Y >= row.ActualHeight / 2, body);
+            e.Handled = true;
+        };
     }
 
     private static string SafeFileName(string name)
@@ -903,24 +1087,74 @@ public partial class MainWindow : Window
         catch (Exception ex) { Debug.WriteLine("Profile load failed: " + ex.Message); }
     }
 
+    private void AttachGroupDragDrop(Grid row, TextBlock handle, EditorGroup group)
+    {
+        Point dragStart = default;
+        bool dragStarted = false;
+        handle.PreviewMouseLeftButtonDown += (_, e) => { dragStart = e.GetPosition(row); dragStarted = false; };
+        handle.PreviewMouseMove += (_, e) =>
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || dragStarted) return;
+            Point current = e.GetPosition(row);
+            if (Math.Abs(current.X - dragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(current.Y - dragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            dragStarted = true;
+            DragDrop.DoDragDrop(handle, new DataObject("Veigar.GroupOrder", group), DragDropEffects.Move);
+        };
+        row.AllowDrop = true;
+        row.DragOver += (_, e) =>
+        {
+            if (!e.Data.GetDataPresent("Veigar.GroupOrder")) return;
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+        };
+        row.Drop += (_, e) =>
+        {
+            if (!e.Data.GetDataPresent("Veigar.GroupOrder")) return;
+            if (e.Data.GetData("Veigar.GroupOrder") is not EditorGroup dragged) return;
+            ReorderGroupPriority(dragged, group, e.GetPosition(row).Y >= row.ActualHeight / 2);
+            e.Handled = true;
+        };
+    }
+
+    private void ReorderGroupPriority(EditorGroup dragged, EditorGroup target, bool after)
+    {
+        int sourceIndex = _groups.IndexOf(dragged);
+        int targetIndex = _groups.IndexOf(target);
+        if (sourceIndex < 0 || targetIndex < 0 || sourceIndex == targetIndex) return;
+
+        int insertIndex = targetIndex + (after ? 1 : 0);
+        _groups.RemoveAt(sourceIndex);
+        if (sourceIndex < insertIndex) insertIndex--;
+        _groups.Insert(Math.Clamp(insertIndex, 0, _groups.Count), dragged);
+
+        RenderSelection();
+        ScheduleProfileSave();
+        ShowGroupsManager();
+        ToolStatusText.Text = $"Приоритет группы «{dragged.Name}» обновлён. Верхние группы главнее нижних.";
+    }
+
     private void ShowGroupsManager()
     {
         if(_groupManagerContent is null)return;
         _groupManagerContent.Visibility=Visibility.Visible;_groupManagerContent.Children.Clear();_groupSettingsPanel=null;
         StackPanel content=new();
-        content.Children.Add(new TextBlock{Text="ГРУППЫ КЛАВИШ",Tag="Heading",Foreground=BrushFrom("#FF9DA4B2"),FontSize=10,Margin=new Thickness(0,0,0,8)});
+        content.Children.Add(new TextBlock{Text="ГРУППЫ КЛАВИШ",Tag="Heading",Foreground=BrushFrom("#FF9DA4B2"),FontSize=10,Margin=new Thickness(0,0,0,4)});
+        content.Children.Add(new TextBlock{Text="Перетащите группу за значок: верхние группы имеют приоритет.",Foreground=BrushFrom("#FF89919F"),FontSize=9,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,7)});
         if(_groups.Count==0)content.Children.Add(new TextBlock{Text="Групп пока нет. Выделите клавиши и нажмите «Новая группа».",Foreground=BrushFrom("#FF89919F"),FontSize=9,TextWrapping=TextWrapping.Wrap});
         foreach(EditorGroup group in _groups.ToArray())
         {
-            Grid row=new(){Height=38,Margin=new Thickness(0,2,0,2)};
+            Grid row=new(){Height=38,Margin=new Thickness(0,2,0,2),Tag=group};
             bool selected=group.Keys.Count>0&&group.Keys.All(_selectedKeys.Contains);
-            Button choose=new(){Background=selected?BrushFrom("#FF3A414F"):Brushes.Transparent,BorderThickness=new Thickness(0),HorizontalContentAlignment=HorizontalAlignment.Left,Padding=new Thickness(10,0,42,0),Template=RoundedToolbarButtonTemplate(8),Cursor=Cursors.Hand,HorizontalAlignment=HorizontalAlignment.Stretch};
+            Button choose=new(){Background=selected?BrushFrom("#FF3A414F"):Brushes.Transparent,BorderThickness=new Thickness(0),HorizontalContentAlignment=HorizontalAlignment.Left,Padding=new Thickness(27,0,42,0),Template=RoundedToolbarButtonTemplate(8),Cursor=Cursors.Hand,HorizontalAlignment=HorizontalAlignment.Stretch};
             StackPanel label=new(){Orientation=Orientation.Horizontal,VerticalAlignment=VerticalAlignment.Center};
             label.Children.Add(new Ellipse{Width=10,Height=10,Fill=BrushFrom(group.ColorHex),Margin=new Thickness(0,0,8,0)});
             label.Children.Add(new TextBlock{Text=group.Name,Foreground=BrushFrom("#FFE3E5EA"),VerticalAlignment=VerticalAlignment.Center});
             label.Children.Add(new TextBlock{Text=$"  {group.Keys.Count}",Foreground=BrushFrom("#FF9DA4B2"),VerticalAlignment=VerticalAlignment.Center});
             choose.Content=label;choose.Click+=(_,_)=>{_isGroupRemapping=false;_remappingGroup=null;_selectedKeys.Clear();_selectedKeys.UnionWith(group.Keys);RenderSelection();ToolStatusText.Text=$"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш).";ShowGroupsManager();};
             row.Children.Add(choose);
+            TextBlock dragHandle=new(){Text="⠿",FontFamily=new FontFamily("Segoe UI Symbol"),FontSize=17,Foreground=BrushFrom("#FF818A99"),Background=Brushes.Transparent,Width=20,HorizontalContentAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Left,Margin=new Thickness(5,0,0,0),Cursor=Cursors.SizeAll,ToolTip="Перетащить для изменения приоритета"};
+            Panel.SetZIndex(dragHandle,3);row.Children.Add(dragHandle);AttachGroupDragDrop(row,dragHandle,group);
             Button more=new(){Content="⋯",Foreground=BrushFrom("#FFB8BEC9"),Background=Brushes.Transparent,BorderThickness=new Thickness(0),Template=RoundedToolbarButtonTemplate(14),Cursor=Cursors.Hand,Width=28,Height=28,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,5,0)};
             Panel.SetZIndex(more,2);row.Children.Add(more);
             ContextMenu menu=CreateDarkContextMenu(more);
@@ -977,14 +1211,13 @@ public partial class MainWindow : Window
     {
         if(_groups.Count>=MaxGroupsPerProfile){ToolStatusText.Text="Достигнут максимум: 15 групп клавиш в одном профиле.";return;}
         if(_selectedKeys.Count==0){ToolStatusText.Text="Сначала выделите клавиши, которые нужно объединить в группу.";return;}
-        TextBox name=CreatePlaceholderTextBox("Новая группа");
-        ComboBox state=CreateDarkComboBox(new[]{"Статичный","Анимация","По сценарию"},"Статичный");
+        TextBlock warning=new(){Text="Название группы не должно превышать 30 символов.",Foreground=BrushFrom("#FFFF6666"),FontSize=10,TextAlignment=TextAlignment.Center,Visibility=Visibility.Collapsed,Margin=new Thickness(0,5,0,0)};
+        TextBox name=CreatePlaceholderTextBox("Новая группа");name.MaxLength=30;name.TextChanged+=(_,_)=>warning.Visibility=name.Text.Length>=30?Visibility.Visible:Visibility.Collapsed;
         string color="#FF6D8CFF";
         StackPanel body=new();
-        body.Children.Add(new TextBlock{Text="Название",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,0,0,5)});body.Children.Add(name);
+        body.Children.Add(new TextBlock{Text="Название",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,0,0,5)});body.Children.Add(name);body.Children.Add(warning);
         body.Children.Add(new TextBlock{Text="Цвет группы",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,12,0,5)});body.Children.Add(BuildColorSwatches(value=>color=value,color));
-        body.Children.Add(new TextBlock{Text="Состояние",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,8,0,5)});body.Children.Add(state);
-        ShowModal("СОЗДАТЬ ГРУППУ",body,("Создать",()=>{string groupName=name.Text.Trim();if(groupName.Length==0)groupName="Новая группа";PushUndoSnapshot();_groups.Add(new EditorGroup{Name=groupName,ColorHex=color,State=state.SelectedItem?.ToString()??"Статичный",Keys=new HashSet<string>(_selectedKeys,StringComparer.Ordinal)});RenderSelection();ScheduleProfileSave();CloseModal();ShowGroupsManager();}),("Отмена",CloseModal));
+        ShowModal("СОЗДАТЬ ГРУППУ",body,("Создать",()=>{string groupName=name.Text.Trim();if(groupName.Length==0)groupName="Новая группа";PushUndoSnapshot();_groups.Add(new EditorGroup{Name=groupName,ColorHex=color,Keys=new HashSet<string>(_selectedKeys,StringComparer.Ordinal)});RenderSelection();ScheduleProfileSave();CloseModal();ShowGroupsManager();}),("Отмена",CloseModal));
     }
 
     private void ShowInlineGroupEditor(EditorGroup group)
@@ -993,16 +1226,15 @@ public partial class MainWindow : Window
         if(_groupSettingsPanel is not null)_groupManagerContent.Children.Remove(_groupSettingsPanel);
         StackPanel body=new(){Margin=new Thickness(10)};
         body.Children.Add(new TextBlock{Text="НАСТРОЙКИ ГРУППЫ",Tag="Heading",Foreground=BrushFrom("#FFE3E5EA"),Margin=new Thickness(0,0,0,8)});
-        TextBox name=CreatePlaceholderTextBox("Новая группа",group.Name);
-        ComboBox state=CreateDarkComboBox(new[]{"Статичный","Анимация","По сценарию"},group.State);
+        TextBlock warning=new(){Text="Название группы не должно превышать 30 символов.",Foreground=BrushFrom("#FFFF6666"),FontSize=10,TextAlignment=TextAlignment.Center,Visibility=Visibility.Collapsed,Margin=new Thickness(0,5,0,0)};
+        TextBox name=CreatePlaceholderTextBox("Новая группа",group.Name);name.MaxLength=30;name.TextChanged+=(_,_)=>warning.Visibility=name.Text.Length>=30?Visibility.Visible:Visibility.Collapsed;
         string color=group.ColorHex;
-        body.Children.Add(new TextBlock{Text="Название",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,0,0,5)});body.Children.Add(name);
+        body.Children.Add(new TextBlock{Text="Название",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,0,0,5)});body.Children.Add(name);body.Children.Add(warning);
         body.Children.Add(new TextBlock{Text="Цвет",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,9,0,4)});body.Children.Add(BuildColorSwatches(value=>color=value,color));
-        body.Children.Add(new TextBlock{Text="Состояние",Foreground=BrushFrom("#FFB8BEC9"),Margin=new Thickness(0,9,0,4)});body.Children.Add(state);
         body.Children.Add(new TextBlock{Text="Клавиши группы выделены на схеме. Щёлкайте по клавишам, чтобы изменить состав.",Foreground=BrushFrom("#FF9DA4B2"),TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,9,0,0)});
         StackPanel actions=new(){Orientation=Orientation.Horizontal,Margin=new Thickness(0,10,0,0)};
         Button save=CreatePanelButton("Сохранить");save.Width=120;
-        save.Click+=(_,_)=>{if(string.IsNullOrWhiteSpace(name.Text))name.Text="Новая группа";if(_selectedKeys.Count==0){ToolStatusText.Text="Выберите хотя бы одну клавишу.";return;}PushUndoSnapshot();group.Name=name.Text.Trim();group.ColorHex=color;group.State=state.SelectedItem?.ToString()??"Статичный";group.Keys=new HashSet<string>(_selectedKeys,StringComparer.Ordinal);_isGroupRemapping=false;_remappingGroup=null;RenderSelection();ScheduleProfileSave();ShowGroupsManager();};
+        save.Click+=(_,_)=>{if(string.IsNullOrWhiteSpace(name.Text))name.Text="Новая группа";if(_selectedKeys.Count==0){ToolStatusText.Text="Выберите хотя бы одну клавишу.";return;}PushUndoSnapshot();group.Name=name.Text.Trim();group.ColorHex=color;group.Keys=new HashSet<string>(_selectedKeys,StringComparer.Ordinal);_isGroupRemapping=false;_remappingGroup=null;RenderSelection();ScheduleProfileSave();ShowGroupsManager();};
         Button cancel=CreatePanelButton("Отмена");cancel.Width=90;cancel.Margin=new Thickness(8,0,0,0);cancel.Click+=(_,_)=>{_isGroupRemapping=false;_remappingGroup=null;ShowGroupsManager();};
         actions.Children.Add(save);actions.Children.Add(cancel);body.Children.Add(actions);
         _groupSettingsPanel=new Border{Background=BrushFrom("#FF292D37"),BorderBrush=BrushFrom("#FF3A3F4A"),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(8),Margin=new Thickness(0,7,0,0),ClipToBounds=true,Child=body};
@@ -1076,7 +1308,7 @@ public partial class MainWindow : Window
         if (_profilesPopup?.IsOpen == true) { _profilesPopup.IsOpen = false; return; }
         SaveCurrentProfile();
         StackPanel body = new() { Margin = new Thickness(10) };
-        string[] files = Directory.Exists(_profilesDirectory) ? Directory.GetFiles(_profilesDirectory, "*.json").OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray() : Array.Empty<string>();
+        string[] files = GetOrderedProfileFiles();
         foreach (string file in files)
         {
             try
@@ -1084,11 +1316,12 @@ public partial class MainWindow : Window
                 EditorProfileData? data = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(file));
                 if (data is null) continue;
                 bool active = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
-                Grid row = new() { Height=40, Margin=new Thickness(0,2,0,2) };
+                string profileOrderName = IOPath.GetFileNameWithoutExtension(file);
+                Grid row = new() { Height=40, Margin=new Thickness(0,2,0,2), Tag=profileOrderName };
                 Button choose = new()
                 {
                     Background=active ? BrushFrom("#FF3A414F") : Brushes.Transparent, BorderThickness=new Thickness(0),
-                    HorizontalContentAlignment=HorizontalAlignment.Left, Padding=new Thickness(12,0,42,0),
+                    HorizontalContentAlignment=HorizontalAlignment.Left, Padding=new Thickness(28,0,42,0),
                     Cursor=Cursors.Hand, Template=RoundedToolbarButtonTemplate(18),
                     HorizontalAlignment=HorizontalAlignment.Stretch
                 };
@@ -1098,6 +1331,9 @@ public partial class MainWindow : Window
                 choose.Content=label;
                 choose.Click += (_,_) => { SaveCurrentProfile(); LoadProfile(file); _profilesPopup!.IsOpen=false; _profilesPopup=null; };
                 row.Children.Add(choose);
+                TextBlock dragHandle = new() { Text="⠿", FontFamily=new FontFamily("Segoe UI Symbol"), FontSize=17, Foreground=BrushFrom("#FF818A99"), Background=Brushes.Transparent, Width=20, HorizontalContentAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center, HorizontalAlignment=HorizontalAlignment.Left, Margin=new Thickness(5,0,0,0), Cursor=Cursors.SizeAll, ToolTip="Перетащить для изменения порядка запуска" };
+                Panel.SetZIndex(dragHandle,3); row.Children.Add(dragHandle);
+                AttachProfileDragDrop(row,dragHandle,profileOrderName,body);
                 Button more = new()
                 {
                     Content="⋯", Foreground=BrushFrom("#FFB8BEC9"), Background=Brushes.Transparent,
@@ -1116,7 +1352,7 @@ public partial class MainWindow : Window
                     if(count<=1){ToolStatusText.Text="Последний профиль удалить нельзя.";return;}
                     _profilesPopup!.IsOpen=false;_profilesPopup=null;
                     ShowModal("ПОДТВЕРДИТЕ УДАЛЕНИЕ",new TextBlock{Text=$"Удалить профиль «{data.Name}»? Это действие нельзя отменить.",Foreground=BrushFrom("#FFE3E5EA"),TextWrapping=TextWrapping.Wrap,TextAlignment=TextAlignment.Center},
-                        ("Удалить",()=>{if(active){string? next=Directory.GetFiles(_profilesDirectory,"*.json").FirstOrDefault(path=>!string.Equals(IOPath.GetFullPath(path),IOPath.GetFullPath(file),StringComparison.OrdinalIgnoreCase));if(next is not null)LoadProfile(next);}File.Delete(file);CloseModal();ToggleProfilesFlyout();}),
+                        ("Удалить",()=>{if(active){string? next=GetOrderedProfileFiles().FirstOrDefault(path=>!string.Equals(IOPath.GetFullPath(path),IOPath.GetFullPath(file),StringComparison.OrdinalIgnoreCase));if(next is not null)LoadProfile(next);}File.Delete(file);_profileOrder.RemoveAll(name=>string.Equals(name,profileOrderName,StringComparison.OrdinalIgnoreCase));SaveProfileOrder();CloseModal();ToggleProfilesFlyout();}),
                         ("Отмена",()=>{CloseModal();ToggleProfilesFlyout();}));
                 };
                 menu.Items.Add(configure); menu.Items.Add(remove); more.Click += (_,_) => menu.IsOpen=true;
@@ -1124,6 +1360,7 @@ public partial class MainWindow : Window
             }
             catch(Exception ex){Debug.WriteLine("Profile list: "+ex.Message);}
         }
+        body.Children.Add(new TextBlock{Text="Перетащите профиль за значок, чтобы изменить порядок. Верхний профиль загружается первым при запуске.",Foreground=BrushFrom("#FF89919F"),FontSize=9,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,5,0,7)});
         body.Children.Add(new Border{Height=1,Background=BrushFrom("#FF414652"),Margin=new Thickness(0,8,0,8)});
         Button import=CreatePanelButton("Импорт");import.Height=34;import.Template=RoundedToolbarButtonTemplate(10);import.Margin=new Thickness(0,0,0,2);import.Click+=(_,_)=>ImportProfileFromFile();body.Children.Add(import);
         Button export=CreatePanelButton("Экспорт");export.Height=34;export.Template=RoundedToolbarButtonTemplate(10);export.Margin=new Thickness(0,0,0,2);export.Click+=(_,_)=>ExportActiveProfile();body.Children.Add(export);
@@ -1144,6 +1381,9 @@ public partial class MainWindow : Window
             string target = ProfilePath(imported.Name);
             if (File.Exists(target)) { ToolStatusText.Text = "Профиль с таким названием уже существует."; return; }
             File.Copy(dialog.FileName, target);
+            string importedName = IOPath.GetFileNameWithoutExtension(target);
+            if (!_profileOrder.Contains(importedName, StringComparer.OrdinalIgnoreCase)) _profileOrder.Add(importedName);
+            SaveProfileOrder();
             if (_profilesPopup is not null) _profilesPopup.IsOpen = false;
             _profilesPopup = null; ToggleProfilesFlyout();
         }
@@ -1167,8 +1407,8 @@ public partial class MainWindow : Window
             string profileName=name.Text.Trim();if(profileName.Length==0)profileName="Новый профиль";string newPath=ProfilePath(profileName);
             if(existing is null&&File.Exists(newPath)){ToolStatusText.Text="Профиль с таким названием уже существует.";return;}
             if(existing is not null&&oldPath is not null&&!string.Equals(oldPath,newPath,StringComparison.OrdinalIgnoreCase)&&File.Exists(newPath)){ToolStatusText.Text="Профиль с таким названием уже существует.";return;}
-            if(existing is null){_profileSaveTimer.Stop();SaveCurrentProfile();_keyColors.Clear();_groups.Clear();_selectedKeys.Clear();foreach(string key in _keyGlows.Keys)UpdateKeyVisual(key);_activeProfileName=profileName;_activeProfileColor=_dialogColor;_lastHardwareFrameSignature=null;RenderSelection();ScheduleHardwareFrame();SaveCurrentProfile();ShowGroupsManager();}
-            else{bool active=oldPath is not null&&string.Equals(IOPath.GetFullPath(oldPath),IOPath.GetFullPath(ProfilePath(_activeProfileName)),StringComparison.OrdinalIgnoreCase);existing.Name=profileName;existing.ColorHex=_dialogColor;if(oldPath is not null&&!string.Equals(oldPath,newPath,StringComparison.OrdinalIgnoreCase)&&File.Exists(oldPath))File.Delete(oldPath);if(active){_activeProfileName=profileName;_activeProfileColor=_dialogColor;SaveCurrentProfile();}else File.WriteAllText(newPath,JsonSerializer.Serialize(existing,new JsonSerializerOptions{WriteIndented=true}));}
+            if(existing is null){_profileSaveTimer.Stop();SaveCurrentProfile();_keyColors.Clear();_groups.Clear();_selectedKeys.Clear();foreach(string key in _keyGlows.Keys)UpdateKeyVisual(key);_activeProfileName=profileName;_activeProfileColor=_dialogColor;_lastHardwareFrameSignature=null;RenderSelection();ScheduleHardwareFrame();SaveCurrentProfile();RenameProfileOrderEntry(null,newPath);ShowGroupsManager();}
+            else{bool active=oldPath is not null&&string.Equals(IOPath.GetFullPath(oldPath),IOPath.GetFullPath(ProfilePath(_activeProfileName)),StringComparison.OrdinalIgnoreCase);existing.Name=profileName;existing.ColorHex=_dialogColor;if(oldPath is not null&&!string.Equals(oldPath,newPath,StringComparison.OrdinalIgnoreCase)&&File.Exists(oldPath))File.Delete(oldPath);RenameProfileOrderEntry(oldPath,newPath);if(active){_activeProfileName=profileName;_activeProfileColor=_dialogColor;SaveCurrentProfile();}else File.WriteAllText(newPath,JsonSerializer.Serialize(existing,new JsonSerializerOptions{WriteIndented=true}));}
             UpdateProfileButton();CloseModal();ToggleProfilesFlyout();
         }),("Отмена",()=>{CloseModal();ToggleProfilesFlyout();}));
     }
