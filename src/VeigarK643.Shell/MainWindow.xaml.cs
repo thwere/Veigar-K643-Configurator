@@ -74,6 +74,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        AddHandler(FrameworkElement.LoadedEvent, new RoutedEventHandler(ApplyHeadingLetterSpacing), true);
         MinimizeGlyph.FontFamily = new FontFamily("Segoe UI");
         CloseGlyph.FontFamily = new FontFamily("Segoe UI");
         CreateKeyVisuals();
@@ -100,6 +101,12 @@ public partial class MainWindow : Window
             bool sent = await SendHardwareFrameAsync(force: true);
             if (!sent && ++_reconnectAttempts < 10) _reconnectTimer.Start();
         };
+    }
+
+    private static void ApplyHeadingLetterSpacing(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is not TextBlock text || !Equals(text.Tag, "Heading") || text.Text.Length < 2 || text.Text.Contains('\u200A')) return;
+        text.Text = string.Join("\u200A", text.Text.ToCharArray());
     }
 
     private void CreateKeyVisuals()
