@@ -1118,16 +1118,22 @@ public partial class MainWindow : Window
     private static ControlTemplate RoundedToolbarButtonTemplate(double radius)
     {
         FrameworkElementFactory border = new(typeof(Border));
+        border.Name = "Surface";
         border.SetValue(Border.CornerRadiusProperty, new CornerRadius(radius));
         border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
-        border.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding("BorderBrush") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
-        border.SetBinding(Border.BorderThicknessProperty, new System.Windows.Data.Binding("BorderThickness") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
         FrameworkElementFactory content = new(typeof(ContentPresenter));
         content.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
         content.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
         content.SetValue(ContentPresenter.MarginProperty, new Thickness(4,0,4,0));
         border.AppendChild(content);
-        return new ControlTemplate(typeof(Button)) { VisualTree = border };
+        ControlTemplate template = new(typeof(Button)) { VisualTree = border };
+        Trigger hover = new() { Property = Button.IsMouseOverProperty, Value = true };
+        hover.Setters.Add(new Setter(Border.BackgroundProperty, BrushFrom("#FF3A3E48"), "Surface"));
+        template.Triggers.Add(hover);
+        Trigger pressed = new() { Property = Button.IsPressedProperty, Value = true };
+        pressed.Setters.Add(new Setter(UIElement.OpacityProperty, 0.78));
+        template.Triggers.Add(pressed);
+        return template;
     }
 
     private void UpdateProfileButton()
