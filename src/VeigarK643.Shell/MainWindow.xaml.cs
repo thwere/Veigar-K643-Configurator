@@ -204,10 +204,6 @@ public partial class MainWindow : Window
         Panel.SetZIndex(profileMore,2);
         profileSurface.Children.Add(profileMore);
         right.Children.Add(profileSurface);
-        Button settings = CreateToolbarButton(IconFor("Settings", "\uE713"), "", ShowUiSettings);
-        settings.Width = 36;
-        settings.Margin = new Thickness(6,0,0,0);
-        right.Children.Add(settings);
         Grid.SetColumn(right, 1);
         layout.Children.Add(right);
         ToolbarHost.Children.Add(layout);
@@ -218,7 +214,7 @@ public partial class MainWindow : Window
     {
         Button button = new()
         {
-            Content = new TextBlock { Text = glyph, Tag="Icon", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            Content = new TextBlock { Text = glyph, Tag="Icon", FontFamily = IconFontFor(glyph), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             Tag = tool, Width = 42, Height = 34, Margin = new Thickness(2,0,2,0),
             Padding = new Thickness(0), ToolTip = null, Foreground = BrushFrom("#FFDCE0E8"),
             Background = BrushFrom("#FF2A2E38"), BorderBrush = BrushFrom("#FF3E4350"),
@@ -228,6 +224,8 @@ public partial class MainWindow : Window
         _toolButtons.Add(button);
         host.Children.Add(button);
     }
+
+    private static FontFamily IconFontFor(string glyph) => glyph is "\\uE70F" or "\\uE75C" or "\\uE76D" ? new FontFamily("Segoe MDL2 Assets") : new FontFamily("Segoe UI Symbol");
 
     private Button CreateToolbarButton(string glyph, string tooltip, Action action)
     {
@@ -1240,7 +1238,6 @@ public partial class MainWindow : Window
         Grid.SetRow(footer,2); cardGrid.Children.Add(footer);
         ModalOverlay.Children.Add(card);
         ModalOverlay.Visibility = Visibility.Visible;
-        ApplyUiSettings();
     }
 
     private void CloseModal()
