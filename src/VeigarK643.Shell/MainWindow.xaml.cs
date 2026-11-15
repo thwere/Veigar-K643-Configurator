@@ -180,11 +180,11 @@ public partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(10, 0, 0, 0)
         };
-        AddToolButton(tools, IconFor("Brush", "✎"), "", EditorTool.Brush);
-        AddToolButton(tools, IconFor("Fill", "▰"), "", EditorTool.Fill);
-        AddToolButton(tools, IconFor("Select", "▧"), "", EditorTool.Select);
-        AddToolButton(tools, IconFor("Eraser", "⌫"), "", EditorTool.Eraser);
-        Button eyedropper = CreateToolbarButton(IconFor("Eyedropper", "⌕"), "", () => { _isEyedropper = true; ToolStatusText.Text = "Пипетка: щёлкните по клавише с назначенным цветом."; });
+        AddToolButton(tools, IconFor("Brush", "\uE2A1"), "", EditorTool.Brush);
+        AddToolButton(tools, IconFor("Fill", "\uE2A6"), "", EditorTool.Fill);
+        AddToolButton(tools, IconFor("Select", "\uEF20"), "", EditorTool.Select);
+        AddToolButton(tools, IconFor("Eraser", "\uE75C"), "", EditorTool.Eraser);
+        Button eyedropper = CreateToolbarButton(IconFor("Eyedropper", "\uE8F1"), "", () => { _isEyedropper = true; ToolStatusText.Text = "Пипетка: щёлкните по клавише с назначенным цветом."; });
         eyedropper.Width = 38; eyedropper.Height = 32; eyedropper.Template = RoundedToolbarButtonTemplate(6); tools.Children.Add(eyedropper);
         layout.Children.Add(tools);
         StackPanel right = new()
@@ -201,7 +201,7 @@ public partial class MainWindow : Window
         _profileButton.BorderBrush = BrushFrom("#FF515866");
         _profileButton.Template = RoundedToolbarButtonTemplate(17);
         right.Children.Add(_profileButton);
-        Button settings = CreateToolbarButton(IconFor("Settings", ""), "", ShowUiSettings);
+        Button settings = CreateToolbarButton(IconFor("Settings", "\uE713"), "", ShowUiSettings);
         settings.Width = 36;
         settings.Margin = new Thickness(6,0,0,0);
         right.Children.Add(settings);
@@ -1259,7 +1259,7 @@ public partial class MainWindow : Window
             StackPanel row=new(){Orientation=Orientation.Horizontal,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,3,0,3)};
             row.Children.Add(new TextBlock{Text=iconNames[i],Width=94,Foreground=BrushFrom("#FFB8BEC9"),VerticalAlignment=VerticalAlignment.Center,Tag="Label"});
             ComboBox combo=new(){Height=30,Width=190,ItemsSource=icons,DisplayMemberPath="Name"};
-            string current=IconFor(key,key=="Settings"?"\uE713":"\uE70F");
+            string current=IconFor(key,key switch {"Brush"=>"\uE2A1","Fill"=>"\uE2A6","Select"=>"\uEF20","Eraser"=>"\uE75C","Eyedropper"=>"\uE8F1",_=>"\uE713"});
             combo.SelectedItem=icons.FirstOrDefault(item=>item.Glyph==current);
             if(combo.SelectedItem is null)combo.SelectedIndex=0;
             combo.ItemTemplate=new DataTemplate();
@@ -1354,6 +1354,7 @@ public partial class MainWindow : Window
         Grid.SetRow(footer,2); cardGrid.Children.Add(footer);
         ModalOverlay.Children.Add(card);
         ModalOverlay.Visibility = Visibility.Visible;
+        ApplyUiSettings();
     }
 
     private void CloseModal()
