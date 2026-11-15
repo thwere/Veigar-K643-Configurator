@@ -6,7 +6,7 @@ on:
       version:
         description: "Pre-release version (for example v0.1.0)"
         required: true
-        default: "v0.1.0"
+        default: "v0.2.1"
         type: string
   push:
     branches:
@@ -74,7 +74,7 @@ jobs:
         run: |
           $tag = $env:RELEASE_VERSION
           $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
-          $notes = "Veigar K643 Configurator $tag. Adds a custom slide-out profile selector with inline profile actions, import/export and creation; group- and selection-aware fill; group selection without hardware writes; single-action brush/eraser undo with a 250-step Ctrl+Z/Ctrl+Y history; redundant HID frame suppression; and startup/reconnect resend retries."
+          $notes = "Veigar K643 Configurator $tag. Refines the rounded interface, promotes the eyedropper to the toolbar, redesigns profile and keyboard-group rows with contextual actions, adds subtle hover feedback, and improves profile dialog validation and alignment."
 
           $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) {
