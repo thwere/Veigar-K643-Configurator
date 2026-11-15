@@ -13,6 +13,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Microsoft.Win32;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
@@ -179,11 +180,11 @@ public partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(10, 0, 0, 0)
         };
-        AddToolButton(tools, "✎", "Кисть (B)", EditorTool.Brush);
-        AddToolButton(tools, "▰", "Заливка (G)", EditorTool.Fill);
-        AddToolButton(tools, "▧", "Выделение (V)", EditorTool.Select);
-        AddToolButton(tools, "⌫", "Ластик (E)", EditorTool.Eraser);
-        Button eyedropper = CreateToolbarButton("⌕", "Пипетка: взять цвет с клавиши", () => { _isEyedropper = true; ToolStatusText.Text = "Пипетка: щёлкните по клавише с назначенным цветом."; });
+        AddToolButton(tools, IconFor("Brush", "✎"), "", EditorTool.Brush);
+        AddToolButton(tools, IconFor("Fill", "▰"), "", EditorTool.Fill);
+        AddToolButton(tools, IconFor("Select", "▧"), "", EditorTool.Select);
+        AddToolButton(tools, IconFor("Eraser", "⌫"), "", EditorTool.Eraser);
+        Button eyedropper = CreateToolbarButton(IconFor("Eyedropper", "⌕"), "", () => { _isEyedropper = true; ToolStatusText.Text = "Пипетка: щёлкните по клавише с назначенным цветом."; });
         eyedropper.Width = 38; eyedropper.Height = 32; eyedropper.Template = RoundedToolbarButtonTemplate(6); tools.Children.Add(eyedropper);
         layout.Children.Add(tools);
         StackPanel right = new()
@@ -200,7 +201,7 @@ public partial class MainWindow : Window
         _profileButton.BorderBrush = BrushFrom("#FF515866");
         _profileButton.Template = RoundedToolbarButtonTemplate(17);
         right.Children.Add(_profileButton);
-        Button settings = CreateToolbarButton("", "", ShowUiSettings);
+        Button settings = CreateToolbarButton(IconFor("Settings", ""), "", ShowUiSettings);
         settings.Width = 36;
         settings.Margin = new Thickness(6,0,0,0);
         right.Children.Add(settings);
@@ -214,7 +215,7 @@ public partial class MainWindow : Window
     {
         Button button = new()
         {
-            Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe UI Symbol"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            Content = new TextBlock { Text = glyph, Tag="Icon", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             Tag = tool, Width = 42, Height = 34, Margin = new Thickness(2,0,2,0),
             Padding = new Thickness(0), ToolTip = null, Foreground = BrushFrom("#FFDCE0E8"),
             Background = BrushFrom("#FF2A2E38"), BorderBrush = BrushFrom("#FF3E4350"),
@@ -229,7 +230,7 @@ public partial class MainWindow : Window
     {
         Button button = new()
         {
-            Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            Content = new TextBlock { Text = glyph, Tag="Icon", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             Width = 42, Height = 34, Margin = new Thickness(2,0,2,0), ToolTip = null,
             Foreground = BrushFrom("#FFDCE0E8"), Background = BrushFrom("#FF2A2E38"),
             BorderThickness = new Thickness(0), Template = RoundedToolbarButtonTemplate(8),
@@ -1166,6 +1167,136 @@ public partial class MainWindow : Window
             ("Отмена", () => { CloseModal(); ToggleProfilesFlyout(); }));
     }
 
+    private string IconFor(string key, string fallback) => _uiSettings.Icons.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value) ? value : fallback;
+
+    private void LoadUiSettings()
+    {
+        try
+        {
+            if (File.Exists(_uiSettingsPath))
+                _uiSettings = JsonSerializer.Deserialize<UiSettingsData>(File.ReadAllText(_uiSettingsPath)) ?? new UiSettingsData();
+        }
+        catch (Exception ex) { Debug.WriteLine("UI settings load failed: " + ex.Message); _uiSettings = new UiSettingsData(); }
+    }
+
+    private void SaveUiSettings()
+    {
+        Directory.CreateDirectory(IOPath.GetDirectoryName(_uiSettingsPath)!);
+        File.WriteAllText(_uiSettingsPath, JsonSerializer.Serialize(_uiSettings, new JsonSerializerOptions { WriteIndented=true }));
+    }
+
+    private void ApplyUiSettings()
+    {
+        foreach (TextBlock text in FindVisualChildren<TextBlock>(this))
+        {
+            string role = text.Tag as string ?? "Standard";
+            if (role == "Icon") continue;
+            FontSetting setting = _uiSettings.Fonts.TryGetValue(role, out FontSetting? configured)
+                ? configured
+                : _uiSettings.Fonts["Standard"];
+            try { text.FontFamily = new FontFamily(setting.Family); } catch { text.FontFamily = new FontFamily("Segoe UI"); }
+            text.FontSize = setting.Size;
+        }
+        foreach (Button button in FindVisualChildren<Button>(this))
+        {
+            if (button.Content is TextBlock icon && Equals(icon.Tag, "Icon")) continue;
+            button.FontSize = _uiSettings.Fonts["Button"].Size;
+            try { button.FontFamily = new FontFamily(_uiSettings.Fonts["Button"].Family); } catch { button.FontFamily = new FontFamily("Segoe UI"); }
+        }
+        ToolStatusText.Tag = "Status";
+    }
+
+    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+    {
+        int count = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i=0;i<count;i++)
+        {
+            DependencyObject child=VisualTreeHelper.GetChild(parent,i);
+            if(child is T typed) yield return typed;
+            foreach(T nested in FindVisualChildren<T>(child)) yield return nested;
+        }
+    }
+
+    private void ShowUiSettings()
+    {
+        string[] fontRoles = { "Standard", "Heading", "Label", "Button", "Status" };
+        string[] roleNames = { "Стандартный текст", "Заголовки", "Подписи и метки", "Текст кнопок", "Строка состояния" };
+        string[] iconKeys = { "Brush", "Fill", "Select", "Eraser", "Eyedropper", "Settings" };
+        string[] iconNames = { "Кисть", "Заливка", "Выделение", "Ластик", "Пипетка", "Настройки" };
+        (string Name,string Glyph)[] icons =
+        {
+            ("Карандаш","\uE70F"),("Кисть","\uE2A1"),("Перо","\uE76D"),("Маркер","\uE2A2"),("Заливка","\uE2A6"),
+            ("Ведро","\uE1F6"),("Выделение","\uEF20"),("Рамка","\uE8A7"),("Лассо","\uEF20"),("Ластик","\uE75C"),
+            ("Удалить","\uE74D"),("Пипетка","\uE8F1"),("Цвет","\uEColor"),("Палитра","\uE2B1"),
+            ("Настройки","\uE713"),("Шестерёнка","\uE7AD"),("Слои","\uE8FD"),("Группа","\uE902"),
+            ("Плюс","\uE710"),("Минус","\uE738"),("Сохранить","\uE74E"),("Открыть","\uE8E5"),
+            ("Копировать","\uE8C8"),("Вставить","\uE77F"),("Отмена","\uE7A7"),("Повтор","\uE7A6"),
+            ("Глаз","\uE7B3"),("Ключ","\uE72E"),("Молния","\uE945"),("Звезда","\uE734")
+        };
+        StackPanel body = new() { Margin=new Thickness(4) };
+        ScrollViewer scroll = new() { MaxHeight=510, VerticalScrollBarVisibility=ScrollBarVisibility.Auto, Content=body };
+        Dictionary<string,(ComboBox Font,ComboBox Size)> fontControls = new();
+        string[] fontFamilies = Fonts.SystemFontFamilies.Select(font=>font.Source).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(name=>name,StringComparer.OrdinalIgnoreCase).ToArray();
+        foreach(string role in fontRoles)
+        {
+            FontSetting setting = _uiSettings.Fonts.TryGetValue(role,out FontSetting? existing) ? existing : new FontSetting();
+            StackPanel row = new() { Margin=new Thickness(0,4,0,8) };
+            row.Children.Add(new TextBlock { Text=roleNames[Array.IndexOf(fontRoles,role)], Foreground=BrushFrom("#FFB8BEC9"), FontSize=10, Tag="Label", Margin=new Thickness(0,0,0,4) });
+            Grid controls = new();
+            controls.ColumnDefinitions.Add(new ColumnDefinition { Width=new GridLength(1,GridUnitType.Star) });
+            controls.ColumnDefinitions.Add(new ColumnDefinition { Width=new GridLength(76) });
+            ComboBox font = new() { ItemsSource=fontFamilies, SelectedItem=fontFamilies.Contains(setting.Family)?setting.Family:"Segoe UI", Height=30, Background=BrushFrom("#FF191B22"), Foreground=BrushFrom("#FFE3E5EA") };
+            ComboBox size = new() { ItemsSource=new double[]{8,9,10,11,12,13,14,15,16,18,20,22,24,28,32,36,40}, SelectedItem=setting.Size, Height=30, Margin=new Thickness(6,0,0,0) };
+            Grid.SetColumn(size,1); controls.Children.Add(font); controls.Children.Add(size); row.Children.Add(controls); body.Children.Add(row);
+            fontControls[role]=(font,size);
+        }
+        body.Children.Add(new Border { Height=1, Background=BrushFrom("#FF414652"), Margin=new Thickness(0,8,0,10) });
+        body.Children.Add(new TextBlock { Text="ИКОНКИ ИНСТРУМЕНТОВ", Foreground=BrushFrom("#FFE3E5EA"), FontSize=11, FontWeight=FontWeights.SemiBold, Tag="Heading", Margin=new Thickness(0,0,0,8) });
+        Dictionary<string,ComboBox> iconControls=new();
+        for(int i=0;i<iconKeys.Length;i++)
+        {
+            string key=iconKeys[i];
+            StackPanel row=new(){Orientation=Orientation.Horizontal,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,3,0,3)};
+            row.Children.Add(new TextBlock{Text=iconNames[i],Width=94,Foreground=BrushFrom("#FFB8BEC9"),VerticalAlignment=VerticalAlignment.Center,Tag="Label"});
+            ComboBox combo=new(){Height=30,Width=190,ItemsSource=icons,DisplayMemberPath="Name"};
+            string current=IconFor(key,key=="Settings"?"\uE713":"\uE70F");
+            combo.SelectedItem=icons.FirstOrDefault(item=>item.Glyph==current);
+            if(combo.SelectedItem is null)combo.SelectedIndex=0;
+            combo.ItemTemplate=new DataTemplate();
+            FrameworkElementFactory itemText=new(typeof(TextBlock));
+            itemText.SetBinding(TextBlock.TextProperty,new System.Windows.Data.Binding("Glyph"));
+            itemText.SetValue(TextBlock.FontFamilyProperty,new FontFamily("Segoe MDL2 Assets"));
+            itemText.SetValue(TextBlock.FontSizeProperty,18d);
+            combo.ItemTemplate.VisualTree=itemText;
+            row.Children.Add(combo);body.Children.Add(row);iconControls[key]=combo;
+        }
+        body.Children.Add(new TextBlock{Text="Выбранные параметры сохраняются в ui-settings.json. Кнопка экспорта создаёт отдельный конфиг, который можно отправить.",Foreground=BrushFrom("#FF89919F"),FontSize=9,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,10,0,0)});
+        ShowModal("НАСТРОЙКИ ИНТЕРФЕЙСА",scroll,
+            ("Сохранить",()=>{
+                foreach(string role in fontRoles)
+                {
+                    var pair=fontControls[role];
+                    _uiSettings.Fonts[role]=new FontSetting{Family=pair.Font.SelectedItem?.ToString()??"Segoe UI",Size=pair.Size.SelectedItem is double value?value:11};
+                }
+                foreach(string key in iconKeys)
+                    if(iconControls[key].SelectedItem is ValueTuple<string,string> selected)_uiSettings.Icons[key]=selected.Item2;
+                SaveUiSettings();BuildToolbar();ApplyUiSettings();CloseModal();ToolStatusText.Text="Настройки интерфейса сохранены.";
+            }),
+            ("Экспорт конфига",()=>{
+                foreach(string role in fontRoles)
+                {
+                    var pair=fontControls[role];
+                    _uiSettings.Fonts[role]=new FontSetting{Family=pair.Font.SelectedItem?.ToString()??"Segoe UI",Size=pair.Size.SelectedItem is double value?value:11};
+                }
+                foreach(string key in iconKeys)
+                    if(iconControls[key].SelectedItem is ValueTuple<string,string> selected)_uiSettings.Icons[key]=selected.Item2;
+                SaveFileDialog dialog=new(){Filter="JSON config (*.json)|*.json",FileName="veigar-ui-settings.json"};
+                if(dialog.ShowDialog(this)==true)File.WriteAllText(dialog.FileName,JsonSerializer.Serialize(_uiSettings,new JsonSerializerOptions{WriteIndented=true}));
+                SaveUiSettings();ApplyUiSettings();CloseModal();ToolStatusText.Text="Конфиг настроек экспортирован.";
+            }),
+            ("Отмена",CloseModal));
+    }
+
     private static ControlTemplate RoundedToolbarButtonTemplate(double radius)
     {
         FrameworkElementFactory border = new(typeof(Border));
@@ -1324,4 +1455,22 @@ internal sealed class EditorProfileData
     public string ColorHex { get; set; } = "#FF6D8CFF";
     public Dictionary<string, string> KeyColors { get; set; } = new(StringComparer.Ordinal);
     public List<EditorGroupData> Groups { get; set; } = new();
+}
+
+internal sealed class UiSettingsData
+{
+    public Dictionary<string,FontSetting> Fonts { get; set; } = new()
+    {
+        ["Standard"]=new FontSetting{Family="Segoe UI",Size=11},
+        ["Heading"]=new FontSetting{Family="Segoe UI Semibold",Size=12},
+        ["Label"]=new FontSetting{Family="Segoe UI",Size=10},
+        ["Button"]=new FontSetting{Family="Segoe UI",Size=11},
+        ["Status"]=new FontSetting{Family="Segoe UI",Size=10}
+    };
+    public Dictionary<string,string> Icons { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+internal sealed class FontSetting
+{
+    public string Family { get; set; } = "Segoe UI";
+    public double Size { get; set; } = 11;
 }
