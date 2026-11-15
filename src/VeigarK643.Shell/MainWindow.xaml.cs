@@ -719,7 +719,7 @@ public partial class MainWindow : Window
     {
         _recentColors.Remove(c);_recentColors.Insert(0,c);if(_recentColors.Count>8)_recentColors.RemoveAt(8);
         if(_recentColorsPanel is null)return;_recentColorsPanel.Children.Clear();
-        foreach(Color recent in _recentColors){Button b=new(){Width=23,Height=23,Margin=new Thickness(0,0,5,0),Padding=new Thickness(0),Background=new SolidColorBrush(recent),BorderThickness=new Thickness(0),Template=RoundedToolbarButtonTemplate(6),ToolTip=$"#{recent.R:X2}{recent.G:X2}{recent.B:X2}"};b.Click+=(_,_)=>SetCurrentColor(recent);_recentColorsPanel.Children.Add(b);}
+        foreach(Color recent in _recentColors){Button b=new(){Width=23,Height=23,Margin=new Thickness(0,0,5,0),Padding=new Thickness(0),Background=new SolidColorBrush(recent),BorderThickness=new Thickness(0),Template=RoundedToolbarButtonTemplate(6),ToolTip=null};b.Click+=(_,_)=>SetCurrentColor(recent);_recentColorsPanel.Children.Add(b);}
     }
     private static Color HsvToColor(double hue, double saturation, double value)
     {
@@ -885,9 +885,10 @@ public partial class MainWindow : Window
         foreach (EditorGroup group in _groups.ToArray())
         {
             Grid row = new() { Height=38, Margin=new Thickness(0,2,0,2) };
+            bool groupSelected = group.Keys.Count > 0 && group.Keys.All(_selectedKeys.Contains);
             Button select = new()
             {
-                Background=Brushes.Transparent, BorderThickness=new Thickness(0),
+                Background=groupSelected ? BrushFrom("#FF3A414F") : Brushes.Transparent, BorderThickness=new Thickness(0),
                 HorizontalContentAlignment=HorizontalAlignment.Left, Padding=new Thickness(10,0,42,0),
                 Template=RoundedToolbarButtonTemplate(10), Cursor=Cursors.Hand,
                 HorizontalAlignment=HorizontalAlignment.Stretch
@@ -1019,7 +1020,7 @@ public partial class MainWindow : Window
         StackPanel row = new() { Orientation = Orientation.Horizontal };
         foreach (string color in palette)
         {
-            Button swatch = new() { Width = 25, Height = 25, Margin = new Thickness(0,0,7,0), Padding = new Thickness(0), Background = BrushFrom(color), BorderBrush = BrushFrom(color == selected ? "#FFFFFFFF" : "#FF4A4F5B"), BorderThickness = new Thickness(color == selected ? 2 : 1), Cursor = Cursors.Hand, ToolTip = color };
+            Button swatch = new() { Width = 25, Height = 25, Margin = new Thickness(0,0,7,0), Padding = new Thickness(0), Background = BrushFrom(color), BorderBrush = BrushFrom(color == selected ? "#FFFFFFFF" : "#FF4A4F5B"), BorderThickness = new Thickness(color == selected ? 2 : 1), Cursor = Cursors.Hand, ToolTip = null };
             swatch.Click += (_, _) => { choose(color); foreach (Button item in row.Children.OfType<Button>()) item.BorderThickness = new Thickness(1); swatch.BorderThickness = new Thickness(2); };
             row.Children.Add(swatch);
         }
@@ -1042,7 +1043,7 @@ public partial class MainWindow : Window
                 Grid row = new() { Height=40, Margin=new Thickness(0,2,0,2) };
                 Button choose = new()
                 {
-                    Background=Brushes.Transparent, BorderThickness=new Thickness(0),
+                    Background=active ? BrushFrom("#FF3A414F") : Brushes.Transparent, BorderThickness=new Thickness(0),
                     HorizontalContentAlignment=HorizontalAlignment.Left, Padding=new Thickness(12,0,42,0),
                     Cursor=Cursors.Hand, Template=RoundedToolbarButtonTemplate(18),
                     HorizontalAlignment=HorizontalAlignment.Stretch
