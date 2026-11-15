@@ -1278,7 +1278,7 @@ public partial class MainWindow : Window
             string key=iconKeys[i];
             StackPanel row=new(){Orientation=Orientation.Horizontal,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,3,0,3)};
             row.Children.Add(new TextBlock{Text=iconNames[i],Width=94,Foreground=BrushFrom("#FFB8BEC9"),VerticalAlignment=VerticalAlignment.Center,Tag="Label"});
-            ComboBox combo=new(){Height=30,Width=190,ItemsSource=icons,DisplayMemberPath="Name"};
+            ComboBox combo=new(){Height=30,Width=190,ItemsSource=icons};
             string current=IconFor(key,key switch {"Brush"=>"\uE2A1","Fill"=>"\uE2A6","Select"=>"\uEF20","Eraser"=>"\uE75C","Eyedropper"=>"\uE8F1",_=>"\uE713"});
             combo.SelectedItem=icons.FirstOrDefault(item=>item.Glyph==current);
             if(combo.SelectedItem is null)combo.SelectedIndex=0;
