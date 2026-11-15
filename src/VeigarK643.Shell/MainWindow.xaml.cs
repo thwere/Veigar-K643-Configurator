@@ -992,8 +992,7 @@ public partial class MainWindow : Window
     {
         if (_profilesPopup?.IsOpen == true) { _profilesPopup.IsOpen = false; return; }
         SaveCurrentProfile();
-        StackPanel body = new() { Margin = new Thickness(12) };
-        body.Children.Add(new TextBlock { Text = "ПРОФИЛИ", Foreground = BrushFrom("#FF9299A7"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new Thickness(3,0,0,8) });
+        StackPanel body = new() { Margin = new Thickness(10) };
         string[] files = Directory.Exists(_profilesDirectory) ? Directory.GetFiles(_profilesDirectory, "*.json").OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray() : Array.Empty<string>();
         foreach (string file in files)
         {
@@ -1001,60 +1000,44 @@ public partial class MainWindow : Window
             {
                 EditorProfileData? data = JsonSerializer.Deserialize<EditorProfileData>(File.ReadAllText(file));
                 if (data is null) continue;
-                StackPanel entry = new() { Margin = new Thickness(0,2,0,2) };
-                Grid row = new() { Height = 38 };
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                Button choose = new() { Height = 34, HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(10,0,8,0), Background = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase) ? BrushFrom("#FF3B4352") : Brushes.Transparent, BorderThickness = new Thickness(0), Cursor = Cursors.Hand, Focusable = false };
-                StackPanel label = new() { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-                label.Children.Add(new Ellipse { Width = 10, Height = 10, Fill = BrushFrom(data.ColorHex), Margin = new Thickness(0,0,9,0), VerticalAlignment = VerticalAlignment.Center });
-                label.Children.Add(new TextBlock { Text = data.Name, Foreground = BrushFrom("#FFE3E5EA"), VerticalAlignment = VerticalAlignment.Center });
-                choose.Content = label;
-                choose.Click += (_, _) => { SaveCurrentProfile(); LoadProfile(file); _profilesPopup!.IsOpen = false; _profilesPopup = null; };
+                bool active = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
+                Grid row = new() { Height = 40, Margin = new Thickness(0,2,0,2), Background = active ? BrushFrom("#FF3A414F") : Brushes.Transparent };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1,GridUnitType.Star) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(34) });
+                Button choose = new() { Background=Brushes.Transparent, BorderThickness=new Thickness(0), HorizontalContentAlignment=HorizontalAlignment.Left, Padding=new Thickness(12,0,4,0), Cursor=Cursors.Hand, Template=RoundedToolbarButtonTemplate(18) };
+                StackPanel label = new() { Orientation=Orientation.Horizontal, VerticalAlignment=VerticalAlignment.Center };
+                label.Children.Add(new Ellipse { Width=10, Height=10, Fill=BrushFrom(data.ColorHex), Margin=new Thickness(0,0,9,0) });
+                label.Children.Add(new TextBlock { Text=data.Name, Foreground=BrushFrom("#FFE3E5EA"), VerticalAlignment=VerticalAlignment.Center });
+                choose.Content=label;
+                choose.Click += (_,_) => { SaveCurrentProfile(); LoadProfile(file); _profilesPopup!.IsOpen=false; _profilesPopup=null; };
                 row.Children.Add(choose);
-                StackPanel actions = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Visibility = Visibility.Collapsed, Margin = new Thickness(0,0,2,4) };
-                Button more = new() { Content = new TextBlock { Text = "⋯", FontSize = 18, Foreground = BrushFrom("#FFB8BEC9"), VerticalAlignment = VerticalAlignment.Center }, Width = 36, Height = 32, Margin = new Thickness(4,0,0,0), Padding = new Thickness(0), Background = Brushes.Transparent, BorderThickness = new Thickness(0), Cursor = Cursors.Hand, Focusable = false, ToolTip = "Действия с профилем" };
-                more.Click += (_, _) => actions.Visibility = actions.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+                Button more = new() { Content="⋯", Foreground=BrushFrom("#FFB8BEC9"), Background=Brushes.Transparent, BorderThickness=new Thickness(0), Template=RoundedToolbarButtonTemplate(17), Cursor=Cursors.Hand };
                 Grid.SetColumn(more,1); row.Children.Add(more);
-                Button configure = CreatePanelButton("Настроить"); configure.Width = 88; configure.Height = 30; configure.Margin = new Thickness(0,0,5,0);
-                configure.Click += (_, _) => { _profilesPopup!.IsOpen = false; _profilesPopup = null; ShowProfileEditor(data, file); };
-                Button remove = CreatePanelButton("Удалить"); remove.Width = 76; remove.Height = 30;
-                remove.Click += (_, _) =>
+                ContextMenu menu = new() { Placement=PlacementMode.Bottom, PlacementTarget=more };
+                MenuItem configure = new() { Header="Настроить" };
+                configure.Click += (_,_) => { _profilesPopup!.IsOpen=false; _profilesPopup=null; ShowProfileEditor(data,file); };
+                MenuItem remove = new() { Header="Удалить" };
+                remove.Click += (_,_) =>
                 {
-                    int count = Directory.GetFiles(_profilesDirectory, "*.json").Length;
-                    if (count <= 1) { ToolStatusText.Text = "Последний профиль удалить нельзя."; return; }
-                    _profilesPopup!.IsOpen = false; _profilesPopup = null;
-                    bool deletingActive = string.Equals(IOPath.GetFullPath(file), IOPath.GetFullPath(ProfilePath(_activeProfileName)), StringComparison.OrdinalIgnoreCase);
-                    ShowModal("ПОДТВЕРДИТЕ УДАЛЕНИЕ", new TextBlock { Text = $"Удалить профиль «{data.Name}»? Это действие нельзя отменить.", Foreground = BrushFrom("#FFE3E5EA"), TextWrapping = TextWrapping.Wrap },
-                        ("Удалить", () =>
-                        {
-                            if (deletingActive)
-                            {
-                                string? next = Directory.GetFiles(_profilesDirectory, "*.json").FirstOrDefault(path => !string.Equals(IOPath.GetFullPath(path), IOPath.GetFullPath(file), StringComparison.OrdinalIgnoreCase));
-                                if (next is not null) LoadProfile(next);
-                            }
-                            File.Delete(file); CloseModal(); ToggleProfilesFlyout();
-                        }),
-                        ("Отмена", () => { CloseModal(); ToggleProfilesFlyout(); }));
+                    int count=Directory.GetFiles(_profilesDirectory,"*.json").Length;
+                    if(count<=1){ToolStatusText.Text="Последний профиль удалить нельзя.";return;}
+                    _profilesPopup!.IsOpen=false;_profilesPopup=null;
+                    ShowModal("ПОДТВЕРДИТЕ УДАЛЕНИЕ",new TextBlock{Text=$"Удалить профиль «{data.Name}»? Это действие нельзя отменить.",Foreground=BrushFrom("#FFE3E5EA"),TextWrapping=TextWrapping.Wrap,TextAlignment=TextAlignment.Center},
+                        ("Удалить",()=>{if(active){string? next=Directory.GetFiles(_profilesDirectory,"*.json").FirstOrDefault(path=>!string.Equals(IOPath.GetFullPath(path),IOPath.GetFullPath(file),StringComparison.OrdinalIgnoreCase));if(next is not null)LoadProfile(next);}File.Delete(file);CloseModal();ToggleProfilesFlyout();}),
+                        ("Отмена",()=>{CloseModal();ToggleProfilesFlyout();}));
                 };
-                actions.Children.Add(configure); actions.Children.Add(remove);
-                entry.Children.Add(row); entry.Children.Add(actions);
-                body.Children.Add(entry);
+                menu.Items.Add(configure); menu.Items.Add(remove); more.Click += (_,_) => menu.IsOpen=true;
+                body.Children.Add(row);
             }
-            catch (Exception ex) { Debug.WriteLine("Profile list: " + ex.Message); }
+            catch(Exception ex){Debug.WriteLine("Profile list: "+ex.Message);}
         }
-        body.Children.Add(new Border { Height = 1, Background = BrushFrom("#FF414652"), Margin = new Thickness(0,8,0,8) });
-        StackPanel utilities = new() { Orientation = Orientation.Horizontal };
-        Button import = CreatePanelButton("Импорт"); import.Width = 84; import.Margin = new Thickness(0,0,6,0); import.Click += (_, _) => ImportProfileFromFile();
-        Button export = CreatePanelButton("Экспорт"); export.Width = 84; export.Click += (_, _) => ExportActiveProfile();
-        utilities.Children.Add(import); utilities.Children.Add(export); body.Children.Add(utilities);
-        Button create = CreatePanelButton("＋  Создать новый профиль"); create.Margin = new Thickness(0,8,0,0);
-        create.Click += (_, _) => { _profilesPopup!.IsOpen = false; _profilesPopup = null; ShowProfileEditor(null, null); };
-        body.Children.Add(create);
-        Border card = new() { Width = 290, MaxHeight = 420, Background = BrushFrom("#FF252832"), BorderBrush = BrushFrom("#FF4A505D"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Child = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
-        _profilesPopup = new Popup { PlacementTarget = _profileButton, Placement = PlacementMode.Bottom, VerticalOffset = 6, HorizontalOffset = -90, AllowsTransparency = true, PopupAnimation = PopupAnimation.Slide, StaysOpen = false, Child = card };
-        _profilesPopup.Closed += (_, _) => { _profilesPopup = null; };
-        _profilesPopup.IsOpen = true;
+        body.Children.Add(new Border{Height=1,Background=BrushFrom("#FF414652"),Margin=new Thickness(0,8,0,8)});
+        Button import=CreatePanelButton("Импорт");import.Height=34;import.Template=RoundedToolbarButtonTemplate(10);import.Margin=new Thickness(0,0,0,2);import.Click+=(_,_)=>ImportProfileFromFile();body.Children.Add(import);
+        Button export=CreatePanelButton("Экспорт");export.Height=34;export.Template=RoundedToolbarButtonTemplate(10);export.Margin=new Thickness(0,0,0,2);export.Click+=(_,_)=>ExportActiveProfile();body.Children.Add(export);
+        Button create=CreatePanelButton("＋");create.FontSize=24;create.Height=46;create.Template=RoundedToolbarButtonTemplate(10);create.Click+=(_,_)=>{_profilesPopup!.IsOpen=false;_profilesPopup=null;ShowProfileEditor(null,null);};body.Children.Add(create);
+        Border card=new(){Width=250,MaxHeight=420,Background=BrushFrom("#FF252832"),BorderThickness=new Thickness(0),CornerRadius=new CornerRadius(18),Child=new ScrollViewer{Content=body,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled}};
+        _profilesPopup=new Popup{PlacementTarget=_profileButton,Placement=PlacementMode.Bottom,VerticalOffset=6,HorizontalOffset=-54,AllowsTransparency=true,PopupAnimation=PopupAnimation.Slide,StaysOpen=false,Child=card};
+        _profilesPopup.Closed+=(_,_)=>_profilesPopup=null;_profilesPopup.IsOpen=true;
     }
 
     private void ImportProfileFromFile()
