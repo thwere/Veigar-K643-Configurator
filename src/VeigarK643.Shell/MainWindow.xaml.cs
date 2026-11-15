@@ -1484,11 +1484,11 @@ public partial class MainWindow : Window
             }
             catch(Exception ex){Debug.WriteLine("Profile list: "+ex.Message);}
         }
+        Button create=CreatePanelButton("＋");create.FontSize=24;create.Height=42;create.Margin=new Thickness(0,4,0,4);create.ToolTip="Создать новый профиль";create.Template=RoundedToolbarButtonTemplate(10);create.Click+=(_,_)=>{_profilesPopup!.IsOpen=false;_profilesPopup=null;ShowProfileEditor(null,null);};body.Children.Add(create);
         body.Children.Add(new TextBlock{Text="Перетащите профиль за значок, чтобы изменить порядок. Верхний профиль загружается первым при запуске.",Foreground=BrushFrom("#FF89919F"),FontSize=9,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,5,0,7)});
         body.Children.Add(new Border{Height=1,Background=BrushFrom("#FF414652"),Margin=new Thickness(0,8,0,8)});
         Button import=CreatePanelButton("Импорт");import.Height=34;import.Template=RoundedToolbarButtonTemplate(10);import.Margin=new Thickness(0,0,0,2);import.Click+=(_,_)=>ImportProfileFromFile();body.Children.Add(import);
         Button export=CreatePanelButton("Экспорт");export.Height=34;export.Template=RoundedToolbarButtonTemplate(10);export.Margin=new Thickness(0,0,0,2);export.Click+=(_,_)=>ExportActiveProfile();body.Children.Add(export);
-        Button create=CreatePanelButton("＋");create.FontSize=24;create.Height=46;create.Template=RoundedToolbarButtonTemplate(10);create.Click+=(_,_)=>{_profilesPopup!.IsOpen=false;_profilesPopup=null;ShowProfileEditor(null,null);};body.Children.Add(create);
         Border card=new(){Width=250,MaxHeight=420,Background=BrushFrom("#FF252832"),BorderThickness=new Thickness(0),CornerRadius=new CornerRadius(18),Child=new ScrollViewer{Content=body,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled}};
         _profilesPopup=new Popup{PlacementTarget=_profileButton,Placement=PlacementMode.Bottom,VerticalOffset=6,HorizontalOffset=-54,AllowsTransparency=true,PopupAnimation=PopupAnimation.Slide,StaysOpen=false,Child=card};
         _profilesPopup.Closed+=(_,_)=>_profilesPopup=null;_profilesPopup.IsOpen=true;
