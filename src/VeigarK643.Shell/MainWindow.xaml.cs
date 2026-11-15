@@ -247,8 +247,8 @@ public partial class MainWindow : Window
         StackPanel root = new() { Margin = new Thickness(16, 18, 16, 14) };
         scroll.Content = root;
         ToolsPanelContent.Children.Add(scroll);
-        root.Children.Add(new TextBlock { Text = "ПАРАМЕТРЫ", Foreground = BrushFrom("#FFE3E5EA"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,16) });
-        root.Children.Add(new TextBlock { Text = "ЦВЕТ КИСТИ", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, Margin = new Thickness(0,0,0,8) });
+        root.Children.Add(new TextBlock { Text = "ПАРАМЕТРЫ", Tag="Heading", Foreground = BrushFrom("#FFE3E5EA"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,16) });
+        root.Children.Add(new TextBlock { Text = "ЦВЕТ КИСТИ", Tag="Heading", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, Margin = new Thickness(0,0,0,8) });
 
         Grid paletteGrid = new() { Width = 230, Height = 178, HorizontalAlignment = HorizontalAlignment.Left };
         paletteGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -280,7 +280,7 @@ public partial class MainWindow : Window
         root.Children.Add(_colorPreview);
         _colorHexText = new TextBlock { Text = "#FF0000", Foreground = BrushFrom("#FF9299A7"), FontSize = 10, Margin = new Thickness(0,5,0,0), HorizontalAlignment = HorizontalAlignment.Center };
         root.Children.Add(_colorHexText);
-        root.Children.Add(new TextBlock{Text="ПОСЛЕДНИЕ ЦВЕТА",Foreground=BrushFrom("#FF9DA4B2"),FontSize=9,Margin=new Thickness(0,12,0,5)});
+        root.Children.Add(new TextBlock{Text="ПОСЛЕДНИЕ ЦВЕТА",Tag="Heading",Foreground=BrushFrom("#FF9DA4B2"),FontSize=9,Margin=new Thickness(0,12,0,5)});
         _recentColorsPanel=new StackPanel{Orientation=Orientation.Horizontal};root.Children.Add(_recentColorsPanel);
         _colorHintText = new TextBlock { Text = "Выберите оттенок и яркость на палитре. Насыщенность регулируется ползунком справа.", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,14,0,0) };
         root.Children.Add(_colorHintText);
@@ -879,7 +879,7 @@ public partial class MainWindow : Window
         _groupManagerContent.Children.Clear();
         Border frame = new() { Background=Brushes.Transparent, BorderThickness=new Thickness(0), Padding=new Thickness(0), Margin=new Thickness(0,14,0,0) };
         StackPanel content = new();
-        content.Children.Add(new TextBlock { Text="ГРУППЫ КЛАВИШ", Foreground=BrushFrom("#FF9DA4B2"), FontSize=10, Margin=new Thickness(0,0,0,8) });
+        content.Children.Add(new TextBlock { Text="ГРУППЫ КЛАВИШ", Tag="Heading", Foreground=BrushFrom("#FF9DA4B2"), FontSize=10, Margin=new Thickness(0,0,0,8) });
         if (_groups.Count == 0)
             content.Children.Add(new TextBlock { Text="Групп пока нет. Выделите клавиши и нажмите «Новая группа».", Foreground=BrushFrom("#FF89919F"), FontSize=9, TextWrapping=TextWrapping.Wrap });
         foreach (EditorGroup group in _groups.ToArray())
