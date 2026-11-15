@@ -35,6 +35,10 @@ public partial class MainWindow : Window
     private readonly Stack<EditorSnapshot> _redoHistory = new();
     private const int HistoryLimit = 250;
     private const long MaxProfileFileBytes = 1024 * 1024;
+    private static readonly JsonSerializerOptions LayoutJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
     private static readonly JsonSerializerOptions ProfileJsonOptions = new()
     {
         WriteIndented = true,
@@ -189,8 +193,7 @@ public partial class MainWindow : Window
         var resource = Application.GetResourceStream(layoutUri);
         if (resource is null) throw new InvalidOperationException("Keyboard layout resource was not found.");
         using Stream stream = resource.Stream;
-        KeyboardLayoutConfig? layout = JsonSerializer.Deserialize<KeyboardLayoutConfig>(
-            stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        KeyboardLayoutConfig? layout = JsonSerializer.Deserialize<KeyboardLayoutConfig>(stream, LayoutJsonOptions);
         if (layout is null) throw new InvalidOperationException("Keyboard layout resource is empty or invalid.");
 
         foreach (KeyboardKeyConfig keyConfig in layout.Keys)
@@ -207,10 +210,11 @@ public partial class MainWindow : Window
 
     private void AddKeyVisuals(string keyName, double left, double top, double width, double height)
     {
-        if (!_keyGlows.ContainsKey(keyName))
+        if (!_keyGlows.TryGetValue(keyName, out List<Border>? glows))
         {
-            _keyGlows[keyName] = new List<Border>();
-            _keyBounds[keyName] = new List<Rect>();
+            glows = new List<Border>();
+            _keyGlows.Add(keyName, glows);
+            _keyBounds.Add(keyName, new List<Rect>());
         }
 
         Border glow = new()
@@ -307,7 +311,7 @@ public partial class MainWindow : Window
 
     private static FontFamily IconFontFor(string glyph) => glyph is "\uE70F" or "\uE75C" or "\uE76D" ? new FontFamily("Segoe MDL2 Assets") : new FontFamily("Segoe UI Symbol");
 
-    private Button CreateToolbarButton(string glyph, string tooltip, Action action)
+    private static Button CreateToolbarButton(string glyph, string tooltip, Action action)
     {
         Button button = new()
         {
@@ -385,7 +389,7 @@ public partial class MainWindow : Window
         if (_colorField.Children[0] is Rectangle hue) hue.Fill = CreateHueBrush(_saturationSlider.Value);
     }
 
-    private Button CreatePanelButton(string text) => new()
+    private static Button CreatePanelButton(string text) => new()
     {
         Content = text, Height = 34, HorizontalContentAlignment = HorizontalAlignment.Center,
         Foreground = BrushFrom("#FFE3E5EA"), Background = BrushFrom("#FF343945"),
@@ -587,7 +591,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static Brush CreateRgbGlow(Color color)
+    private static RadialGradientBrush CreateRgbGlow(Color color)
     {
         RadialGradientBrush brush = new()
         {
@@ -1091,7 +1095,7 @@ public partial class MainWindow : Window
         return false;
     }
 
-    private EditorProfileData ReadProfileFile(string path, bool requireName = false)
+    private static EditorProfileData ReadProfileFile(string path, bool requireName = false)
     {
         FileInfo file = new(path);
         if (file.Length > MaxProfileFileBytes)
@@ -1216,7 +1220,7 @@ public partial class MainWindow : Window
             CommitGroupOrder);
     }
 
-    private void AttachAnimatedLocalReorder(
+    private static void AttachAnimatedLocalReorder(
         StackPanel listHost,
         Grid row,
         TextBlock handle,
@@ -1464,7 +1468,7 @@ public partial class MainWindow : Window
         if(!_toolsPanelIsOpen)SetToolsPanelOpen(true);
     }
 
-    private ContextMenu CreateDarkContextMenu(Button target)
+    private static ContextMenu CreateDarkContextMenu(Button target)
     {
         ContextMenu menu = new()
         {
@@ -1542,7 +1546,7 @@ public partial class MainWindow : Window
         _groupSettingsPanel.BeginAnimation(FrameworkElement.HeightProperty,new System.Windows.Media.Animation.DoubleAnimation(0,h,TimeSpan.FromMilliseconds(180)){EasingFunction=new System.Windows.Media.Animation.CubicEase{EasingMode=System.Windows.Media.Animation.EasingMode.EaseOut}});
     }
 
-    private TextBox CreateRoundedTextBox(string text="")
+    private static TextBox CreateRoundedTextBox(string text="")
     {
         TextBox box=new(){Text=text,Height=32,Padding=new Thickness(9,0,9,0),FontSize=12,Background=BrushFrom("#FF191B22"),Foreground=BrushFrom("#FFE3E5EA"),BorderThickness=new Thickness(0),CaretBrush=BrushFrom("#FFE3E5EA"),VerticalContentAlignment=VerticalAlignment.Center,TextWrapping=TextWrapping.NoWrap,AcceptsReturn=false,VerticalScrollBarVisibility=ScrollBarVisibility.Disabled,HorizontalScrollBarVisibility=ScrollBarVisibility.Hidden};
         ControlTemplate template=new(typeof(TextBox));FrameworkElementFactory border=new(typeof(Border));
@@ -1560,7 +1564,7 @@ public partial class MainWindow : Window
         template.VisualTree=grid;Trigger empty=new(){Property=TextBox.TextProperty,Value=""};empty.Setters.Add(new Setter(UIElement.VisibilityProperty,Visibility.Visible,"Watermark"));template.Triggers.Add(empty);box.Template=template;return box;
     }
 
-    private ComboBox CreateDarkComboBox(IEnumerable<string> values,string selected)
+    private static ComboBox CreateDarkComboBox(IEnumerable<string> values,string selected)
     {
         ComboBox combo=new(){ItemsSource=values,SelectedItem=selected,Height=32,Foreground=BrushFrom("#FFE3E5EA"),Background=BrushFrom("#FF292D37"),BorderThickness=new Thickness(0),Padding=new Thickness(9,4,9,4),IsTextSearchEnabled=false};
         Style itemStyle=new(typeof(ComboBoxItem));
@@ -1582,12 +1586,12 @@ public partial class MainWindow : Window
         if(_colorHexText is null)return;
         string raw=new(_colorHexText.Text.Where(Uri.IsHexDigit).ToArray());
         if(raw.Length==3)raw=string.Concat(raw.Select(ch=>new string(ch,2)));
-        if(raw.Length==6&&byte.TryParse(raw[..2],System.Globalization.NumberStyles.HexNumber,null,out byte red)&&byte.TryParse(raw.Substring(2,2),System.Globalization.NumberStyles.HexNumber,null,out byte green)&&byte.TryParse(raw.Substring(4,2),System.Globalization.NumberStyles.HexNumber,null,out byte blue))
+        if(raw.Length==6&&byte.TryParse(raw.AsSpan(0,2),System.Globalization.NumberStyles.HexNumber,null,out byte red)&&byte.TryParse(raw.AsSpan(2,2),System.Globalization.NumberStyles.HexNumber,null,out byte green)&&byte.TryParse(raw.AsSpan(4,2),System.Globalization.NumberStyles.HexNumber,null,out byte blue))
         {SetCurrentColor(Color.FromRgb(red,green,blue));_colorHexText.Text=$"#{red:X2}{green:X2}{blue:X2}";return;}
         _colorHexText.Text=$"#{_currentColor.R:X2}{_currentColor.G:X2}{_currentColor.B:X2}";ToolStatusText.Text="Введите HEX-цвет: 3 или 6 символов.";
     }
 
-    private StackPanel BuildColorSwatches(Action<string> choose, string selected)
+    private static StackPanel BuildColorSwatches(Action<string> choose, string selected)
     {
         string[] palette = { "#FFE85D5D", "#FFFFA94D", "#FFFFD166", "#FF65C18C", "#FF4DB6AC", "#FF5B9BFF", "#FF9B7BFF", "#FFE879B9", "#FFB8BEC9" };
         StackPanel row = new() { Orientation = Orientation.Horizontal };
