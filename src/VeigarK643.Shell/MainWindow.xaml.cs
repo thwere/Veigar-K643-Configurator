@@ -118,8 +118,8 @@ public partial class MainWindow : Window
         };
         text.FontFamily = new FontFamily(family);
         text.FontSize = role switch { "Title" => 15, "Heading" => 14, "Button" => 11, _ => 10 };
-        if (role == "Heading" && text.Text.Length > 1 && !text.Text.Contains('\u200A'))
-            text.Text = string.Join("\u200A", text.Text.ToCharArray());
+        if (role == "Heading" && text.Text.Length > 1 && !text.Text.Contains('\u2009') && !text.Text.Contains('\u200A'))
+            text.Text = string.Join("\u2009", text.Text.ToCharArray());
     }
 
     private void CreateKeyVisuals()
