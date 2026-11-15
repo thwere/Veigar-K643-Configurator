@@ -975,11 +975,11 @@ public partial class MainWindow : Window
         _dialogColor = existing?.ColorHex ?? "#FF6D8CFF";
         StackPanel colors = BuildColorSwatches(color => _dialogColor = color, _dialogColor);
         StackPanel body = new();
-        body.Children.Add(new TextBlock { Text = "Название", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,0,0,5) });
+        body.Children.Add(new TextBlock { Text = "Название", Tag="Label", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,0,0,5) });
         body.Children.Add(name);
-        body.Children.Add(new TextBlock { Text = "Цвет группы", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,12,0,5) });
+        body.Children.Add(new TextBlock { Text = "Цвет группы", Tag="Label", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,12,0,5) });
         body.Children.Add(colors);
-        body.Children.Add(new TextBlock { Text = "Состояние", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,8,0,5) });
+        body.Children.Add(new TextBlock { Text = "Состояние", Tag="Label", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,8,0,5) });
         body.Children.Add(state);
         body.Children.Add(new TextBlock { Text = "Состав группы — отметьте клавиши, которые должны входить в неё:", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,10,0,5) });
         ListBox membership = new() { Height = 150, Background = BrushFrom("#FF191B22"), Foreground = BrushFrom("#FFE3E5EA"), BorderBrush = BrushFrom("#FF454A55"), SelectionMode = SelectionMode.Extended };
@@ -1128,10 +1128,10 @@ public partial class MainWindow : Window
         _dialogColor = existing?.ColorHex ?? "#FF6D8CFF";
         StackPanel colors = BuildColorSwatches(color => _dialogColor = color, _dialogColor);
         StackPanel body = new();
-        body.Children.Add(new TextBlock { Text = "Название профиля", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,0,0,5) });
+        body.Children.Add(new TextBlock { Text = "Название профиля", Tag="Label", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,0,0,5) });
         body.Children.Add(name);
         body.Children.Add(limitWarning);
-        body.Children.Add(new TextBlock { Text = "Цвет профиля", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,12,0,5) });
+        body.Children.Add(new TextBlock { Text = "Цвет профиля", Tag="Label", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,12,0,5) });
         colors.HorizontalAlignment = HorizontalAlignment.Center;
         body.Children.Add(colors);
         foreach (TextBlock label in body.Children.OfType<TextBlock>()) label.TextAlignment = TextAlignment.Center;
@@ -1361,7 +1361,7 @@ public partial class MainWindow : Window
         cardGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         cardGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(54) });
         Border card = new() { Width = 360, MaxHeight = 440, Background = BrushFrom("#FF252832"), BorderBrush = BrushFrom("#FF4A505D"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10), Padding = new Thickness(20), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Child = cardGrid };
-        cardGrid.Children.Add(new TextBlock { Text = title, Foreground = BrushFrom("#FFE5E8EF"), FontSize = 12, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center });
+        cardGrid.Children.Add(new TextBlock { Text = title, Tag="Heading", Foreground = BrushFrom("#FFE5E8EF"), FontSize = 12, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center });
         Border bodyBorder = new() { Child = body, Margin = new Thickness(0,8,0,8) };
         Grid.SetRow(bodyBorder,1); cardGrid.Children.Add(bodyBorder);
         StackPanel footer = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
