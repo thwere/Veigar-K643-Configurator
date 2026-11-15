@@ -134,7 +134,8 @@ public partial class MainWindow : Window
             _ => "Colville"
         };
         text.FontFamily = new FontFamily(family);
-        text.FontSize = role switch { "Title" => 15, "Heading" => 15, "Button" => 11, _ => 10 };
+        double headingSize = string.Equals(text.Text.Trim(), "ПАРАМЕТРЫ", StringComparison.Ordinal) ? 15 : 14;
+        text.FontSize = role switch { "Title" => 15, "Heading" => headingSize, "Button" => 11, _ => 10 };
         if (role == "Heading") ApplyPhysicalLetterSpacing(text);
     }
 
