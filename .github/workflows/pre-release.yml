@@ -34,61 +34,7 @@ jobs:
           } elseif ($env:GITHUB_EVENT_NAME -eq "push") {
             $event = Get-Content $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
             $message = $event.head_commit.message
-            if ($message -match '^release-(v[0-9]+\.[0-9]+\.[0-9]+)
-            $version = "${{ inputs.version }}"
-          }
-          if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "Version must use vMAJOR.MINOR.PATCH format, for example v0.1.0" }
-          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
-
-      - name: Checkout release source
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_type == 'tag' && github.ref_name || 'main' }}
-          fetch-depth: 0
-
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Restore dependencies
-        run: dotnet restore src/VeigarK643.Shell/VeigarK643.Shell.csproj --runtime win-x64 --source https://api.nuget.org/v3/index.json --verbosity minimal -p:NuGetAudit=false
-
-      - name: Publish portable Windows x64
-        run: dotnet publish src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Release --runtime win-x64 --self-contained true --no-restore -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true --output publish/win-x64
-
-      - name: Assemble flat portable archive
-        shell: pwsh
-        run: |
-          $package = "Veigar-K643-Configurator-$env:RELEASE_VERSION-win-x64"
-          New-Item -ItemType Directory -Force -Path "$package" | Out-Null
-          Copy-Item "publish/win-x64/*" "$package/" -Recurse -Force
-          Compress-Archive -Path "$package/*" -DestinationPath "$package.zip" -CompressionLevel Optimal
-
-      - name: Create or update GitHub pre-release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: pwsh
-        run: |
-          $tag = $env:RELEASE_VERSION
-          $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
-          $notes = "Veigar K643 Configurator $tag. Keeps keyboard groups visible alongside every tool and refreshes groups on profile changes; unifies profile/group row hover surfaces with separate circular overflow controls; records recent colors only after applying them; adds a bottom keyboard-shortcut legend; uses a dark custom context menu; and adds configurable Windows fonts and sizes for standard text, headings, labels, buttons and status text, plus a large MDL2 icon picker with JSON settings save/export."
-
-          $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
-          if ($LASTEXITCODE -eq 0) {
-            git push --force origin "HEAD:refs/tags/$tag"
-            if ($LASTEXITCODE -ne 0) { throw "Failed to update tag $tag to the rebuilt source." }
-
-            gh release upload $tag $archive --repo "${{ github.repository }}" --clobber
-            if ($LASTEXITCODE -ne 0) { throw "Failed to replace the portable ZIP for $tag." }
-
-            gh release edit $tag --repo "${{ github.repository }}" --title $tag --prerelease --notes $notes
-            if ($LASTEXITCODE -ne 0) { throw "Failed to update release metadata for $tag." }
-          } else {
-            gh release create $tag $archive --repo "${{ github.repository }}" --target main --title $tag --prerelease --notes $notes
-            if ($LASTEXITCODE -ne 0) { throw "Failed to create pre-release $tag." }
-          }
-) {
+            if ($message -match '^release-(v[0-9]+\.[0-9]+\.[0-9]+)$') {
               $version = $Matches[1]
             } else {
               $version = "v0.2.2"
@@ -131,7 +77,7 @@ jobs:
         run: |
           $tag = $env:RELEASE_VERSION
           $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
-          $notes = "Veigar K643 Configurator $tag. Keeps keyboard groups visible alongside every tool and refreshes groups on profile changes; unifies profile/group row hover surfaces with separate circular overflow controls; records recent colors only after applying them; adds a bottom keyboard-shortcut legend; uses a dark custom context menu; and adds configurable Windows fonts and sizes for standard text, headings, labels, buttons and status text, plus a large MDL2 icon picker with JSON settings save/export."
+          $notes = "Veigar K643 Configurator $tag. Bug fixes and usability improvements."
 
           $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) {
