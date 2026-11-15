@@ -74,7 +74,7 @@ jobs:
         run: |
           $tag = $env:RELEASE_VERSION
           $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
-          $notes = "Veigar K643 Configurator $tag. Keeps keyboard groups visible alongside every tool and refreshes groups on profile changes; unifies profile/group row hover surfaces with separate circular overflow controls; records recent colors only after applying them; adds a bottom keyboard-shortcut legend; uses a dark custom context menu; and adds configurable Windows fonts, font sizes and MDL2 icon selection with JSON settings save/export."
+          $notes = "Veigar K643 Configurator $tag. Keeps keyboard groups visible alongside every tool and refreshes groups on profile changes; unifies profile/group row hover surfaces with separate circular overflow controls; records recent colors only after applying them; adds a bottom keyboard-shortcut legend; uses a dark custom context menu; and adds configurable Windows fonts and sizes for standard text, headings, labels, buttons and status text, plus a large MDL2 icon picker with JSON settings save/export."
 
           $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
           if ($LASTEXITCODE -eq 0) {
