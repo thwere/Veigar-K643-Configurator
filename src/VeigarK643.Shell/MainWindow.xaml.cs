@@ -121,8 +121,11 @@ public partial class MainWindow : Window
         };
         text.FontFamily = new FontFamily(family);
         text.FontSize = role switch { "Title" => 15, "Heading" => 14, "Button" => 11, _ => 10 };
-        if (role == "Heading" && text.Text.Length > 1 && !text.Text.Contains('\u2009') && !text.Text.Contains('\u200A'))
-            text.Text = string.Join("\u2009", text.Text.ToCharArray());
+        if (role == "Heading" && text.Text.Length > 1)
+        {
+            string plain = text.Text.Replace("\u2009", "").Replace("\u200A", "").Replace("\u2002", "").Replace("\u2004", "");
+            text.Text = string.Join("\u2002", plain.ToCharArray());
+        }
     }
 
     private void CreateKeyVisuals()
@@ -202,7 +205,7 @@ public partial class MainWindow : Window
         AddToolButton(tools, "\uD83D\uDCA7\uFE0E", "", EditorTool.Fill);
         AddToolButton(tools, "\u26F6", "", EditorTool.Select);
         AddToolButton(tools, "\uE75C", "", EditorTool.Eraser);
-        AddToolButton(tools, "\\uE76D", "", EditorTool.Eyedropper);
+        AddToolButton(tools, "\uE76D", "", EditorTool.Eyedropper);
         layout.Children.Add(tools);
         StackPanel right = new()
         {
@@ -720,10 +723,22 @@ public partial class MainWindow : Window
 
     private void SetCurrentColor(Color color)
     {
-        _currentColor=color; _selectedHue=ColorToHue(color); _selectedValue=Math.Max(color.R,Math.Max(color.G,color.B))/255d;
+        _currentColor=color;
+        _selectedHue=ColorToHue(color);
+        _selectedValue=Math.Max(color.R,Math.Max(color.G,color.B))/255d;
         if(_saturationSlider is not null)_saturationSlider.Value=ColorToSaturation(color);
+        SyncColorThumbPosition();
         if(_colorPreview is not null)_colorPreview.Background=new SolidColorBrush(color);
         if(_colorHexText is not null && !_colorHexText.IsKeyboardFocused)_colorHexText.Text=$"#{color.R:X2}{color.G:X2}{color.B:X2}";
+    }
+
+    private void SyncColorThumbPosition()
+    {
+        if(_colorField is null || _colorThumb is null)return;
+        double x=Math.Clamp(_selectedHue/360d*_colorField.Width,0,_colorField.Width);
+        double y=Math.Clamp((1-_selectedValue)*_colorField.Height,0,_colorField.Height);
+        Canvas.SetLeft(_colorThumb,Math.Clamp(x-_colorThumb.Width/2,0,_colorField.Width-_colorThumb.Width));
+        Canvas.SetTop(_colorThumb,Math.Clamp(y-_colorThumb.Height/2,0,_colorField.Height-_colorThumb.Height));
     }
     private static double ColorToHue(Color c)
     {
@@ -1000,10 +1015,10 @@ public partial class MainWindow : Window
 
     private TextBox CreateRoundedTextBox(string text="")
     {
-        TextBox box=new(){Text=text,Height=32,Padding=new Thickness(9,5,9,5),Background=BrushFrom("#FF191B22"),Foreground=BrushFrom("#FFE3E5EA"),BorderThickness=new Thickness(0),CaretBrush=BrushFrom("#FFE3E5EA"),VerticalContentAlignment=VerticalAlignment.Center};
+        TextBox box=new(){Text=text,Height=32,Padding=new Thickness(9,0,9,0),FontSize=12,Background=BrushFrom("#FF191B22"),Foreground=BrushFrom("#FFE3E5EA"),BorderThickness=new Thickness(0),CaretBrush=BrushFrom("#FFE3E5EA"),VerticalContentAlignment=VerticalAlignment.Center,TextWrapping=TextWrapping.NoWrap,AcceptsReturn=false,VerticalScrollBarVisibility=ScrollBarVisibility.Disabled,HorizontalScrollBarVisibility=ScrollBarVisibility.Hidden};
         ControlTemplate template=new(typeof(TextBox));FrameworkElementFactory border=new(typeof(Border));
         border.SetValue(Border.BackgroundProperty,new TemplateBindingExtension(Control.BackgroundProperty));border.SetValue(Border.CornerRadiusProperty,new CornerRadius(7));
-        FrameworkElementFactory host=new(typeof(ScrollViewer));host.Name="PART_ContentHost";host.SetValue(FrameworkElement.MarginProperty,new TemplateBindingExtension(Control.PaddingProperty));border.AppendChild(host);template.VisualTree=border;box.Template=template;return box;
+        FrameworkElementFactory host=new(typeof(ScrollViewer));host.Name="PART_ContentHost";host.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty,ScrollBarVisibility.Disabled);host.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty,ScrollBarVisibility.Hidden);host.SetValue(FrameworkElement.MarginProperty,new Thickness(0));border.AppendChild(host);template.VisualTree=border;box.Template=template;return box;
     }
 
     private TextBox CreatePlaceholderTextBox(string placeholder,string value="")
@@ -1011,7 +1026,7 @@ public partial class MainWindow : Window
         TextBox box=CreateRoundedTextBox(value);box.Tag=placeholder;
         ControlTemplate template=new(typeof(TextBox));FrameworkElementFactory grid=new(typeof(Grid));
         FrameworkElementFactory bg=new(typeof(Border));bg.SetValue(Border.BackgroundProperty,new TemplateBindingExtension(Control.BackgroundProperty));bg.SetValue(Border.CornerRadiusProperty,new CornerRadius(7));grid.AppendChild(bg);
-        FrameworkElementFactory host=new(typeof(ScrollViewer));host.Name="PART_ContentHost";host.SetValue(FrameworkElement.MarginProperty,new TemplateBindingExtension(Control.PaddingProperty));grid.AppendChild(host);
+        FrameworkElementFactory host=new(typeof(ScrollViewer));host.Name="PART_ContentHost";host.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty,ScrollBarVisibility.Disabled);host.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty,ScrollBarVisibility.Hidden);host.SetValue(FrameworkElement.MarginProperty,new Thickness(0));grid.AppendChild(host);
         FrameworkElementFactory hint=new(typeof(TextBlock));hint.Name="Watermark";hint.SetBinding(TextBlock.TextProperty,new System.Windows.Data.Binding("Tag"){RelativeSource=System.Windows.Data.RelativeSource.TemplatedParent});hint.SetValue(TextBlock.ForegroundProperty,BrushFrom("#FF747C8B"));hint.SetValue(FrameworkElement.MarginProperty,new Thickness(9,0,0,0));hint.SetValue(FrameworkElement.VerticalAlignmentProperty,VerticalAlignment.Center);hint.SetValue(UIElement.IsHitTestVisibleProperty,false);hint.SetValue(UIElement.VisibilityProperty,Visibility.Collapsed);grid.AppendChild(hint);
         template.VisualTree=grid;Trigger empty=new(){Property=TextBox.TextProperty,Value=""};empty.Setters.Add(new Setter(UIElement.VisibilityProperty,Visibility.Visible,"Watermark"));template.Triggers.Add(empty);box.Template=template;return box;
     }
@@ -1026,8 +1041,11 @@ public partial class MainWindow : Window
         FrameworkElementFactory surface=new(typeof(Border));surface.SetValue(Border.BackgroundProperty,BrushFrom("#FF292D37"));surface.SetValue(Border.CornerRadiusProperty,new CornerRadius(7));root.AppendChild(surface);
         FrameworkElementFactory selectedPresenter=new(typeof(ContentPresenter));selectedPresenter.SetValue(ContentPresenter.MarginProperty,new Thickness(9,0,28,0));selectedPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty,VerticalAlignment.Center);selectedPresenter.SetBinding(ContentPresenter.ContentProperty,new System.Windows.Data.Binding("SelectionBoxItem"){RelativeSource=System.Windows.Data.RelativeSource.TemplatedParent});root.AppendChild(selectedPresenter);
         FrameworkElementFactory arrow=new(typeof(TextBlock));arrow.SetValue(TextBlock.TextProperty,"⌄");arrow.SetValue(TextBlock.ForegroundProperty,BrushFrom("#FF9DA4B2"));arrow.SetValue(FrameworkElement.HorizontalAlignmentProperty,HorizontalAlignment.Right);arrow.SetValue(FrameworkElement.VerticalAlignmentProperty,VerticalAlignment.Center);arrow.SetValue(FrameworkElement.MarginProperty,new Thickness(0,0,9,0));root.AppendChild(arrow);
+        FrameworkElementFactory toggle=new(typeof(ToggleButton));toggle.Name="PART_ToggleButton";toggle.SetValue(Control.BackgroundProperty,Brushes.Transparent);toggle.SetValue(Control.BorderThicknessProperty,new Thickness(0));toggle.SetBinding(ToggleButton.IsCheckedProperty,new System.Windows.Data.Binding("IsDropDownOpen"){RelativeSource=System.Windows.Data.RelativeSource.TemplatedParent,Mode=System.Windows.Data.BindingMode.TwoWay});root.AppendChild(toggle);
         FrameworkElementFactory popup=new(typeof(Popup));popup.Name="PART_Popup";popup.SetValue(Popup.PlacementProperty,PlacementMode.Bottom);popup.SetValue(Popup.AllowsTransparencyProperty,true);popup.SetBinding(Popup.IsOpenProperty,new System.Windows.Data.Binding("IsDropDownOpen"){RelativeSource=System.Windows.Data.RelativeSource.TemplatedParent});
-        FrameworkElementFactory popupBg=new(typeof(Border));popupBg.SetValue(Border.BackgroundProperty,BrushFrom("#FF292D37"));popupBg.SetValue(Border.CornerRadiusProperty,new CornerRadius(7));popupBg.SetValue(Border.PaddingProperty,new Thickness(3));FrameworkElementFactory items=new(typeof(ItemsPresenter));popupBg.AppendChild(items);popup.AppendChild(popupBg);root.AppendChild(popup);template.VisualTree=root;combo.Template=template;return combo;
+        FrameworkElementFactory popupBg=new(typeof(Border));popupBg.SetValue(Border.BackgroundProperty,BrushFrom("#FF292D37"));popupBg.SetValue(Border.CornerRadiusProperty,new CornerRadius(7));popupBg.SetValue(Border.PaddingProperty,new Thickness(3));FrameworkElementFactory items=new(typeof(ItemsPresenter));popupBg.AppendChild(items);popup.AppendChild(popupBg);root.AppendChild(popup);template.VisualTree=root;combo.Template=template;
+        combo.PreviewMouseWheel+=(_,e)=>{if(!combo.IsDropDownOpen)e.Handled=true;};
+        return combo;
     }
 
     private void ApplyHexColorInput()
