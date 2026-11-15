@@ -142,7 +142,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <TextBlock x:Name="ToolStatusText" Text="Готово" Foreground="#FF9DA4B2" FontSize="10" VerticalAlignment="Center" />
-                    <TextBlock x:Name="ShortcutHintsText" Grid.Column="1" Text="B  Кисть    G  Заливка    V  Выделение    E  Ластик    Ctrl+Z  Отменить    Ctrl+Y  Повторить    Esc  Снять выделение" Foreground="#FF747C8B" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock x:Name="ShortcutHintsText" Tag="Status" Grid.Column="1" Text="B  Кисть    G  Заливка    V  Выделение    E  Ластик    Ctrl+Z  Отменить    Ctrl+Y  Повторить    Esc  Снять выделение" Foreground="#FF747C8B" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right" />
                 </Grid>
             </Border>
             <Grid x:Name="ModalOverlay" Grid.RowSpan="3" Panel.ZIndex="100" Background="#B8000000" Visibility="Collapsed" />
