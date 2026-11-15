@@ -1184,6 +1184,11 @@ public partial class MainWindow : Window
         {
             if (File.Exists(_uiSettingsPath))
                 _uiSettings = JsonSerializer.Deserialize<UiSettingsData>(File.ReadAllText(_uiSettingsPath)) ?? new UiSettingsData();
+            UiSettingsData defaults = new();
+            _uiSettings.Fonts ??= defaults.Fonts;
+            _uiSettings.Icons ??= new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in defaults.Fonts)
+                if (!_uiSettings.Fonts.ContainsKey(pair.Key) || _uiSettings.Fonts[pair.Key] is null) _uiSettings.Fonts[pair.Key] = pair.Value;
         }
         catch (Exception ex) { Debug.WriteLine("UI settings load failed: " + ex.Message); _uiSettings = new UiSettingsData(); }
     }
@@ -1201,7 +1206,7 @@ public partial class MainWindow : Window
         {
             string role = text.Tag as string ?? "Standard";
             if (role == "Icon") continue;
-            FontSetting setting = _uiSettings.Fonts.TryGetValue(role, out FontSetting? configured)
+            FontSetting setting = _uiSettings.Fonts.TryGetValue(role, out FontSetting? configured) && configured is not null
                 ? configured
                 : _uiSettings.Fonts["Standard"];
             try { text.FontFamily = new FontFamily(setting.Family); } catch { text.FontFamily = new FontFamily("Segoe UI"); }
@@ -1325,9 +1330,9 @@ public partial class MainWindow : Window
         border.SetValue(Border.CornerRadiusProperty, new CornerRadius(radius));
         border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
         FrameworkElementFactory content = new(typeof(ContentPresenter));
-        content.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-        content.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-        content.SetValue(ContentPresenter.MarginProperty, new Thickness(4,0,4,0));
+        content.SetBinding(ContentPresenter.HorizontalAlignmentProperty, new System.Windows.Data.Binding("HorizontalContentAlignment") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
+        content.SetBinding(ContentPresenter.VerticalAlignmentProperty, new System.Windows.Data.Binding("VerticalContentAlignment") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
+        content.SetBinding(FrameworkElement.MarginProperty, new System.Windows.Data.Binding("Padding") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
         border.AppendChild(content);
         ControlTemplate template = new(typeof(Button)) { VisualTree = border };
         Trigger hover = new() { Property = Button.IsMouseOverProperty, Value = true };
