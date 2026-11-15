@@ -31,7 +31,7 @@
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Heading">
                     <Setter Property="FontFamily" Value="Inky Pixels(RUS BY LYAJKA)" />
-                    <Setter Property="FontSize" Value="14" />
+                    <Setter Property="FontSize" Value="15" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Status">
                     <Setter Property="FontFamily" Value="True Lies" />
