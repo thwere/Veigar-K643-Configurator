@@ -1207,6 +1207,12 @@ public partial class MainWindow : Window
             try { text.FontFamily = new FontFamily(setting.Family); } catch { text.FontFamily = new FontFamily("Segoe UI"); }
             text.FontSize = setting.Size;
         }
+        foreach (Control control in FindVisualChildren<Control>(this))
+        {
+            if (control is Button) continue;
+            try { control.FontFamily = new FontFamily(_uiSettings.Fonts["Standard"].Family); } catch { control.FontFamily = new FontFamily("Segoe UI"); }
+            control.FontSize = _uiSettings.Fonts["Standard"].Size;
+        }
         foreach (Button button in FindVisualChildren<Button>(this))
         {
             if (button.Content is TextBlock icon && Equals(icon.Tag, "Icon")) continue;
@@ -1271,12 +1277,18 @@ public partial class MainWindow : Window
             string current=IconFor(key,key switch {"Brush"=>"\uE2A1","Fill"=>"\uE2A6","Select"=>"\uEF20","Eraser"=>"\uE75C","Eyedropper"=>"\uE8F1",_=>"\uE713"});
             combo.SelectedItem=icons.FirstOrDefault(item=>item.Glyph==current);
             if(combo.SelectedItem is null)combo.SelectedIndex=0;
-            combo.ItemTemplate=new DataTemplate();
-            FrameworkElementFactory itemText=new(typeof(TextBlock));
-            itemText.SetBinding(TextBlock.TextProperty,new System.Windows.Data.Binding("Glyph"));
-            itemText.SetValue(TextBlock.FontFamilyProperty,new FontFamily("Segoe MDL2 Assets"));
-            itemText.SetValue(TextBlock.FontSizeProperty,18d);
-            combo.ItemTemplate.VisualTree=itemText;
+            FrameworkElementFactory optionRow=new(typeof(StackPanel));
+            optionRow.SetValue(StackPanel.OrientationProperty,Orientation.Horizontal);
+            FrameworkElementFactory glyphText=new(typeof(TextBlock));
+            glyphText.SetBinding(TextBlock.TextProperty,new System.Windows.Data.Binding("Glyph"));
+            glyphText.SetValue(TextBlock.FontFamilyProperty,new FontFamily("Segoe MDL2 Assets"));
+            glyphText.SetValue(TextBlock.FontSizeProperty,18d);
+            glyphText.SetValue(FrameworkElement.MarginProperty,new Thickness(0,0,9,0));
+            FrameworkElementFactory nameText=new(typeof(TextBlock));
+            nameText.SetBinding(TextBlock.TextProperty,new System.Windows.Data.Binding("Name"));
+            nameText.SetValue(TextBlock.VerticalAlignmentProperty,VerticalAlignment.Center);
+            optionRow.AppendChild(glyphText);optionRow.AppendChild(nameText);
+            combo.ItemTemplate=new DataTemplate { VisualTree=optionRow };
             row.Children.Add(combo);body.Children.Add(row);iconControls[key]=combo;
         }
         body.Children.Add(new TextBlock{Text="Выбранные параметры сохраняются в ui-settings.json. Кнопка экспорта создаёт отдельный конфиг, который можно отправить.",Foreground=BrushFrom("#FF89919F"),FontSize=9,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,10,0,0)});
@@ -1472,7 +1484,7 @@ internal sealed class UiSettingsData
     public Dictionary<string,FontSetting> Fonts { get; set; } = new()
     {
         ["Standard"]=new FontSetting{Family="Segoe UI",Size=11},
-        ["Heading"]=new FontSetting{Family="Segoe UI Semibold",Size=12},
+        ["Heading"]=new FontSetting{Family="Segoe UI",Size=12},
         ["Label"]=new FontSetting{Family="Segoe UI",Size=10},
         ["Button"]=new FontSetting{Family="Segoe UI",Size=11},
         ["Status"]=new FontSetting{Family="Segoe UI",Size=10}
