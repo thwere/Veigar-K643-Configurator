@@ -105,8 +105,20 @@ public partial class MainWindow : Window
 
     private static void ApplyHeadingLetterSpacing(object sender, RoutedEventArgs e)
     {
-        if (e.OriginalSource is not TextBlock text || !Equals(text.Tag, "Heading") || text.Text.Length < 2 || text.Text.Contains('\u200A')) return;
-        text.Text = string.Join("\u200A", text.Text.ToCharArray());
+        if (e.OriginalSource is not TextBlock text) return;
+        string role = text.Tag as string ?? "Standard";
+        if (role == "Icon") return;
+        string family = role switch
+        {
+            "Title" => "Dungeon",
+            "Heading" => "Inky Pixels(RUS BY LYAJKA)",
+            "Status" => "True Lies",
+            _ => "Colville"
+        };
+        text.FontFamily = new FontFamily(family);
+        text.FontSize = role switch { "Title" => 15, "Heading" => 14, "Button" => 11, _ => 10 };
+        if (role == "Heading" && text.Text.Length > 1 && !text.Text.Contains('\u200A'))
+            text.Text = string.Join("\u200A", text.Text.ToCharArray());
     }
 
     private void CreateKeyVisuals()
