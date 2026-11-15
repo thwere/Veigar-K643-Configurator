@@ -1152,7 +1152,7 @@ public partial class MainWindow : Window
                     _keyColors.Clear(); _groups.Clear(); _selectedKeys.Clear();
                     foreach(string key in _keyGlows.Keys) UpdateKeyVisual(key);
                     _activeProfileName=profileName; _activeProfileColor=_dialogColor;
-                    _lastHardwareFrameSignature=null; RenderSelection(); ScheduleHardwareFrame(); SaveCurrentProfile();
+                    _lastHardwareFrameSignature=null; RenderSelection(); ScheduleHardwareFrame(); SaveCurrentProfile(); ShowGroupsManager();
                 }
                 else
                 {
