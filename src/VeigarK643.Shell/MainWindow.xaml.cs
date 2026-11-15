@@ -382,6 +382,8 @@ public partial class MainWindow : Window
 
     private void SetActiveTool(EditorTool tool)
     {
+        // Leaving group settings must never leave keyboard clicks in remapping mode.
+        if (_isGroupRemapping || _remappingGroup is not null) ShowGroupsManager();
         _activeTool = tool;
         foreach (Button button in _toolButtons)
         {
@@ -411,6 +413,8 @@ public partial class MainWindow : Window
 
     private void Keyboard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // Recover from a stale remapping flag if its editor panel was removed unexpectedly.
+        if (_isGroupRemapping && !IsGroupRemappingSessionActive) ShowGroupsManager();
         Point point = e.GetPosition(KeyHitboxCanvas);
         _isPointerDown = true;
         _strokeUndoPushed = false;
@@ -420,7 +424,7 @@ public partial class MainWindow : Window
         Mouse.Capture(KeyHitboxCanvas, CaptureMode.Element);
 
         string? key = FindKeyAt(point);
-        if (_isGroupRemapping && _remappingGroup is not null)
+        if (IsGroupRemappingSessionActive && _remappingGroup is not null)
         {
             if (key is not null) { if (!_selectedKeys.Add(key)) _selectedKeys.Remove(key); RenderSelection(); ToolStatusText.Text = $"Переназначение «{_remappingGroup.Name}»: {_selectedKeys.Count} клавиш."; }
         }
@@ -453,7 +457,7 @@ public partial class MainWindow : Window
     private void Keyboard_MouseMove(object sender, MouseEventArgs e)
     {
         if (!_isPointerDown) return;
-        if (_isGroupRemapping) return;
+        if (IsGroupRemappingSessionActive) return;
         Point point = e.GetPosition(KeyHitboxCanvas);
         if (_activeTool == EditorTool.Brush)
         {
@@ -486,7 +490,7 @@ public partial class MainWindow : Window
     {
         if (!_isPointerDown) return;
         Point point = e.GetPosition(KeyHitboxCanvas);
-        if (_isGroupRemapping) { _isPointerDown=false; _lastPaintedKey=null; _strokeUndoPushed=false; Mouse.Capture(null); e.Handled=true; return; }
+        if (IsGroupRemappingSessionActive) { _isPointerDown=false; _lastPaintedKey=null; _strokeUndoPushed=false; Mouse.Capture(null); e.Handled=true; return; }
         if (_activeTool == EditorTool.Select)
         {
             if (_isMarquee)
@@ -833,6 +837,7 @@ public partial class MainWindow : Window
         if (e.Key == Key.Escape)
         {
             if (ModalOverlay.Visibility == Visibility.Visible) CloseModal();
+            else if (_isGroupRemapping) ShowGroupsManager();
             else { _selectedKeys.Clear(); RenderSelection(); }
             e.Handled = true;
             return;
@@ -1258,9 +1263,42 @@ public partial class MainWindow : Window
         host.Children.Insert(insertAt, movingRow);
     }
 
+    private bool IsGroupRemappingSessionActive =>
+        _isGroupRemapping &&
+        _remappingGroup is not null &&
+        _groupSettingsPanel is not null &&
+        _groupManagerContent is not null &&
+        _groupManagerContent.Children.Contains(_groupSettingsPanel);
+
+    private void ResetGroupRemapping(bool restoreGroupSelection)
+    {
+        EditorGroup? group = _remappingGroup;
+        bool wasRemapping = _isGroupRemapping || group is not null;
+        _isGroupRemapping = false;
+        _remappingGroup = null;
+        if (!wasRemapping) return;
+
+        _isPointerDown = false;
+        _isMarquee = false;
+        _lastPaintedKey = null;
+        _strokeUndoPushed = false;
+        if (_marquee is not null) SelectionOverlayCanvas.Children.Remove(_marquee);
+        _marquee = null;
+        if (Mouse.Captured == KeyHitboxCanvas) Mouse.Capture(null);
+
+        if (restoreGroupSelection && group is not null && _groups.Contains(group))
+        {
+            _selectedKeys.Clear();
+            _selectedKeys.UnionWith(group.Keys);
+            RenderSelection();
+        }
+    }
+
     private void ShowGroupsManager()
     {
         if(_groupManagerContent is null)return;
+        // Rebuilding the manager also closes any inline editor and restores its saved key set.
+        ResetGroupRemapping(restoreGroupSelection:true);
         _groupManagerContent.Visibility=Visibility.Visible;_groupManagerContent.Children.Clear();_groupSettingsPanel=null;
         StackPanel content=new();
         content.Children.Add(new TextBlock{Text="ГРУППЫ КЛАВИШ",Tag="Heading",Foreground=BrushFrom("#FF9DA4B2"),FontSize=10,Margin=new Thickness(0,0,0,4)});
@@ -1275,7 +1313,7 @@ public partial class MainWindow : Window
             label.Children.Add(new Ellipse{Width=10,Height=10,Fill=BrushFrom(group.ColorHex),Margin=new Thickness(0,0,8,0)});
             label.Children.Add(new TextBlock{Text=group.Name,Foreground=BrushFrom("#FFE3E5EA"),VerticalAlignment=VerticalAlignment.Center});
             label.Children.Add(new TextBlock{Text=$"  {group.Keys.Count}",Foreground=BrushFrom("#FF9DA4B2"),VerticalAlignment=VerticalAlignment.Center});
-            choose.Content=label;choose.Click+=(_,_)=>{_isGroupRemapping=false;_remappingGroup=null;_selectedKeys.Clear();_selectedKeys.UnionWith(group.Keys);RenderSelection();ToolStatusText.Text=$"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш).";ShowGroupsManager();};
+            choose.Content=label;choose.Click+=(_,_)=>{ResetGroupRemapping(restoreGroupSelection:false);_selectedKeys.Clear();_selectedKeys.UnionWith(group.Keys);RenderSelection();ToolStatusText.Text=$"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш).";ShowGroupsManager();};
             row.Children.Add(choose);
             TextBlock dragHandle=new(){Text="⠿",FontFamily=new FontFamily("Segoe UI Symbol"),FontSize=17,Foreground=BrushFrom("#FF818A99"),Background=Brushes.Transparent,Width=20,TextAlignment=TextAlignment.Center,VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Left,Margin=new Thickness(5,0,0,0),Cursor=Cursors.SizeAll,ToolTip="Перетащить для изменения приоритета"};
             Panel.SetZIndex(dragHandle,3);row.Children.Add(dragHandle);AttachGroupDragDrop(content,row,dragHandle,group);
@@ -1347,6 +1385,7 @@ public partial class MainWindow : Window
     private void ShowInlineGroupEditor(EditorGroup group)
     {
         if(_groupManagerContent is null)return;
+        ResetGroupRemapping(restoreGroupSelection:true);
         if(_groupSettingsPanel is not null)_groupManagerContent.Children.Remove(_groupSettingsPanel);
         StackPanel body=new(){Margin=new Thickness(10)};
         body.Children.Add(new TextBlock{Text="НАСТРОЙКИ ГРУППЫ",Tag="Heading",Foreground=BrushFrom("#FFE3E5EA"),Margin=new Thickness(0,0,0,8)});
@@ -1358,8 +1397,8 @@ public partial class MainWindow : Window
         body.Children.Add(new TextBlock{Text="Клавиши группы выделены на схеме. Щёлкайте по клавишам, чтобы изменить состав.",Foreground=BrushFrom("#FF9DA4B2"),TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,9,0,0)});
         StackPanel actions=new(){Orientation=Orientation.Horizontal,Margin=new Thickness(0,10,0,0)};
         Button save=CreatePanelButton("Сохранить");save.Width=120;
-        save.Click+=(_,_)=>{if(string.IsNullOrWhiteSpace(name.Text))name.Text="Новая группа";if(_selectedKeys.Count==0){ToolStatusText.Text="Выберите хотя бы одну клавишу.";return;}PushUndoSnapshot();group.Name=name.Text.Trim();group.ColorHex=color;group.Keys=new HashSet<string>(_selectedKeys,StringComparer.Ordinal);_isGroupRemapping=false;_remappingGroup=null;RenderSelection();ScheduleProfileSave();ShowGroupsManager();};
-        Button cancel=CreatePanelButton("Отмена");cancel.Width=90;cancel.Margin=new Thickness(8,0,0,0);cancel.Click+=(_,_)=>{_isGroupRemapping=false;_remappingGroup=null;ShowGroupsManager();};
+        save.Click+=(_,_)=>{if(string.IsNullOrWhiteSpace(name.Text))name.Text="Новая группа";if(_selectedKeys.Count==0){ToolStatusText.Text="Выберите хотя бы одну клавишу.";return;}PushUndoSnapshot();group.Name=name.Text.Trim();group.ColorHex=color;group.Keys=new HashSet<string>(_selectedKeys,StringComparer.Ordinal);RenderSelection();ScheduleProfileSave();ShowGroupsManager();};
+        Button cancel=CreatePanelButton("Отмена");cancel.Width=90;cancel.Margin=new Thickness(8,0,0,0);cancel.Click+=(_,_)=>ShowGroupsManager();
         actions.Children.Add(save);actions.Children.Add(cancel);body.Children.Add(actions);
         _groupSettingsPanel=new Border{Background=BrushFrom("#FF292D37"),BorderBrush=BrushFrom("#FF3A3F4A"),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(8),Margin=new Thickness(0,7,0,0),ClipToBounds=true,Child=body};
         _groupManagerContent.Children.Add(_groupSettingsPanel);
@@ -1597,6 +1636,8 @@ public partial class MainWindow : Window
 
     private void ReleasePointer()
     {
+        // Losing window focus cancels inline remapping so it cannot intercept later tool input.
+        if (_isGroupRemapping) ShowGroupsManager();
         _isPointerDown = false;
         _isMarquee = false;
         _strokeUndoPushed = false;
