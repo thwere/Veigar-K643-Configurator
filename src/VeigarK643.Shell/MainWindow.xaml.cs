@@ -1289,7 +1289,7 @@ public partial class MainWindow : Window
                     _uiSettings.Fonts[role]=new FontSetting{Family=pair.Font.SelectedItem?.ToString()??"Segoe UI",Size=pair.Size.SelectedItem is double value?value:11};
                 }
                 foreach(string key in iconKeys)
-                    if(iconControls[key].SelectedItem is ValueTuple<string,string> selected)_uiSettings.Icons[key]=selected.Item2;
+                    if(iconControls[key].SelectedItem is IconOption selected)_uiSettings.Icons[key]=selected.Glyph;
                 SaveFileDialog dialog=new(){Filter="JSON config (*.json)|*.json",FileName="veigar-ui-settings.json"};
                 if(dialog.ShowDialog(this)==true)File.WriteAllText(dialog.FileName,JsonSerializer.Serialize(_uiSettings,new JsonSerializerOptions{WriteIndented=true}));
                 SaveUiSettings();ApplyUiSettings();CloseModal();ToolStatusText.Text="Конфиг настроек экспортирован.";
