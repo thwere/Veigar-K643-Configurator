@@ -178,6 +178,8 @@ public partial class MainWindow : Window
         AddToolButton(tools, "▰", "Заливка (G)", EditorTool.Fill);
         AddToolButton(tools, "▧", "Выделение (V)", EditorTool.Select);
         AddToolButton(tools, "⌫", "Ластик (E)", EditorTool.Eraser);
+        Button eyedropper = CreateToolbarButton("⌕", "Пипетка: взять цвет с клавиши", () => { _isEyedropper = true; ToolStatusText.Text = "Пипетка: щёлкните по клавише с назначенным цветом."; });
+        eyedropper.Width = 38; eyedropper.Height = 32; eyedropper.Template = RoundedToolbarButtonTemplate(6); tools.Children.Add(eyedropper);
         layout.Children.Add(tools);
         StackPanel right = new()
         {
@@ -222,7 +224,7 @@ public partial class MainWindow : Window
             Tag = tool, Width = 42, Height = 34, Margin = new Thickness(2,0,2,0),
             Padding = new Thickness(0), ToolTip = tooltip, Foreground = BrushFrom("#FFDCE0E8"),
             Background = BrushFrom("#FF2A2E38"), BorderBrush = BrushFrom("#FF3E4350"),
-            BorderThickness = new Thickness(1), Cursor = Cursors.Hand, Focusable = false
+            BorderThickness = new Thickness(0), Template = RoundedToolbarButtonTemplate(6), Cursor = Cursors.Hand, Focusable = false
         };
         button.Click += (_, _) => SetActiveTool(tool);
         _toolButtons.Add(button);
@@ -236,7 +238,7 @@ public partial class MainWindow : Window
             Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 17, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             Width = 42, Height = 34, Margin = new Thickness(2,0,2,0), ToolTip = tooltip,
             Foreground = BrushFrom("#FFDCE0E8"), Background = BrushFrom("#FF2A2E38"),
-            BorderBrush = BrushFrom("#FF3E4350"), BorderThickness = new Thickness(1),
+            BorderThickness = new Thickness(0), Template = RoundedToolbarButtonTemplate(8),
             Cursor = Cursors.Hand, Focusable = false
         };
         button.Click += (_, _) => action();
@@ -283,7 +285,6 @@ public partial class MainWindow : Window
         root.Children.Add(_colorPreview);
         _colorHexText = new TextBlock { Text = "#FF0000", Foreground = BrushFrom("#FF9299A7"), FontSize = 10, Margin = new Thickness(0,5,0,0), HorizontalAlignment = HorizontalAlignment.Center };
         root.Children.Add(_colorHexText);
-        Button pipette=CreatePanelButton("Пипетка");pipette.Height=28;pipette.Margin=new Thickness(0,8,0,0);pipette.Click+=(_,_)=>{_isEyedropper=true;ToolStatusText.Text="Пипетка: щёлкните по клавише с назначенным цветом.";};root.Children.Add(pipette);
         root.Children.Add(new TextBlock{Text="ПОСЛЕДНИЕ ЦВЕТА",Foreground=BrushFrom("#FF9DA4B2"),FontSize=9,Margin=new Thickness(0,12,0,5)});
         _recentColorsPanel=new StackPanel{Orientation=Orientation.Horizontal};root.Children.Add(_recentColorsPanel);
         _colorHintText = new TextBlock { Text = "Выберите оттенок и яркость на палитре. Насыщенность регулируется ползунком справа.", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0,14,0,0) };
@@ -311,7 +312,7 @@ public partial class MainWindow : Window
     {
         Content = text, Height = 34, HorizontalContentAlignment = HorizontalAlignment.Center,
         Foreground = BrushFrom("#FFE3E5EA"), Background = BrushFrom("#FF343945"),
-        BorderBrush = BrushFrom("#FF505664"), BorderThickness = new Thickness(1),
+        BorderThickness = new Thickness(0), Template = RoundedToolbarButtonTemplate(9),
         Cursor = Cursors.Hand, Focusable = false
     };
 
@@ -878,10 +879,6 @@ public partial class MainWindow : Window
     private void ShowGroupsManager()
     {
         if (_groupManagerContent is null) return;
-        if (_colorField?.Parent is Grid palette) palette.Visibility = Visibility.Collapsed;
-        if (_colorPreview is not null) _colorPreview.Visibility = Visibility.Collapsed;
-        if (_colorHexText is not null) _colorHexText.Visibility = Visibility.Collapsed;
-        if (_colorHintText is not null) _colorHintText.Visibility = Visibility.Collapsed;
         _groupManagerContent.Visibility = Visibility.Visible;
         _groupManagerContent.Children.Clear();
         _groupManagerContent.Children.Add(new TextBlock { Text = "ГРУППЫ КЛАВИШ", Foreground = BrushFrom("#FF9DA4B2"), FontSize = 10, Margin = new Thickness(0,12,0,10) });
