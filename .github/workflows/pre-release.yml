@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Pre-release version (for example v0.2.2)"
+        description: "Pre-release version (for example v0.3.0)"
         required: true
-        default: "v0.2.2"
+        default: "v0.3.0"
         type: string
   push:
     branches:
@@ -14,50 +14,55 @@ on:
     tags:
       - "v*"
 
+# Read-only by default. The release job receives write access explicitly.
 permissions:
-  contents: write
+  contents: read
 
+# Serialize all release updates, even when a release creation also triggers a tag event.
 concurrency:
-  group: pre-release-${{ github.ref }}
+  group: pre-release-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
   build-and-release:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'push' && github.ref_type == 'tag' && github.event.created == true)
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
-      - name: Validate version
-        shell: pwsh
-        run: |
-          if ($env:GITHUB_REF_TYPE -eq "tag") {
-            $version = $env:GITHUB_REF_NAME
-          } elseif ($env:GITHUB_EVENT_NAME -eq "push") {
-            $event = Get-Content $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
-            $message = $event.head_commit.message
-            if ($message -match '^release-(v[0-9]+\.[0-9]+\.[0-9]+)$') {
-              $version = $Matches[1]
-            } else {
-              $version = "v0.2.2"
-            }
-          } else {
-            $version = "${{ inputs.version }}"
-          }
-          if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "Version must use vMAJOR.MINOR.PATCH format, for example v0.1.0" }
-          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
-
       - name: Checkout release source
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref_type == 'tag' && github.ref_name || 'main' }}
           fetch-depth: 0
 
+      - name: Validate version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            $version = $env:GITHUB_REF_NAME
+          } elseif ($env:GITHUB_EVENT_NAME -eq "push") {
+            [xml]$project = Get-Content "src/VeigarK643.Shell/VeigarK643.Shell.csproj" -Raw
+            $projectVersion = [string]$project.Project.PropertyGroup.Version
+            $version = "v$projectVersion"
+          } else {
+            # Keep workflow_dispatch input out of the PowerShell source to prevent script injection.
+            $version = $env:INPUT_VERSION
+          }
+          if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
+            throw "Version must use vMAJOR.MINOR.PATCH format, for example v0.3.0"
+          }
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           dotnet-version: 10.0.x
 
-      - name: Restore dependencies
-        run: dotnet restore src/VeigarK643.Shell/VeigarK643.Shell.csproj --runtime win-x64 --source https://api.nuget.org/v3/index.json --verbosity minimal -p:NuGetAudit=false
+      - name: Restore dependencies with NuGet security audit
+        run: dotnet restore src/VeigarK643.Shell/VeigarK643.Shell.csproj --runtime win-x64 --source https://api.nuget.org/v3/index.json --verbosity minimal -p:NuGetAudit=true -p:NuGetAuditMode=all
 
       - name: Publish portable Windows x64
         run: dotnet publish src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Release --runtime win-x64 --self-contained true --no-restore -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true --output publish/win-x64
@@ -73,23 +78,27 @@ jobs:
       - name: Create or update GitHub pre-release
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY_NAME: ${{ github.repository }}
         shell: pwsh
         run: |
           $tag = $env:RELEASE_VERSION
           $archive = "Veigar-K643-Configurator-$tag-win-x64.zip"
-          $notes = "Veigar K643 Configurator $tag. Bug fixes and usability improvements."
+          $notes = "Veigar K643 Configurator $tag. Stability, persistence, and development-process improvements."
 
-          $null = gh release view $tag --repo "${{ github.repository }}" --json tagName 2>$null
-          if ($LASTEXITCODE -eq 0) {
+          gh release view $tag --repo $env:GITHUB_REPOSITORY_NAME --json tagName 2>$null | Out-Null
+          $releaseExists = $LASTEXITCODE -eq 0
+
+          if ($releaseExists) {
+            # The v0.x pre-release tag is deliberately mutable so each main build refreshes the test package.
             git push --force origin "HEAD:refs/tags/$tag"
             if ($LASTEXITCODE -ne 0) { throw "Failed to update tag $tag to the rebuilt source." }
 
-            gh release upload $tag $archive --repo "${{ github.repository }}" --clobber
+            gh release upload $tag $archive --repo $env:GITHUB_REPOSITORY_NAME --clobber
             if ($LASTEXITCODE -ne 0) { throw "Failed to replace the portable ZIP for $tag." }
 
-            gh release edit $tag --repo "${{ github.repository }}" --title $tag --prerelease --notes $notes
+            gh release edit $tag --repo $env:GITHUB_REPOSITORY_NAME --title $tag --prerelease --notes $notes
             if ($LASTEXITCODE -ne 0) { throw "Failed to update release metadata for $tag." }
           } else {
-            gh release create $tag $archive --repo "${{ github.repository }}" --target main --title $tag --prerelease --notes $notes
+            gh release create $tag $archive --repo $env:GITHUB_REPOSITORY_NAME --target main --title $tag --prerelease --notes $notes
             if ($LASTEXITCODE -ne 0) { throw "Failed to create pre-release $tag." }
           }
