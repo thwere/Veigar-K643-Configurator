@@ -200,7 +200,15 @@ public partial class MainWindow : Window
         _profileButton.Background = BrushFrom("#FF2A2E38");
         _profileButton.BorderBrush = BrushFrom("#FF515866");
         _profileButton.Template = RoundedToolbarButtonTemplate(17);
-        right.Children.Add(_profileButton);
+        Grid profileSurface = new() { Width=196, Height=34 };
+        _profileButton.HorizontalContentAlignment = HorizontalAlignment.Left;
+        _profileButton.Padding = new Thickness(8,0,40,0);
+        profileSurface.Children.Add(_profileButton);
+        Button profileMore = new() { Content="⋯", Width=26, Height=26, Margin=new Thickness(0,0,5,0), HorizontalAlignment=HorizontalAlignment.Right, VerticalAlignment=VerticalAlignment.Center, Background=Brushes.Transparent, Foreground=BrushFrom("#FFB8BEC9"), BorderThickness=new Thickness(0), Template=RoundedToolbarButtonTemplate(13), Cursor=Cursors.Hand };
+        profileMore.Click += (_,_) => ToggleProfilesFlyout();
+        Panel.SetZIndex(profileMore,2);
+        profileSurface.Children.Add(profileMore);
+        right.Children.Add(profileSurface);
         Button settings = CreateToolbarButton(IconFor("Settings", "\uE713"), "", ShowUiSettings);
         settings.Width = 36;
         settings.Margin = new Thickness(6,0,0,0);
@@ -898,7 +906,7 @@ public partial class MainWindow : Window
             label.Children.Add(new TextBlock { Text=group.Name, Foreground=BrushFrom("#FFE3E5EA"), VerticalAlignment=VerticalAlignment.Center });
             label.Children.Add(new TextBlock { Text=$"  {group.Keys.Count}", Foreground=BrushFrom("#FF9DA4B2"), VerticalAlignment=VerticalAlignment.Center });
             select.Content=label;
-            select.Click += (_,_) => { _isGroupRemapping=false; _remappingGroup=null; _selectedKeys.Clear(); _selectedKeys.UnionWith(group.Keys); RenderSelection(); ToolStatusText.Text=$"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш)."; };
+            select.Click += (_,_) => { _isGroupRemapping=false; _remappingGroup=null; _selectedKeys.Clear(); _selectedKeys.UnionWith(group.Keys); RenderSelection(); ToolStatusText.Text=$"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш)."; ShowGroupsManager(); };
             row.Children.Add(select);
             Button more = new()
             {
@@ -1326,7 +1334,7 @@ public partial class MainWindow : Window
             StackPanel content = new() { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8,0,8,0) };
             content.Children.Add(new Ellipse { Width = 10, Height = 10, Fill = BrushFrom(_activeProfileColor), Margin = new Thickness(0,0,8,0), VerticalAlignment = VerticalAlignment.Center });
             content.Children.Add(new TextBlock { Text = _activeProfileName, Foreground = BrushFrom("#FFE3E5EA"), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 120 });
-            content.Children.Add(new Border { Width=26, Height=26, CornerRadius=new CornerRadius(13), Background=Brushes.Transparent, Child=new TextBlock { Text="⋯", Foreground=BrushFrom("#FFB8BEC9"), FontSize=17, HorizontalAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center } });
+
             _profileButton.Content = content;
             _profileButton.ToolTip = null;
             _profileButton.Width = 196;
