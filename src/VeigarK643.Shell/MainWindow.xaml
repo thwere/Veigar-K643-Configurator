@@ -25,6 +25,28 @@
     </shell:WindowChrome.WindowChrome>
 
     <Window.Resources>
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="FontFamily" Value="Colville" />
+            <Setter Property="FontSize" Value="10" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Heading">
+                    <Setter Property="FontFamily" Value="Inky Pixels(RUS BY LYAJKA)" />
+                    <Setter Property="FontSize" Value="14" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Status">
+                    <Setter Property="FontFamily" Value="True Lies" />
+                    <Setter Property="FontSize" Value="10" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Title">
+                    <Setter Property="FontFamily" Value="Dungeon" />
+                    <Setter Property="FontSize" Value="15" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="FontFamily" Value="Colville" />
+            <Setter Property="FontSize" Value="11" />
+        </Style>
         <Style x:Key="CaptionButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="34" />
