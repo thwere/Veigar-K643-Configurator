@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>VeigarK643.LayoutEditor</RootNamespace>
+    <Nullable>enable</Nullable>
+    <AnalysisLevel>10.0-recommended</AnalysisLevel>
     <AssemblyName>Veigar K643 Layout Editor</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
