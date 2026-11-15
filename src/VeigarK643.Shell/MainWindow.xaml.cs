@@ -336,6 +336,7 @@ public partial class MainWindow : Window
 
     private void SetActiveTool(EditorTool tool)
     {
+        _isEyedropper = false;
         _activeTool = tool;
         foreach (Button button in _toolButtons)
         {
