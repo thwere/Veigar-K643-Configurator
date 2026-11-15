@@ -1,0 +1,54 @@
+name: CodeQL
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "31 6 * * 3"
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: read
+
+jobs:
+  analyze:
+    name: Analyze C# security
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: read
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        with:
+          languages: csharp
+          build-mode: manual
+
+      - name: Build active WPF applications
+        shell: pwsh
+        run: |
+          dotnet restore src/VeigarK643.Shell/VeigarK643.Shell.csproj --verbosity minimal -p:NuGetAudit=true -p:NuGetAuditMode=all
+          dotnet build src/VeigarK643.Shell/VeigarK643.Shell.csproj --configuration Release --no-restore
+          dotnet build tools/VeigarK643.LayoutEditor/VeigarK643.LayoutEditor.csproj --configuration Release
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        with:
+          category: "/language:csharp"
