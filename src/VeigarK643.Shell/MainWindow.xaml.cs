@@ -724,7 +724,7 @@ public partial class MainWindow : Window
     {
         _recentColors.Remove(c);_recentColors.Insert(0,c);if(_recentColors.Count>8)_recentColors.RemoveAt(8);
         if(_recentColorsPanel is null)return;_recentColorsPanel.Children.Clear();
-        foreach(Color recent in _recentColors){Button b=new(){Width=23,Height=23,Margin=new Thickness(0,0,5,0),Padding=new Thickness(0),Background=new SolidColorBrush(recent),BorderBrush=BrushFrom("#FF687080"),BorderThickness=new Thickness(1),ToolTip=$"#{recent.R:X2}{recent.G:X2}{recent.B:X2}"};b.Click+=(_,_)=>SetCurrentColor(recent);_recentColorsPanel.Children.Add(b);}
+        foreach(Color recent in _recentColors){Button b=new(){Width=23,Height=23,Margin=new Thickness(0,0,5,0),Padding=new Thickness(0),Background=new SolidColorBrush(recent),BorderThickness=new Thickness(0),Template=RoundedToolbarButtonTemplate(6),ToolTip=$"#{recent.R:X2}{recent.G:X2}{recent.B:X2}"};b.Click+=(_,_)=>SetCurrentColor(recent);_recentColorsPanel.Children.Add(b);}
     }
     private static Color HsvToColor(double hue, double saturation, double value)
     {
@@ -1061,14 +1061,19 @@ public partial class MainWindow : Window
 
     private void ShowProfileEditor(EditorProfileData? existing, string? oldPath)
     {
-        TextBox name = new() { Text = existing?.Name ?? "Новый профиль", Height = 32, Padding = new Thickness(8,5,8,5), Background = BrushFrom("#FF191B22"), Foreground = BrushFrom("#FFE3E5EA"), BorderBrush = BrushFrom("#FF454A55") };
+        TextBlock limitWarning = new() { Text = "Название профиля не должно превышать 30 символов.", Foreground = BrushFrom("#FFFF6666"), FontSize = 10, TextAlignment = TextAlignment.Center, Visibility = Visibility.Collapsed, Margin = new Thickness(0,5,0,0) };
+        TextBox name = new() { Text = existing?.Name ?? "Новый профиль", MaxLength = 30, Height = 32, Padding = new Thickness(8,5,8,5), Background = BrushFrom("#FF191B22"), Foreground = BrushFrom("#FFE3E5EA"), BorderThickness = new Thickness(0), HorizontalContentAlignment = HorizontalAlignment.Center };
+        name.TextChanged += (_,_) => limitWarning.Visibility = name.Text.Length >= 30 ? Visibility.Visible : Visibility.Collapsed;
         _dialogColor = existing?.ColorHex ?? "#FF6D8CFF";
         StackPanel colors = BuildColorSwatches(color => _dialogColor = color, _dialogColor);
         StackPanel body = new();
         body.Children.Add(new TextBlock { Text = "Название профиля", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,0,0,5) });
         body.Children.Add(name);
+        body.Children.Add(limitWarning);
         body.Children.Add(new TextBlock { Text = "Цвет профиля", Foreground = BrushFrom("#FFB8BEC9"), Margin = new Thickness(0,12,0,5) });
+        colors.HorizontalAlignment = HorizontalAlignment.Center;
         body.Children.Add(colors);
+        foreach (TextBlock label in body.Children.OfType<TextBlock>()) label.TextAlignment = TextAlignment.Center;
         ShowModal(existing is null ? "СОЗДАТЬ ПРОФИЛЬ" : "НАСТРОЙКА ПРОФИЛЯ", body,
             (existing is null ? "Создать" : "Сохранить", () =>
             {
@@ -1132,7 +1137,7 @@ public partial class MainWindow : Window
             StackPanel content = new() { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8,0,8,0) };
             content.Children.Add(new Ellipse { Width = 10, Height = 10, Fill = BrushFrom(_activeProfileColor), Margin = new Thickness(0,0,8,0), VerticalAlignment = VerticalAlignment.Center });
             content.Children.Add(new TextBlock { Text = _activeProfileName, Foreground = BrushFrom("#FFE3E5EA"), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 120 });
-            content.Children.Add(new TextBlock { Text = "  ⋯", Foreground = BrushFrom("#FFB8BEC9"), VerticalAlignment = VerticalAlignment.Center });
+            content.Children.Add(new Border { Width=26, Height=26, CornerRadius=new CornerRadius(13), Background=Brushes.Transparent, Child=new TextBlock { Text="⋯", Foreground=BrushFrom("#FFB8BEC9"), FontSize=17, HorizontalAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center } });
             _profileButton.Content = content;
             _profileButton.ToolTip = "Профили и действия";
             _profileButton.Width = 196;
@@ -1146,15 +1151,15 @@ public partial class MainWindow : Window
         cardGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(48) });
         cardGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         cardGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(54) });
-        Border card = new() { Width = 540, MaxHeight = 500, Background = BrushFrom("#FF252832"), BorderBrush = BrushFrom("#FF4A505D"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10), Padding = new Thickness(20), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Child = cardGrid };
-        cardGrid.Children.Add(new TextBlock { Text = title, Foreground = BrushFrom("#FFE5E8EF"), FontSize = 12, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        Border card = new() { Width = 360, MaxHeight = 440, Background = BrushFrom("#FF252832"), BorderBrush = BrushFrom("#FF4A505D"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10), Padding = new Thickness(20), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Child = cardGrid };
+        cardGrid.Children.Add(new TextBlock { Text = title, Foreground = BrushFrom("#FFE5E8EF"), FontSize = 12, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center });
         Border bodyBorder = new() { Child = body, Margin = new Thickness(0,8,0,8) };
         Grid.SetRow(bodyBorder,1); cardGrid.Children.Add(bodyBorder);
-        StackPanel footer = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+        StackPanel footer = new() { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         foreach (var action in actions)
         {
             Button button = CreatePanelButton(action.Text);
-            button.MinWidth = 90; button.Margin = new Thickness(6,0,0,0);
+            button.MinWidth = 100; button.Margin = new Thickness(5,0,5,0); button.Template = RoundedToolbarButtonTemplate(10);
             button.Click += (_, _) => action.Action();
             footer.Children.Add(button);
         }
