@@ -134,7 +134,7 @@ public partial class MainWindow : Window
             _ => "Colville"
         };
         text.FontFamily = new FontFamily(family);
-        text.FontSize = role switch { "Title" => 15, "Heading" => 14, "Button" => 11, _ => 10 };
+        text.FontSize = role switch { "Title" => 15, "Heading" => 15, "Button" => 11, _ => 10 };
         if (role == "Heading") ApplyPhysicalLetterSpacing(text);
     }
 
@@ -147,13 +147,25 @@ public partial class MainWindow : Window
         text.Inlines.Clear();
         for (int i = 0; i < original.Length; i++)
         {
-            text.Inlines.Add(new Run(original[i].ToString()));
-            if (i < original.Length - 1 && !char.IsWhiteSpace(original[i]) && !char.IsWhiteSpace(original[i + 1]))
+            char current = original[i];
+            if (current == ' ')
+            {
+                // Word separation is deliberately wider than letter spacing.
+                text.Inlines.Add(new Run("\u2003")
+                {
+                    FontFamily = new FontFamily("Segoe UI"),
+                    FontSize = text.FontSize
+                });
+                continue;
+            }
+
+            text.Inlines.Add(new Run(current.ToString()));
+            if (i < original.Length - 1 && !char.IsWhiteSpace(original[i + 1]))
             {
                 text.Inlines.Add(new Run("\u00A0")
                 {
                     FontFamily = new FontFamily("Segoe UI"),
-                    FontSize = Math.Max(6, text.FontSize * 0.72)
+                    FontSize = 5.5
                 });
             }
         }
@@ -976,60 +988,24 @@ public partial class MainWindow : Window
         SaveProfileOrder();
     }
 
-    private void ReorderProfiles(string draggedName, string targetName, bool after, StackPanel body)
+    private void CommitProfileOrder(int sourceIndex, int targetIndex)
     {
-        int sourceIndex = _profileOrder.FindIndex(name => string.Equals(name, draggedName, StringComparison.OrdinalIgnoreCase));
-        int targetIndex = _profileOrder.FindIndex(name => string.Equals(name, targetName, StringComparison.OrdinalIgnoreCase));
-        if (sourceIndex < 0 || targetIndex < 0) return;
-
-        int insertIndex = targetIndex + (after ? 1 : 0);
-        string item = _profileOrder[sourceIndex];
+        if (sourceIndex < 0 || targetIndex < 0 || sourceIndex >= _profileOrder.Count || targetIndex >= _profileOrder.Count) return;
+        string moved = _profileOrder[sourceIndex];
         _profileOrder.RemoveAt(sourceIndex);
-        if (sourceIndex < insertIndex) insertIndex--;
-        insertIndex = Math.Clamp(insertIndex, 0, _profileOrder.Count);
-        _profileOrder.Insert(insertIndex, item);
+        _profileOrder.Insert(targetIndex, moved);
         SaveProfileOrder();
-
-        Grid[] rows = body.Children.OfType<Grid>()
-            .Where(row => row.Tag is string)
-            .OrderBy(row => _profileOrder.FindIndex(name => string.Equals(name, (string)row.Tag, StringComparison.OrdinalIgnoreCase)))
-            .ToArray();
-        foreach (Grid row in rows) body.Children.Remove(row);
-        for (int i = 0; i < rows.Length; i++) body.Children.Insert(i, rows[i]);
-        ToolStatusText.Text = $"Приоритет профилей обновлён. «{draggedName}» — позиция {_profileOrder.FindIndex(name => string.Equals(name, draggedName, StringComparison.OrdinalIgnoreCase)) + 1}.";
+        ToolStatusText.Text = $"Приоритет профилей обновлён. «{moved}» — позиция {targetIndex + 1}.";
     }
 
-    private void AttachProfileDragDrop(Grid row, TextBlock handle, string profileName, StackPanel body)
+    private void AttachProfileDragDrop(StackPanel body, Grid row, TextBlock handle)
     {
-        Point dragStart = default;
-        bool dragStarted = false;
-        handle.PreviewMouseLeftButtonDown += (_, e) => { dragStart = e.GetPosition(row); dragStarted = false; };
-        handle.PreviewMouseMove += (_, e) =>
-        {
-            if (e.LeftButton != MouseButtonState.Pressed || dragStarted) return;
-            Point current = e.GetPosition(row);
-            if (Math.Abs(current.X - dragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
-                Math.Abs(current.Y - dragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
-            dragStarted = true;
-            DataObject data = new("Veigar.ProfileOrder", profileName);
-            DragDrop.DoDragDrop(handle, data, DragDropEffects.Move);
-        };
-
-        row.AllowDrop = true;
-        row.DragOver += (_, e) =>
-        {
-            if (!e.Data.GetDataPresent("Veigar.ProfileOrder")) return;
-            e.Effects = DragDropEffects.Move;
-            e.Handled = true;
-        };
-        row.Drop += (_, e) =>
-        {
-            if (!e.Data.GetDataPresent("Veigar.ProfileOrder")) return;
-            string? draggedName = e.Data.GetData("Veigar.ProfileOrder") as string;
-            if (draggedName is null) return;
-            ReorderProfiles(draggedName, profileName, e.GetPosition(row).Y >= row.ActualHeight / 2, body);
-            e.Handled = true;
-        };
+        AttachAnimatedLocalReorder(
+            body,
+            row,
+            handle,
+            () => body.Children.OfType<Grid>().Where(item => item.Tag is string).ToList(),
+            CommitProfileOrder);
     }
 
     private static string SafeFileName(string name)
@@ -1085,51 +1061,179 @@ public partial class MainWindow : Window
         catch (Exception ex) { Debug.WriteLine("Profile load failed: " + ex.Message); }
     }
 
-    private void AttachGroupDragDrop(Grid row, TextBlock handle, EditorGroup group)
+    private void CommitGroupOrder(int sourceIndex, int targetIndex)
     {
-        Point dragStart = default;
-        bool dragStarted = false;
-        handle.PreviewMouseLeftButtonDown += (_, e) => { dragStart = e.GetPosition(row); dragStarted = false; };
+        if (sourceIndex < 0 || targetIndex < 0 || sourceIndex >= _groups.Count || targetIndex >= _groups.Count) return;
+        EditorGroup moved = _groups[sourceIndex];
+        _groups.RemoveAt(sourceIndex);
+        _groups.Insert(targetIndex, moved);
+        RenderSelection();
+        ScheduleProfileSave();
+        ToolStatusText.Text = $"Приоритет группы «{moved.Name}» обновлён. Верхние группы главнее нижних.";
+    }
+
+    private void AttachGroupDragDrop(StackPanel listHost, Grid row, TextBlock handle, EditorGroup group)
+    {
+        AttachAnimatedLocalReorder(
+            listHost,
+            row,
+            handle,
+            () => listHost.Children.OfType<Grid>().Where(item => item.Tag is EditorGroup).ToList(),
+            CommitGroupOrder);
+    }
+
+    private void AttachAnimatedLocalReorder(
+        StackPanel listHost,
+        Grid row,
+        TextBlock handle,
+        Func<List<Grid>> getRows,
+        Action<int, int> commitOrder)
+    {
+        Point pointerStart = default;
+        double startRowTop = 0;
+        double firstRowTop = 0;
+        double lastRowTop = 0;
+        double rowStep = 0;
+        int sourceIndex = -1;
+        int targetIndex = -1;
+        bool dragging = false;
+        TranslateTransform rowTransform = new();
+        row.RenderTransform = rowTransform;
+
+        handle.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            pointerStart = e.GetPosition(listHost);
+            dragging = false;
+            sourceIndex = -1;
+            targetIndex = -1;
+        };
+
         handle.PreviewMouseMove += (_, e) =>
         {
-            if (e.LeftButton != MouseButtonState.Pressed || dragStarted) return;
-            Point current = e.GetPosition(row);
-            if (Math.Abs(current.X - dragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
-                Math.Abs(current.Y - dragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
-            dragStarted = true;
-            DragDrop.DoDragDrop(handle, new DataObject("Veigar.GroupOrder", group), DragDropEffects.Move);
-        };
-        row.AllowDrop = true;
-        row.DragOver += (_, e) =>
-        {
-            if (!e.Data.GetDataPresent("Veigar.GroupOrder")) return;
-            e.Effects = DragDropEffects.Move;
+            if (e.LeftButton != MouseButtonState.Pressed) return;
+            List<Grid> rows = getRows();
+            if (rows.Count < 2) return;
+
+            Point pointer = e.GetPosition(listHost);
+            if (!dragging)
+            {
+                if (Math.Abs(pointer.X - pointerStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                    Math.Abs(pointer.Y - pointerStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+                sourceIndex = rows.IndexOf(row);
+                if (sourceIndex < 0) return;
+                targetIndex = sourceIndex;
+                startRowTop = row.TranslatePoint(new Point(0, 0), listHost).Y;
+                firstRowTop = rows[0].TranslatePoint(new Point(0, 0), listHost).Y;
+                lastRowTop = rows[^1].TranslatePoint(new Point(0, 0), listHost).Y;
+                rowStep = rows.Count > 1
+                    ? rows[1].TranslatePoint(new Point(0, 0), listHost).Y - firstRowTop
+                    : row.ActualHeight + row.Margin.Top + row.Margin.Bottom;
+                if (rowStep <= 0) return;
+
+                dragging = true;
+                listHost.ClipToBounds = true;
+                row.Opacity = 0.94;
+                Panel.SetZIndex(row, 20);
+                row.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    BlurRadius = 13,
+                    ShadowDepth = 3,
+                    Opacity = 0.35
+                };
+                Mouse.Capture(handle, CaptureMode.Element);
+            }
+
+            // The dragged row is clamped to the list's first and last slots.
+            double desiredTop = Math.Clamp(startRowTop + pointer.Y - pointerStart.Y, firstRowTop, lastRowTop);
+            rowTransform.Y = desiredTop - startRowTop;
+            int nextIndex = Math.Clamp(
+                (int)Math.Round((desiredTop - firstRowTop) / rowStep, MidpointRounding.AwayFromZero),
+                0,
+                rows.Count - 1);
+
+            if (nextIndex != targetIndex)
+            {
+                targetIndex = nextIndex;
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    if (i == sourceIndex) continue;
+                    double offset = targetIndex > sourceIndex && i > sourceIndex && i <= targetIndex
+                        ? -rowStep
+                        : targetIndex < sourceIndex && i >= targetIndex && i < sourceIndex
+                            ? rowStep
+                            : 0;
+                    if (rows[i].RenderTransform is not TranslateTransform siblingTransform)
+                    {
+                        siblingTransform = new TranslateTransform();
+                        rows[i].RenderTransform = siblingTransform;
+                    }
+                    siblingTransform.BeginAnimation(
+                        TranslateTransform.YProperty,
+                        new System.Windows.Media.Animation.DoubleAnimation(offset, TimeSpan.FromMilliseconds(135))
+                        {
+                            EasingFunction = new System.Windows.Media.Animation.CubicEase
+                            {
+                                EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut
+                            }
+                        });
+                }
+            }
             e.Handled = true;
         };
-        row.Drop += (_, e) =>
+
+        handle.PreviewMouseLeftButtonUp += (_, e) =>
         {
-            if (!e.Data.GetDataPresent("Veigar.GroupOrder")) return;
-            if (e.Data.GetData("Veigar.GroupOrder") is not EditorGroup dragged) return;
-            ReorderGroupPriority(dragged, group, e.GetPosition(row).Y >= row.ActualHeight / 2);
+            if (!dragging) return;
+            dragging = false;
+            double currentOffset = rowTransform.Y;
+            int finalIndex = targetIndex;
+            Mouse.Capture(null);
+
+            List<Grid> rows = getRows();
+            if (finalIndex >= 0 && finalIndex != sourceIndex && sourceIndex < rows.Count)
+            {
+                // Reorder the existing row controls; no system-wide drag image is created.
+                MoveVisualRow(listHost, rows, row, finalIndex);
+                commitOrder(sourceIndex, finalIndex);
+                currentOffset -= (finalIndex - sourceIndex) * rowStep;
+            }
+
+            foreach (Grid sibling in getRows())
+            {
+                if (ReferenceEquals(sibling, row)) continue;
+                if (sibling.RenderTransform is TranslateTransform siblingTransform)
+                {
+                    siblingTransform.BeginAnimation(TranslateTransform.YProperty, null);
+                    siblingTransform.Y = 0;
+                }
+            }
+
+            row.Opacity = 1;
+            row.Effect = null;
+            Panel.SetZIndex(row, 0);
+            rowTransform.BeginAnimation(
+                TranslateTransform.YProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(currentOffset, 0, TimeSpan.FromMilliseconds(145))
+                {
+                    EasingFunction = new System.Windows.Media.Animation.CubicEase
+                    {
+                        EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut
+                    }
+                });
             e.Handled = true;
         };
     }
 
-    private void ReorderGroupPriority(EditorGroup dragged, EditorGroup target, bool after)
+    private static void MoveVisualRow(StackPanel host, List<Grid> rows, Grid movingRow, int targetIndex)
     {
-        int sourceIndex = _groups.IndexOf(dragged);
-        int targetIndex = _groups.IndexOf(target);
-        if (sourceIndex < 0 || targetIndex < 0 || sourceIndex == targetIndex) return;
-
-        int insertIndex = targetIndex + (after ? 1 : 0);
-        _groups.RemoveAt(sourceIndex);
-        if (sourceIndex < insertIndex) insertIndex--;
-        _groups.Insert(Math.Clamp(insertIndex, 0, _groups.Count), dragged);
-
-        RenderSelection();
-        ScheduleProfileSave();
-        ShowGroupsManager();
-        ToolStatusText.Text = $"Приоритет группы «{dragged.Name}» обновлён. Верхние группы главнее нижних.";
+        host.Children.Remove(movingRow);
+        List<Grid> remaining = rows.Where(item => !ReferenceEquals(item, movingRow)).ToList();
+        int insertAt = targetIndex >= remaining.Count
+            ? host.Children.IndexOf(remaining[^1]) + 1
+            : host.Children.IndexOf(remaining[targetIndex]);
+        host.Children.Insert(insertAt, movingRow);
     }
 
     private void ShowGroupsManager()
@@ -1152,7 +1256,7 @@ public partial class MainWindow : Window
             choose.Content=label;choose.Click+=(_,_)=>{_isGroupRemapping=false;_remappingGroup=null;_selectedKeys.Clear();_selectedKeys.UnionWith(group.Keys);RenderSelection();ToolStatusText.Text=$"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш).";ShowGroupsManager();};
             row.Children.Add(choose);
             TextBlock dragHandle=new(){Text="⠿",FontFamily=new FontFamily("Segoe UI Symbol"),FontSize=17,Foreground=BrushFrom("#FF818A99"),Background=Brushes.Transparent,Width=20,TextAlignment=TextAlignment.Center,VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Left,Margin=new Thickness(5,0,0,0),Cursor=Cursors.SizeAll,ToolTip="Перетащить для изменения приоритета"};
-            Panel.SetZIndex(dragHandle,3);row.Children.Add(dragHandle);AttachGroupDragDrop(row,dragHandle,group);
+            Panel.SetZIndex(dragHandle,3);row.Children.Add(dragHandle);AttachGroupDragDrop(content,row,dragHandle,group);
             Button more=new(){Content="⋯",Foreground=BrushFrom("#FFB8BEC9"),Background=Brushes.Transparent,BorderThickness=new Thickness(0),Template=RoundedToolbarButtonTemplate(14),Cursor=Cursors.Hand,Width=28,Height=28,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,5,0)};
             Panel.SetZIndex(more,2);row.Children.Add(more);
             ContextMenu menu=CreateDarkContextMenu(more);
@@ -1331,7 +1435,7 @@ public partial class MainWindow : Window
                 row.Children.Add(choose);
                 TextBlock dragHandle = new() { Text="⠿", FontFamily=new FontFamily("Segoe UI Symbol"), FontSize=17, Foreground=BrushFrom("#FF818A99"), Background=Brushes.Transparent, Width=20, TextAlignment=TextAlignment.Center, VerticalAlignment=VerticalAlignment.Center, HorizontalAlignment=HorizontalAlignment.Left, Margin=new Thickness(5,0,0,0), Cursor=Cursors.SizeAll, ToolTip="Перетащить для изменения порядка запуска" };
                 Panel.SetZIndex(dragHandle,3); row.Children.Add(dragHandle);
-                AttachProfileDragDrop(row,dragHandle,profileOrderName,body);
+                AttachProfileDragDrop(body,row,dragHandle);
                 Button more = new()
                 {
                     Content="⋯", Foreground=BrushFrom("#FFB8BEC9"), Background=Brushes.Transparent,
