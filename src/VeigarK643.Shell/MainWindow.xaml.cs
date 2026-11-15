@@ -182,11 +182,11 @@ public partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(10, 0, 0, 0)
         };
-        AddToolButton(tools, "\\uE70F", "", EditorTool.Brush);
-        AddToolButton(tools, "\\uD83D\\uDCA7\\uFE0E", "", EditorTool.Fill);
-        AddToolButton(tools, "\\u26F6", "", EditorTool.Select);
-        AddToolButton(tools, "\\uE75C", "", EditorTool.Eraser);
-        Button eyedropper = CreateToolbarButton("\\uE76D", "", () => { _isEyedropper = true; ToolStatusText.Text = "Пипетка: щёлкните по клавише с назначенным цветом."; });
+        AddToolButton(tools, "\uE70F", "", EditorTool.Brush);
+        AddToolButton(tools, "\uD83D\uDCA7\uFE0E", "", EditorTool.Fill);
+        AddToolButton(tools, "\u26F6", "", EditorTool.Select);
+        AddToolButton(tools, "\uE75C", "", EditorTool.Eraser);
+        Button eyedropper = CreateToolbarButton("\uE76D", "", () => { _isEyedropper = true; ToolStatusText.Text = "Пипетка: щёлкните по клавише с назначенным цветом."; });
         eyedropper.Width = 38; eyedropper.Height = 32; eyedropper.Template = RoundedToolbarButtonTemplate(6); tools.Children.Add(eyedropper);
         layout.Children.Add(tools);
         StackPanel right = new()
@@ -232,7 +232,7 @@ public partial class MainWindow : Window
         host.Children.Add(button);
     }
 
-    private static FontFamily IconFontFor(string glyph) => glyph is "\\uE70F" or "\\uE75C" or "\\uE76D" ? new FontFamily("Segoe MDL2 Assets") : new FontFamily("Segoe UI Symbol");
+    private static FontFamily IconFontFor(string glyph) => glyph is "\uE70F" or "\uE75C" or "\uE76D" ? new FontFamily("Segoe MDL2 Assets") : new FontFamily("Segoe UI Symbol");
 
     private Button CreateToolbarButton(string glyph, string tooltip, Action action)
     {
