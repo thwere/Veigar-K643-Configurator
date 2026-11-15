@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -24,8 +23,6 @@ public partial class MainWindow : Window
 {
     private const int DwmwaWindowCornerPreference = 33;
     private const int DwmwcpDoNotRound = 1;
-    private static readonly DependencyProperty HeadingSpacingAppliedProperty =
-        DependencyProperty.RegisterAttached("HeadingSpacingApplied", typeof(bool), typeof(MainWindow), new PropertyMetadata(false));
 
     private enum EditorTool { Brush, Fill, Select, Eraser, Eyedropper }
     private readonly Dictionary<string, List<Border>> _keyGlows = new(StringComparer.Ordinal);
@@ -126,58 +123,47 @@ public partial class MainWindow : Window
     {
         string role = text.Tag as string ?? "Standard";
         if (role == "Icon") return;
+
+        if (role is "Heading" or "MainHeading")
+        {
+            // Use a native UI font and real glyph shaping. No inserted spacer
+            // characters, per-character runs, outlines or synthetic shadows.
+            text.FontFamily = new FontFamily("Segoe UI");
+            text.FontWeight = FontWeights.SemiBold;
+            text.FontStretch = FontStretches.SemiExpanded;
+            text.FontSize = role == "MainHeading" ? 15 : 14;
+            text.SnapsToDevicePixels = true;
+            return;
+        }
+
         string family = role switch
         {
             "Title" => "Dungeon",
-            "Heading" => "Inky Pixels(RUS BY LYAJKA)",
             "Status" => "True Lies",
             _ => "Colville"
         };
         text.FontFamily = new FontFamily(family);
-        double headingSize = string.Equals(text.Text.Trim(), "ПАРАМЕТРЫ", StringComparison.Ordinal) ? 15 : 14;
-        text.FontSize = role switch { "Title" => 15, "Heading" => headingSize, "Button" => 11, _ => 10 };
-        if (role == "Heading") ApplyPhysicalLetterSpacing(text);
+        text.FontSize = role switch { "Title" => 15, "Button" => 11, _ => 10 };
     }
 
-    private static void ApplyPhysicalLetterSpacing(TextBlock text)
+    private static TextBlock CreateHeadingText(string value, bool primary = false)
     {
-        if ((bool)text.GetValue(HeadingSpacingAppliedProperty)) return;
-        string original = text.Text;
-        if (original.Length < 2) return;
-
-        text.Inlines.Clear();
-        for (int i = 0; i < original.Length; i++)
+        TextBlock text = new()
         {
-            char current = original[i];
-            if (current == ' ')
-            {
-                // Word separation is deliberately wider than letter spacing.
-                text.Inlines.Add(new Run("\u2003")
-                {
-                    FontFamily = new FontFamily("Segoe UI"),
-                    FontSize = text.FontSize
-                });
-                continue;
-            }
-
-            text.Inlines.Add(new Run(current.ToString()));
-            if (i < original.Length - 1 && !char.IsWhiteSpace(original[i + 1]))
-            {
-                text.Inlines.Add(new Run("\u00A0")
-                {
-                    FontFamily = new FontFamily("Segoe UI"),
-                    FontSize = 5.5
-                });
-            }
-        }
-        text.SetValue(HeadingSpacingAppliedProperty, true);
+            Text = value,
+            Tag = primary ? "MainHeading" : "Heading",
+            FontFamily = new FontFamily("Segoe UI"),
+            FontSize = primary ? 15 : 14,
+            FontWeight = FontWeights.SemiBold,
+            FontStretch = FontStretches.SemiExpanded,
+            SnapsToDevicePixels = true
+        };
+        return text;
     }
 
     private static void SetHeadingText(TextBlock? text, string value)
     {
         if (text is null) return;
-        text.Inlines.Clear();
-        text.SetValue(HeadingSpacingAppliedProperty, false);
         text.Text = value;
         ApplyTextBlockPresentation(text);
     }
@@ -327,9 +313,14 @@ public partial class MainWindow : Window
         StackPanel root = new() { Margin = new Thickness(16, 18, 16, 14) };
         scroll.Content = root;
         ToolsPanelContent.Children.Add(scroll);
-        root.Children.Add(new TextBlock { Text = "ПАРАМЕТРЫ", Tag="Heading", Foreground = BrushFrom("#FFE3E5EA"), FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0,0,0,16) });
+        TextBlock parametersHeading = CreateHeadingText("ПАРАМЕТРЫ", primary: true);
+        parametersHeading.Foreground = BrushFrom("#FFE3E5EA");
+        parametersHeading.Margin = new Thickness(0,0,0,16);
+        root.Children.Add(parametersHeading);
         _colorSettingsSection = new StackPanel();
-        _colorToolHeading = new TextBlock { Text="ЦВЕТ КИСТИ", Tag="Heading", Foreground=BrushFrom("#FF9DA4B2"), FontSize=10, Margin=new Thickness(0,0,0,8) };
+        _colorToolHeading = CreateHeadingText("ЦВЕТ КИСТИ");
+        _colorToolHeading.Foreground = BrushFrom("#FF9DA4B2");
+        _colorToolHeading.Margin = new Thickness(0,0,0,8);
         _colorSettingsSection.Children.Add(_colorToolHeading);
         Grid paletteGrid=new(){Width=230,Height=178,HorizontalAlignment=HorizontalAlignment.Left};
         paletteGrid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
@@ -352,7 +343,10 @@ public partial class MainWindow : Window
         _colorHexText.PreviewKeyDown+=(_,e)=>{if(e.Key==Key.Enter){ApplyHexColorInput();e.Handled=true;}};
         _colorHexText.LostKeyboardFocus+=(_,_)=>ApplyHexColorInput();
         _colorSettingsSection.Children.Add(_colorHexText);
-        _colorSettingsSection.Children.Add(new TextBlock{Text="ПОСЛЕДНИЕ ЦВЕТА",Tag="Heading",Foreground=BrushFrom("#FF9DA4B2"),FontSize=9,Margin=new Thickness(0,12,0,5)});
+        TextBlock recentColorsHeading = CreateHeadingText("ПОСЛЕДНИЕ ЦВЕТА");
+        recentColorsHeading.Foreground = BrushFrom("#FF9DA4B2");
+        recentColorsHeading.Margin = new Thickness(0,12,0,5);
+        _colorSettingsSection.Children.Add(recentColorsHeading);
         _recentColorsPanel=new StackPanel{Orientation=Orientation.Horizontal};_colorSettingsSection.Children.Add(_recentColorsPanel);
         _colorHintText=new TextBlock{Text="Выберите оттенок и яркость на палитре. Насыщенность регулируется ползунком справа.",Foreground=BrushFrom("#FF9DA4B2"),FontSize=10,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,14,0,0)};
         _colorSettingsSection.Children.Add(_colorHintText);
@@ -1582,7 +1576,12 @@ public partial class MainWindow : Window
     {
         ModalOverlay.Children.Clear();Grid grid=new();grid.RowDefinitions.Add(new RowDefinition{Height=new GridLength(48)});grid.RowDefinitions.Add(new RowDefinition{Height=new GridLength(1,GridUnitType.Star)});grid.RowDefinitions.Add(new RowDefinition{Height=new GridLength(54)});
         Border card=new(){Width=360,MaxHeight=440,Background=BrushFrom("#FF252832"),BorderBrush=BrushFrom("#FF4A505D"),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(10),Padding=new Thickness(20),HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center,Child=grid};
-        grid.Children.Add(new TextBlock{Text=title,Tag="Heading",Foreground=BrushFrom("#FFE5E8EF"),FontSize=12,FontWeight=FontWeights.SemiBold,VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Center,TextAlignment=TextAlignment.Center});
+        TextBlock modalTitle = CreateHeadingText(title);
+        modalTitle.Foreground = BrushFrom("#FFE5E8EF");
+        modalTitle.VerticalAlignment = VerticalAlignment.Center;
+        modalTitle.HorizontalAlignment = HorizontalAlignment.Center;
+        modalTitle.TextAlignment = TextAlignment.Center;
+        grid.Children.Add(modalTitle);
         Border bodyBorder=new(){Child=body,Margin=new Thickness(0,8,0,8)};Grid.SetRow(bodyBorder,1);grid.Children.Add(bodyBorder);
         StackPanel footer=new(){Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center};
         foreach(var action in actions){Button button=CreatePanelButton(action.Text);button.MinWidth=100;button.Margin=new Thickness(5,0,5,0);button.Template=RoundedToolbarButtonTemplate(10);if(string.Equals(action.Text,"Удалить",StringComparison.OrdinalIgnoreCase)){button.Background=BrushFrom("#FF8F302F");button.Foreground=Brushes.White;}button.Click+=(_,_)=>action.Action();footer.Children.Add(button);}
