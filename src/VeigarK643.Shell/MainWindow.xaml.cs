@@ -1106,6 +1106,9 @@ public partial class MainWindow : Window
             dragging = false;
             sourceIndex = -1;
             targetIndex = -1;
+            // Capture immediately so the pointer can leave the narrow grip while dragging.
+            Mouse.Capture(handle, CaptureMode.Element);
+            e.Handled = true;
         };
 
         handle.PreviewMouseMove += (_, e) =>
@@ -1185,7 +1188,11 @@ public partial class MainWindow : Window
 
         handle.PreviewMouseLeftButtonUp += (_, e) =>
         {
-            if (!dragging) return;
+            if (!dragging)
+            {
+                Mouse.Capture(null);
+                return;
+            }
             dragging = false;
             double currentOffset = rowTransform.Y;
             int finalIndex = targetIndex;
@@ -1223,6 +1230,26 @@ public partial class MainWindow : Window
                     }
                 });
             e.Handled = true;
+        };
+
+        handle.LostMouseCapture += (_, _) =>
+        {
+            if (!dragging) return;
+            dragging = false;
+            row.Opacity = 1;
+            row.Effect = null;
+            Panel.SetZIndex(row, 0);
+            rowTransform.BeginAnimation(
+                TranslateTransform.YProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(rowTransform.Y, 0, TimeSpan.FromMilliseconds(120)));
+            foreach (Grid sibling in getRows())
+            {
+                if (ReferenceEquals(sibling, row)) continue;
+                if (sibling.RenderTransform is TranslateTransform siblingTransform)
+                    siblingTransform.BeginAnimation(
+                        TranslateTransform.YProperty,
+                        new System.Windows.Media.Animation.DoubleAnimation(0, TimeSpan.FromMilliseconds(120)));
+            }
         };
     }
 
