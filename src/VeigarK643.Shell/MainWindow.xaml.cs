@@ -68,7 +68,6 @@ public partial class MainWindow : Window
     private bool _strokeUndoPushed;
     private bool _isGroupRemapping;
     private EditorGroup? _remappingGroup;
-    private bool _isEyedropper;
     private readonly List<Color> _recentColors = new();
     private StackPanel? _recentColorsPanel;
     private StackPanel? _groupManagerContent;
@@ -376,7 +375,6 @@ public partial class MainWindow : Window
 
     private void SetActiveTool(EditorTool tool)
     {
-        _isEyedropper = false;
         _activeTool = tool;
         foreach (Button button in _toolButtons)
         {
@@ -1331,7 +1329,7 @@ public partial class MainWindow : Window
                 choose.Content=label;
                 choose.Click += (_,_) => { SaveCurrentProfile(); LoadProfile(file); _profilesPopup!.IsOpen=false; _profilesPopup=null; };
                 row.Children.Add(choose);
-                TextBlock dragHandle = new() { Text="⠿", FontFamily=new FontFamily("Segoe UI Symbol"), FontSize=17, Foreground=BrushFrom("#FF818A99"), Background=Brushes.Transparent, Width=20, HorizontalContentAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center, HorizontalAlignment=HorizontalAlignment.Left, Margin=new Thickness(5,0,0,0), Cursor=Cursors.SizeAll, ToolTip="Перетащить для изменения порядка запуска" };
+                TextBlock dragHandle = new() { Text="⠿", FontFamily=new FontFamily("Segoe UI Symbol"), FontSize=17, Foreground=BrushFrom("#FF818A99"), Background=Brushes.Transparent, Width=20, TextAlignment=TextAlignment.Center, VerticalAlignment=VerticalAlignment.Center, HorizontalAlignment=HorizontalAlignment.Left, Margin=new Thickness(5,0,0,0), Cursor=Cursors.SizeAll, ToolTip="Перетащить для изменения порядка запуска" };
                 Panel.SetZIndex(dragHandle,3); row.Children.Add(dragHandle);
                 AttachProfileDragDrop(row,dragHandle,profileOrderName,body);
                 Button more = new()
