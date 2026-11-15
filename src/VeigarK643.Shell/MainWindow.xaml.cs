@@ -435,7 +435,7 @@ public partial class MainWindow : Window
                 _selectedKeys.Clear();
                 if (key is not null)
                 {
-                    EditorGroup? group = _groups.FirstOrDefault(candidate => candidate.Keys.Contains(key));
+                    EditorGroup? group = GetPriorityGroupForKey(key);
                     if (group is null) _selectedKeys.Add(key);
                     else _selectedKeys.UnionWith(group.Keys);
                 }
@@ -502,7 +502,7 @@ public partial class MainWindow : Window
                 string? key = FindKeyAt(_dragStart);
                 if (key is not null && _shiftAtStart)
                 {
-                    EditorGroup? group = _groups.FirstOrDefault(candidate => candidate.Keys.Contains(key));
+                    EditorGroup? group = GetPriorityGroupForKey(key);
                     IEnumerable<string> targets = group?.Keys ?? new HashSet<string>(new[] { key }, StringComparer.Ordinal);
                     bool remove = targets.All(_selectedKeys.Contains);
                     foreach (string target in targets)
@@ -1153,7 +1153,7 @@ public partial class MainWindow : Window
             label.Children.Add(new TextBlock{Text=$"  {group.Keys.Count}",Foreground=BrushFrom("#FF9DA4B2"),VerticalAlignment=VerticalAlignment.Center});
             choose.Content=label;choose.Click+=(_,_)=>{_isGroupRemapping=false;_remappingGroup=null;_selectedKeys.Clear();_selectedKeys.UnionWith(group.Keys);RenderSelection();ToolStatusText.Text=$"Выделена группа «{group.Name}» ({group.Keys.Count} клавиш).";ShowGroupsManager();};
             row.Children.Add(choose);
-            TextBlock dragHandle=new(){Text="⠿",FontFamily=new FontFamily("Segoe UI Symbol"),FontSize=17,Foreground=BrushFrom("#FF818A99"),Background=Brushes.Transparent,Width=20,HorizontalContentAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Left,Margin=new Thickness(5,0,0,0),Cursor=Cursors.SizeAll,ToolTip="Перетащить для изменения приоритета"};
+            TextBlock dragHandle=new(){Text="⠿",FontFamily=new FontFamily("Segoe UI Symbol"),FontSize=17,Foreground=BrushFrom("#FF818A99"),Background=Brushes.Transparent,Width=20,TextAlignment=TextAlignment.Center,VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Left,Margin=new Thickness(5,0,0,0),Cursor=Cursors.SizeAll,ToolTip="Перетащить для изменения приоритета"};
             Panel.SetZIndex(dragHandle,3);row.Children.Add(dragHandle);AttachGroupDragDrop(row,dragHandle,group);
             Button more=new(){Content="⋯",Foreground=BrushFrom("#FFB8BEC9"),Background=Brushes.Transparent,BorderThickness=new Thickness(0),Template=RoundedToolbarButtonTemplate(14),Cursor=Cursors.Hand,Width=28,Height=28,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,5,0)};
             Panel.SetZIndex(more,2);row.Children.Add(more);
