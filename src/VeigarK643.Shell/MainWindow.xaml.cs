@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     private readonly Stack<EditorSnapshot> _undoHistory = new();
     private readonly Stack<EditorSnapshot> _redoHistory = new();
     private const int HistoryLimit = 250;
+    private const int MaxGroupsPerProfile = 15;
     private readonly List<Button> _toolButtons = new();
     private readonly string _profilesDirectory = IOPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "VeigarConfig", "Profiles");
     private string _activeProfileName = "Основной";
@@ -984,7 +985,7 @@ public partial class MainWindow : Window
 
     private void ShowGroupEditor(EditorGroup? existing)
     {
-        if (existing is null && _groups.Count >= 15)
+        if (existing is null && _groups.Count >= MaxGroupsPerProfile)
         {
             ToolStatusText.Text = "Достигнут максимум: 15 групп клавиш в одном профиле.";
             return;
